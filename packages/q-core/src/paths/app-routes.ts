@@ -54,6 +54,9 @@ export const APP_ROUTES = {
   league: (leagueId: string): string => `/league/${enc(leagueId)}`,
   leagueTeam: (leagueId: string, teamId: string): string =>
     `/league/${enc(leagueId)}/team/${enc(teamId)}`,
+  ghostPlayerInvite: (leagueId: string, teamId: string, ghostUserId: string): string =>
+    `/league/${enc(leagueId)}/team/${enc(teamId)}/invite/${enc(ghostUserId)}`,
+  shortLink: (shortId: string): string => `/v/${enc(shortId)}`,
   sportGame: (leagueId: string, gameId: string): string =>
     `/league/${enc(leagueId)}/game/${enc(gameId)}`,
   sportGameScoring: (leagueId: string, gameId: string): string =>

@@ -17,6 +17,7 @@ export const COLLECTION_REFS = {
   gameLocations: (): [string] => [COLLECTIONS.GAME_LOCATIONS],
   waiverTemplates: (): [string] => [COLLECTIONS.WAIVER_TEMPLATES],
   signedWaivers: (): [string] => [COLLECTIONS.SIGNED_WAIVERS],
+  shortLinks: (): [string] => [COLLECTIONS.SHORT_LINKS],
   hardwareLoanContracts: (): [string] => [COLLECTIONS.HARDWARE_LOAN_CONTRACTS],
   awardDefinitions: (): [string] => [COLLECTIONS.AWARD_DEFINITIONS],
   statsValidationReports: (): [string] => [COLLECTIONS.STATS_VALIDATION_REPORTS],

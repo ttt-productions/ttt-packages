@@ -160,7 +160,7 @@ export const SIGNATURE_ACCEPT: MediaAccept = {
   mimes: [SIGNATURE_CONTENT_TYPE],
 };
 
-function signatureOriginSpec(): MediaOriginSpec {
+function signatureOriginSpec(allowSignedOut: boolean): MediaOriginSpec {
   return {
     kind: 'generic',
     accept: SIGNATURE_ACCEPT,
@@ -172,7 +172,7 @@ function signatureOriginSpec(): MediaOriginSpec {
       allowRecordAudio: false,
     },
     preserveOriginal: true,
-    allowSignedOut: false,
+    allowSignedOut,
   };
 }
 
@@ -182,8 +182,9 @@ export const MEDIA_ORIGIN_SPECS: Readonly<Record<FileOrigin, MediaOriginSpec>> =
   'landing-picture': pictureOriginSpec(PICTURE_KINDS['landing-picture']),
   'location-picture': pictureOriginSpec(PICTURE_KINDS['location-picture']),
   'award-badge': pictureOriginSpec(PICTURE_KINDS['award-badge']),
-  'waiver-signature': signatureOriginSpec(),
-  'hardware-signature': signatureOriginSpec(),
+  // A ghost player's invite signs before the person is signed in.
+  'waiver-signature': signatureOriginSpec(true),
+  'hardware-signature': signatureOriginSpec(false),
 };
 
 export function isFileOrigin(value: string): value is FileOrigin {

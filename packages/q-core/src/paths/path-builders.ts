@@ -130,6 +130,7 @@ export const PATH_BUILDERS = {
     COLLECTIONS.SIGNED_WAIVERS,
     buildSignedWaiverId(leagueId, userId),
   ],
+  shortLink: (shortId: string): [string, string] => [COLLECTIONS.SHORT_LINKS, shortId],
   hardwareLoanContract: (contractId: string): [string, string] => [
     COLLECTIONS.HARDWARE_LOAN_CONTRACTS,
     contractId,

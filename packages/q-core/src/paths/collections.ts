@@ -21,6 +21,8 @@ export const COLLECTIONS = {
   SIGNED_WAIVERS: 'signedWaivers',
   HARDWARE_LOAN_CONTRACTS: 'hardwareLoanContracts',
 
+  SHORT_LINKS: 'shortLinks',
+
   AWARD_DEFINITIONS: 'awardDefinitions',
   SPORT_HALL_OF_FAME: 'sportHallOfFame',
   STATS_VALIDATION_REPORTS: 'statsValidationReports',

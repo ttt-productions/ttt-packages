@@ -83,12 +83,14 @@ describe('the origin registry', () => {
     }
   });
 
-  it('gives every origin both settings, and no origin allows a signed-out upload yet', () => {
+  it('gives every origin both settings, and only the waiver signature allows a signed-out upload', () => {
     for (const [origin, spec] of Object.entries(MEDIA_ORIGIN_SPECS)) {
       expect(typeof spec.preserveOriginal, `${origin} says processed or kept as given`).toBe(
         'boolean',
       );
-      expect(spec.allowSignedOut, `${origin} is signed in only`).toBe(false);
+      expect(spec.allowSignedOut, `${origin} signed-out setting`).toBe(
+        origin === 'waiver-signature',
+      );
     }
     for (const origin of SIGNATURE_ORIGIN_KEYS) {
       expect(MEDIA_ORIGIN_SPECS[origin].processing, `${origin} is never processed`).toBeUndefined();

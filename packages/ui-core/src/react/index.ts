@@ -4,6 +4,8 @@ export type { ButtonProps } from './components/button.js';
 export { Button, buttonVariants } from './components/button.js';
 export type { SpinnerProps, SpinnerSize } from './components/spinner.js';
 export { Spinner } from './components/spinner.js';
+export type { QrCodeProps } from './components/qr-code.js';
+export { QrCode } from './components/qr-code.js';
 export {
   Card,
   CardHeader,

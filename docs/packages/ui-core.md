@@ -76,6 +76,13 @@ field's money declaration (`moneyFormat`, a `DeclaredMoneyFormat` from `input-fo
 - It renders `Input` (`textEntry: "numeric"`, `inputMode: "decimal"`), so it looks like every other
   form control, and it forwards its ref.
 
+## QR code — `QrCode`
+
+`QrCode({ value, label, className })` draws `value` as a QR code in an inline SVG through the `uqr`
+encoder, with the four-module quiet zone a phone camera needs. It is an image named by `label`. Its
+modules are `--neutral-black` on a `--neutral-white` ground in every theme, because a scanner may not
+read an inverted code. Its default size is `h-48 w-48`; a caller may resize it with `className`.
+
 ## Progress
 
 `Progress` reports what it draws: its `value`, clamped to 0–`max` (default 100), is the bar's fill and the `progressbar`'s `aria-valuenow`, with `data-state` `loading` below `max` and `complete` at it. With no value it is indeterminate — no `aria-valuenow`, never a made-up 0. A caller's own `aria-valuetext` replaces the spoken percentage.

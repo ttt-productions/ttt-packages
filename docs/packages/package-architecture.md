@@ -47,7 +47,9 @@ package may consume either.
   `firebase-helpers/client`),
   `realtime-core` (→ `edge-protocol-core`; generic runtime-neutral realtime
   primitives), `notification-core` (→ `firebase-helpers`; its server helpers take the
-  `firebase-helpers/server` Firestore contract — its UI/query needs are optional peers).
+  `firebase-helpers/server` Firestore contract — its UI/query needs are optional peers),
+  `short-link-core` (→ `firebase-helpers`; its create and lookup cores take the
+  `firebase-helpers/server` Firestore contract — React is an optional peer of its `./react`).
 - **Tier 2:** `media-viewer` (→ `media-schemas`, `ui-core`), `file-input`
   (→ `ui-core`, `media-schemas`, `media-viewer`), `consent-core` (no internal runtime deps; its
   `./react` entry builds on the optional peers `theme-core` and `ui-core`).
@@ -63,7 +65,7 @@ package may consume either.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
   `edge-protocol-core`, `input-format-core`, `media-schemas`, `notification-core`,
   `report-core`) for ttt-prod, and `q-core` (→ `edge-protocol-core`, `input-format-core`,
-  `media-schemas`, `notification-core`, `theme-core`) for Q-Sports. Each is governed by its own app's
+  `media-schemas`, `notification-core`, `short-link-core`, `theme-core`) for Q-Sports. Each is governed by its own app's
   rulebook (RULE-STD-ARCH-207), and neither imports the other.
 
 The internal runtime-dependency edges (peer and dev edges are left out here; the
@@ -79,12 +81,14 @@ build and release order still honors them):
     upload-core            -> firebase-helpers, media-schemas
     query-core             -> firebase-helpers
     notification-core      -> firebase-helpers
+    short-link-core        -> firebase-helpers
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               input-format-core, media-schemas,
                               notification-core, report-core
     q-core                 -> edge-protocol-core, input-format-core,
-                              media-schemas, notification-core, theme-core
+                              media-schemas, notification-core,
+                              short-link-core, theme-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               ui-core, upload-ui, mobile-core, firebase-helpers
 

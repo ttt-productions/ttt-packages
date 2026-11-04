@@ -312,3 +312,13 @@ export const STATS_DISCREPANCY_KIND_KEYS = [
   ...AGGREGATE_TIER_DISCREPANCY_KIND_KEYS,
 ] as const;
 export type StatsDiscrepancyKind = (typeof STATS_DISCREPANCY_KIND_KEYS)[number];
+
+export const SHORT_LINK_TARGET_TYPE_KEYS = ['ghostPlayerInvite'] as const;
+export type ShortLinkTargetType = (typeof SHORT_LINK_TARGET_TYPE_KEYS)[number];
+
+export const GHOST_PLAYER_INVITE_REFUSAL_KEYS = [
+  'inviteExpired',
+  'alreadyOnTeam',
+  'registrationRequired',
+] as const;
+export type GhostPlayerInviteRefusal = (typeof GHOST_PLAYER_INVITE_REFUSAL_KEYS)[number];

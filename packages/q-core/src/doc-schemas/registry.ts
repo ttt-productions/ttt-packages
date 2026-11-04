@@ -39,6 +39,7 @@ import {
 } from './team-membership.js';
 import { HistoricalStatsSchema, UserPrivateDataSchema, UserProfileSchema } from './user-profile.js';
 import { HardwareLoanContractSchema, SignedWaiverSchema } from './waivers-and-hardware.js';
+import { ShortLinkSchema } from './short-link.js';
 import {
   WaiverTemplateRegistrySchema,
   WaiverTemplateSchema,
@@ -72,6 +73,7 @@ export const COLLECTION_SCHEMAS = {
   'waiverTemplates/{waiverTemplateId}/waiverTemplateVersions/{versionId}':
     WaiverTemplateVersionSchema,
   'signedWaivers/{signedWaiverId}': SignedWaiverSchema,
+  'shortLinks/{shortId}': ShortLinkSchema,
   'hardwareLoanContracts/{contractId}': HardwareLoanContractSchema,
 
   'awardDefinitions/{awardId}': AwardDefinitionSchema,

@@ -309,9 +309,10 @@ describe('hardware loan contracts', () => {
   it('uploads its signature as a signature origin, never a picture', () => {
     expect(isSignatureOrigin('hardware-signature')).toBe(true);
     expect(isPictureOrigin('hardware-signature')).toBe(false);
-    expect(MEDIA_ORIGIN_SPECS['hardware-signature']).toEqual(
-      MEDIA_ORIGIN_SPECS['waiver-signature'],
-    );
+    expect(MEDIA_ORIGIN_SPECS['hardware-signature']).toEqual({
+      ...MEDIA_ORIGIN_SPECS['waiver-signature'],
+      allowSignedOut: false,
+    });
   });
 });
 
