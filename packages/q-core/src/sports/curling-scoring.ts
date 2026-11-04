@@ -155,10 +155,10 @@ export const CURLING_SCORING: SportScoring = {
   contribution: (game) => buildGameContribution(CURLING_CONTRIBUTION, game),
 };
 
-export const CURLING_ROUNDS: RoundsDisplay = { count: CURLING_ROUND_COUNT, label: 'Round' };
+export const CURLING_ROUNDS: RoundsDisplay = { count: CURLING_ROUND_COUNT, label: 'End' };
 
 export const CURLING_EVENT_LABELS = {
-  [CURLING_ROUND_SCORE_EVENT_TYPE]: { button: 'Score', play: 'Round score' },
+  [CURLING_ROUND_SCORE_EVENT_TYPE]: { button: 'Score', play: 'End score' },
   [CURLING_ROUND_BLANK_EVENT_TYPE]: { button: '+0 (Blank)', play: 'Blank end' },
 } as const satisfies Record<CurlingStatEventType, StatEventLabel>;
 
@@ -190,11 +190,11 @@ export const CURLING_SCORING_PANEL: RoundsScoringPanel = {
   maxPoints: MAX_CURLING_ROUND_POINTS,
 };
 
-export const CURLING_ROUND_POINTS_MESSAGE = `A round is worth 0 to ${MAX_CURLING_ROUND_POINTS} points.`;
+export const CURLING_ROUND_POINTS_MESSAGE = `An end is worth 0 to ${MAX_CURLING_ROUND_POINTS} points.`;
 export const CURLING_ONE_SCORING_TEAM_MESSAGE =
-  'A round is scored by one team (the other 0 or empty), blank (0 for every team), or left empty.';
+  'An end is scored by one team (the other 0 or empty), blank (0 for every team), or left empty.';
 export const CURLING_NO_SKIPPED_ROUND_MESSAGE =
-  'Rounds are recorded in order: fill in every earlier round first.';
+  'Ends are recorded in order: fill in every earlier end first.';
 
 type RoundOutcome =
   | { readonly kind: 'unrecorded' }

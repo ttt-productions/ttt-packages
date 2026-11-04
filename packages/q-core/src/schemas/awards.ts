@@ -87,7 +87,6 @@ export const UpdateUserProfileFeaturedAwardsInputSchema = z.discriminatedUnion('
     .object({ action: z.literal('set'), slot: featuredAwardSlotSchema, awardId: awardIdSchema })
     .strict(),
   z.object({ action: z.literal('clear'), slot: featuredAwardSlotSchema }).strict(),
-  z.object({ action: z.literal('swap') }).strict(),
 ]);
 export type UpdateUserProfileFeaturedAwardsInput = z.infer<
   typeof UpdateUserProfileFeaturedAwardsInputSchema

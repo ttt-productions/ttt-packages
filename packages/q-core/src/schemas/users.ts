@@ -124,6 +124,13 @@ export type AdminUpdateAdminListResult = z.infer<typeof AdminUpdateAdminListResu
 export const ADMIN_SELF_REVOKE_REFUSAL =
   "You can't revoke your own admin standing. Ask another admin to do it.";
 
+export const ROLE_GRANT_INACTIVE_REFUSAL = 'Only an active account can be granted a role.';
+
+export const DISPLAY_NAME_TAKEN_MESSAGE =
+  'That name is already taken. Please choose a different one.';
+
+export const REGISTRATION_CLOSED_MESSAGE = 'Registration is currently closed.';
+
 export const AdminUpdateUserProfileStatusInputSchema = z
   .object({ userId: userIdSchema, userStatus: userStatusSchema, reason: repairReasonSchema })
   .strict();

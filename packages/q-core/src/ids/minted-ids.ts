@@ -14,6 +14,10 @@ export function buildGhostUserIdForRequest(requestId: string): string {
   return `${GHOST_USER_ID_PREFIX}req_${requestId}`;
 }
 
+export function buildHardwareLoanContractIdForRequest(requestId: string): string {
+  return `req_${requestId}`;
+}
+
 export function buildSportGameId(nowMs: number, suffix: string): string {
   return `${nowMs}_${suffix}`;
 }

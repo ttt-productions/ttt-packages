@@ -9,6 +9,7 @@ export const AdminCreateHardwareLoanContractInputSchema = z
   .object({
     refereeUserId: userIdSchema,
     hardwareItemIds: z.array(hardwareCatalogItemIdSchema).min(1).max(HARDWARE_CATALOG.length),
+    requestId: z.uuid(),
   })
   .strict()
   .refine((input) => new Set(input.hardwareItemIds).size === input.hardwareItemIds.length, {

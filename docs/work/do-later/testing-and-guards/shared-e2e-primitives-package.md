@@ -18,6 +18,13 @@ It follows the same pattern as `repo-guards`:
 - the app supplies only its facts (profile root, target URL, selectors, flows), never logic;
 - copies that differ are drift, and the package carries the stronger logic of both.
 
+## The starting point
+
+Q-Sports builds this code first as its `testing-foundations/` folder, guarded to import nothing from
+the app and to hold no app vocabulary, taking the stronger of the two apps' versions of each
+primitive (Q-Sports `docs/work/projects/migration-2.0/paths/PATHS.md` § The shared E2E code is
+built into a movable folder). When it runs green on hosted dev, the package is that folder, moved.
+
 ## The gap
 
 For the launch, Q-Sports copies ttt-prod's hosted E2E harness (renamed and adapted) instead of

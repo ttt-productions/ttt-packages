@@ -98,6 +98,8 @@ export const GAME_STATUS_ON_CREATE = 'scheduled' as const satisfies GameStatus;
 
 export const GAME_STATUS_ON_REOPEN = 'inprogress' as const satisfies GameStatus;
 
+export const GAME_STATUS_ON_FIRST_PLAY = 'inprogress' as const satisfies GameStatus;
+
 // Only a pending invitation or join request exists: answering, withdrawing, or the person joining
 // the team deletes it.
 export const TEAM_INVITATION_STATUS_KEYS = ['pending'] as const;

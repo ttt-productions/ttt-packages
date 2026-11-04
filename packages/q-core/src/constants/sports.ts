@@ -69,8 +69,8 @@ export const STAT_EVENT_REFUSAL_COPY = {
   assistNotAllowed:
     'Only a 2- or 3-point basket can be assisted, and never by the player who scored it.',
   playerNotAllowed: "That stat is the team's; it cannot name a player.",
-  roundNotNext: 'That round is not the next one to record.',
-  roundsComplete: 'Every round is already recorded.',
+  roundNotNext: 'That end is not the next one to record.',
+  roundsComplete: 'Every end is already recorded.',
   bulkValueInvalid:
     'That entry is not a real result: stats are whole numbers and never go below zero.',
   eventIdConflict:
@@ -81,7 +81,7 @@ export const STAT_EVENT_REFUSAL_COPY = {
 
 export const STATS_MIGRATION_OPERATION_ID = 'migration';
 export const FINALIZATION_NOT_READY_COPY = {
-  roundsIncomplete: 'Every round must be recorded before the game can be finalized.',
+  roundsIncomplete: 'Every end must be recorded before the game can be finalized.',
 } as const satisfies Record<FinalizationNotReadyReason, string>;
 
 export const HALL_OF_FAME_MINIMUM_GAMES_CHOICES = [25, 50, 100] as const;

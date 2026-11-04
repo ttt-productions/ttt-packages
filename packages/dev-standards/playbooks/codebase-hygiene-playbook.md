@@ -944,7 +944,9 @@ pending, empty, and error states — uses its one canonical component, variant, 
 raw primitives, local wrapper copies, copied style blocks, and one-off variants are the findings. **Two
 RULE-STD-FRONTEND-006 constraints, checked on every touched surface:** a state change swaps the ICON,
 never the color or variant; and destructive red appears only on the confirm action inside a dialog (and
-urgency text) — inline destructive triggers render neutral. Every page wraps its content in the one page
+urgency text) — inline destructive triggers render neutral. On a member-facing screen a destructive
+action on an item sits in the one "…" menu; on an admin page it may sit inline on its row, behind its
+confirmation dialog. Every page wraps its content in the one page
 column, every page card uses the one card recipe, and every title and name truncates through theme-core's
 `.single-line-truncate` (a few-line text block through `.three-line-clamp`), with no app copy of either
 (RULE-STD-FRONTEND-007). A duplicate is reported with

@@ -112,7 +112,7 @@ describe('the award catalog', () => {
     expect(UserProfileSchema.shape.secondaryAwardId.safeParse('').success).toBe(false);
   });
 
-  it('takes the one change the person made to a featured slot: set, clear, or swap', () => {
+  it('takes the one change the person made to a featured slot: set or clear', () => {
     expect(
       UpdateUserProfileFeaturedAwardsInputSchema.safeParse({
         action: 'set',
@@ -131,9 +131,6 @@ describe('the award catalog', () => {
       UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'clear', slot: 'secondary' })
         .success,
     ).toBe(true);
-    expect(UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'swap' }).success).toBe(
-      true,
-    );
   });
 
   it('never takes the whole pair, an unknown slot or intent, or a field another intent carries', () => {
@@ -168,16 +165,18 @@ describe('the award catalog', () => {
         awardId: 'a1',
       }).success,
     ).toBe(false);
-    expect(
-      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'swap', slot: 'primary' })
-        .success,
-    ).toBe(false);
+    expect(UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'swap' }).success).toBe(
+      false,
+    );
   });
 
   it('never names the account', () => {
     expect(
-      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'swap', userId: 'u2' })
-        .success,
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({
+        action: 'clear',
+        slot: 'primary',
+        userId: 'u2',
+      }).success,
     ).toBe(false);
   });
 });
@@ -271,30 +270,41 @@ describe('hardware loan contracts', () => {
     ).not.toHaveProperty('signatureDataUrl');
   });
 
-  it('is created for catalog items named once, and signed by the caller without naming them', () => {
+  it('is created once per request for catalog items named once, and signed by the caller without naming them', () => {
     const itemId = HARDWARE_CATALOG[0].id;
+    const requestId = '6f1c2a4e-8b3d-4c5e-9f70-1a2b3c4d5e6f';
     expect(
       AdminCreateHardwareLoanContractInputSchema.safeParse({
         refereeUserId: 'ref-1',
+        requestId,
         hardwareItemIds: [itemId],
       }).success,
     ).toBe(true);
     expect(
       AdminCreateHardwareLoanContractInputSchema.safeParse({
         refereeUserId: 'ref-1',
+        requestId,
         hardwareItemIds: [itemId, itemId],
       }).success,
     ).toBe(false);
     expect(
       AdminCreateHardwareLoanContractInputSchema.safeParse({
         refereeUserId: 'ref-1',
+        requestId,
         hardwareItemIds: ['laptop'],
       }).success,
     ).toBe(false);
     expect(
       AdminCreateHardwareLoanContractInputSchema.safeParse({
         refereeUserId: 'ref-1',
+        requestId,
         hardwareItemIds: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      AdminCreateHardwareLoanContractInputSchema.safeParse({
+        refereeUserId: 'ref-1',
+        hardwareItemIds: [itemId],
       }).success,
     ).toBe(false);
     expect(

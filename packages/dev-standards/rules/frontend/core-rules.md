@@ -59,13 +59,16 @@ Code is the value truth: an app's `brand.css` tokens and `components.css` classe
 ### RULE-STD-FRONTEND-006 — State changes swap icons; destructive actions live in the one '…' menu; red lives only inside confirmation dialogs
 **Scope.** apps
 
-**Rule.** A state change swaps the ICON, never the color or variant (the app's addition names its icon pairs). Every destructive action on an item — delete, remove, close, hide, and the like — lives in the app's one shared "…" actions menu and opens its confirmation dialog from there; it never sits inline on the item. The item's secondary actions (a download, a report) sit in the same menu. Red/destructive is reserved for the confirm action **inside that dialog** and for urgency text. Admin actions stay in the app's admin actions.
+**Rule.** A state change swaps the ICON, never the color or variant (the app's addition names its icon pairs). On every member-facing screen, every destructive action on an item — delete, remove, close, hide, and the like — lives in the app's one shared "…" actions menu and opens its confirmation dialog from there; it never sits inline on the item. The item's secondary actions (a download, a report) sit in the same menu. Red/destructive is reserved for the confirm action **inside that dialog** and for urgency text. Admin actions stay in the app's admin actions.
+
+**Admin pages are exempt from the "…" menu.** The "…" menu clause binds member-facing screens only. On a page of the app's admin area, a destructive action may sit inline on its row — a Delete or Remove button beside the item — and still opens its confirmation dialog, with red only on that dialog's confirm. The icon-swap and red clauses bind admin pages as written.
 
 **Why.** Color-swap state is ambiguous across themes and collides with the app's affordance colors; icon-swap reads the same everywhere. An inline destructive control is one mis-tap from a consequential action wherever it sits and however it is colored; one menu per item puts every such action in one known place behind one more deliberate step.
 
 **Prohibits.**
 - A color/variant change to signal state (e.g. a green "success" toggle button); one icon used for two different actions.
-- A destructive control rendered inline on an item, in any color, instead of in the shared "…" menu.
+- On a member-facing screen, a destructive control rendered inline on an item, in any color, instead of in the shared "…" menu.
+- On any screen, admin pages included, a destructive action that runs without its confirmation dialog.
 - A red destructive control anywhere but a dialog's confirm.
 - A second "…" menu or a hand-built dropdown for an item's actions.
 
