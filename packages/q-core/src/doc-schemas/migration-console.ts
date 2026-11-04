@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MIGRATION_ACTION_ID_KEYS } from '../migration-console/action-ids.js';
 import {
+  MAX_MIGRATION_FINDING_CATEGORY_LENGTH,
   MAX_MIGRATION_FINDING_TEXT_LENGTH,
   MAX_MIGRATION_RUN_FINDINGS,
   MIGRATION_DESTINATION_STATE_KEYS,
@@ -15,7 +16,7 @@ export const migrationOperationIdSchema = documentIdSegmentSchema;
 const findingText = z.string().max(MAX_MIGRATION_FINDING_TEXT_LENGTH);
 
 export const MigrationFindingSchema = z.object({
-  category: z.string().min(1).max(64),
+  category: z.string().min(1).max(MAX_MIGRATION_FINDING_CATEGORY_LENGTH),
   id: findingText,
   field: findingText,
   reason: findingText,

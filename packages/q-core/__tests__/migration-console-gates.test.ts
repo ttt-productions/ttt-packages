@@ -18,10 +18,7 @@ import {
   migrationStepsOfKind,
 } from '../src/migration-console/manifest.js';
 import type { ExecutableMigrationStep } from '../src/migration-console/manifest.js';
-import {
-  MAX_MIGRATION_PAGE_SIZE,
-  MIGRATION_COMMIT_WRITE_LIMIT,
-} from '../src/migration-console/run-state.js';
+import { MAX_MIGRATION_PAGE_SIZE } from '../src/migration-console/run-state.js';
 import { migrationPageSizeSchema } from '../src/schemas/migration-console.js';
 
 const NOW = 1_800_000_000_000;
@@ -104,11 +101,21 @@ describe("each action's page ceiling", () => {
     expect(executable(A.copySportGames).maxPageSize).toBe(25);
     expect(executable(A.verifyGameStats).maxPageSize).toBe(25);
     expect(executable(A.copyWaiverTemplates).maxPageSize).toBe(200);
-    expect(executable(A.copyUserProfiles).maxPageSize).toBe(
-      Math.floor(MIGRATION_COMMIT_WRITE_LIMIT / 2),
-    );
-    expect(executable(A.copySportLeagues).maxPageSize).toBe(MIGRATION_COMMIT_WRITE_LIMIT);
     expect(executable(A.verifySportGames).maxPageSize).toBe(MAX_MIGRATION_PAGE_SIZE);
+  });
+
+  it('bounds no page by a count of writes: Firestore bounds a commit by its size, not its writes', () => {
+    for (const id of [
+      A.copyUserProfiles,
+      A.copyHistoricalStats,
+      A.deriveReservedDisplayNames,
+      A.migratePublicUsers,
+      A.copySportLeagues,
+      A.copyLeagueTeams,
+      A.copyTeamMemberships,
+    ]) {
+      expect(executable(id).maxPageSize, id).toBe(MAX_MIGRATION_PAGE_SIZE);
+    }
   });
 
   it('accepts 1 to the chosen action’s ceiling and refuses one more', () => {
@@ -165,7 +172,10 @@ describe('the consumed-source fence', () => {
         A.verifyAwardDefinitions,
       ]),
     );
-    expect(executable(A.deleteV1Users).consumes).toContain(A.migratePublicUsers);
+    expect(executable(A.deleteV1Users).consumes).toContain(A.copyUserProfiles);
+    // The cards are rebuilt from the copied profiles, so removing the V1 `users` leaves them a source.
+    expect(executable(A.deleteV1Users).consumes).not.toContain(A.migratePublicUsers);
+    expect(executable(A.deleteV1Users).consumes).not.toContain(A.verifyPublicUsers);
     expect(executable(A.deleteV1GameRosters).consumes).toContain(A.copySportGames);
   });
 
@@ -195,7 +205,7 @@ describe('the consumed-source fence', () => {
   it('stays fenced after a later real run of the delete that wrote nothing', () => {
     const rerun = { ...run(false), operationId: 'op-2' };
     expect(
-      sourceConsumedBy(A.migratePublicUsers, runsOf({ actionId: A.deleteV1Users, run: rerun })),
+      sourceConsumedBy(A.copyUserProfiles, runsOf({ actionId: A.deleteV1Users, run: rerun })),
     ).toEqual([A.deleteV1Users]);
   });
 

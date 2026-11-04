@@ -1,8 +1,7 @@
 import { MIGRATION_ACTION_IDS as A } from './action-ids.js';
 import type { MigrationActionId } from './action-ids.js';
 import type { RegisteredCollectionPath } from '../doc-schemas/registry.js';
-import { SPORT_KEYS } from '../types/sports.js';
-import { MAX_MIGRATION_PAGE_SIZE, MIGRATION_COMMIT_WRITE_LIMIT } from './run-state.js';
+import { MAX_MIGRATION_PAGE_SIZE } from './run-state.js';
 
 export const MIGRATION_STEP_KIND_KEYS = [
   'executable',
@@ -375,7 +374,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Each `users` document becomes its profile and its owner-only private document, every account active.',
     owningStep: 'auth',
     dependsOn: [A.verifyV1DisplayNamesUnique, A.verifyV1TextFitsLimits],
-    maxPageSize: Math.floor(MIGRATION_COMMIT_WRITE_LIMIT / 2),
   }),
   verifyStep(A.verifyUserProfiles, {
     title: 'Verify the profiles',
@@ -401,7 +399,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'Each pre-Q-Sports career total becomes its sport’s `historicalStats` document.',
     owningStep: 'stat-data-model',
     dependsOn: [A.copyUserProfiles],
-    maxPageSize: Math.floor(MIGRATION_COMMIT_WRITE_LIMIT / SPORT_KEYS.length),
   }),
   verifyStep(A.verifyHistoricalStats, {
     title: 'Verify the historical baselines',
@@ -414,7 +411,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'One reservation per copied profile.',
     owningStep: 'auth',
     dependsOn: [A.copyUserProfiles, A.verifyV1DisplayNamesUnique],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyReservedDisplayNames, {
     title: 'Verify the display-name reservations',
@@ -425,9 +421,9 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   copyStep(A.migratePublicUsers, {
     title: 'Migrate the public identities in place',
     summary:
-      'Each `publicUsers` document is rewritten where it sits: epoch timestamps, the recomputed lowercase name, the ghost flag.',
+      "Each `publicUsers` document is rewritten where it sits: an account's card from its copied profile, a ghost's from its own name.",
     owningStep: 'q-core',
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
+    dependsOn: [A.copyUserProfiles],
   }),
   verifyStep(A.verifyPublicUsers, {
     title: 'Verify the public identities',
@@ -459,7 +455,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Each league under its id — closed leagues included; its pictures arrive with the picture carry.',
     owningStep: 'q-core',
     dependsOn: [A.verifyV1LeagueCapacity, A.verifyV1TextFitsLimits],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifySportLeagues, {
     title: 'Verify the leagues',
@@ -472,7 +467,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'Each team under its id, its season lines in its sport’s shape.',
     owningStep: 'q-core',
     dependsOn: [A.verifyV1LeagueCapacity, A.verifyV1TextFitsLimits],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyLeagueTeams, {
     title: 'Verify the teams',
@@ -487,7 +481,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Each membership under its compound id, `member` becoming `player`; one whose team was not copied into its league is left behind and reported.',
     owningStep: 'q-core',
     dependsOn: [A.copyLeagueTeams],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyTeamMemberships, {
     title: 'Verify the memberships',
@@ -502,7 +495,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Each invitation by id; a pending one whose invitee is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships, A.verifyV1TextFitsLimits],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyTeamInvitations, {
     title: 'Verify the invitations',
@@ -517,7 +509,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Each request by id; a pending one whose requester is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships, A.verifyV1TextFitsLimits],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyTeamJoinRequests, {
     title: 'Verify the join requests',
@@ -532,7 +523,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Each signup under its built id; a signup whose player already joined a team in the league is left behind and reported.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyTeamMemberships],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyLeagueFreeAgents, {
     title: 'Verify the free-agent signups',
@@ -547,7 +537,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Every signed waiver, a ghost’s included, under its id; its signature file stays where it is.',
     owningStep: 'uploads-and-media',
     dependsOn: [A.copyWaiverTemplates],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifySignedWaivers, {
     title: 'Verify the signed waivers',
@@ -563,7 +552,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     dependsOn: [A.verifyV1HardwareContractIdsUnique],
     resumeKey:
       'The V1 collections in turn, each by document id; the resume key is `{collection}/{id}`.',
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyHardwareLoanContracts, {
     title: 'Verify the hardware loan contracts',
@@ -832,7 +820,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'The `waivers` collection.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyWaiverTemplates],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [A.copyWaiverTemplates, A.verifyWaiverTemplates, A.verifyV1TextFitsLimits],
   }),
   deleteStep(A.deleteV1Users, {
@@ -846,8 +833,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       A.verifyUserProfiles,
       A.copyHistoricalStats,
       A.verifyHistoricalStats,
-      A.migratePublicUsers,
-      A.verifyPublicUsers,
       A.verifyV1DisplayNamesUnique,
       A.verifyV1TextFitsLimits,
     ],
@@ -857,7 +842,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'The `teamInvites` collection.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyTeamInvitations],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [A.copyTeamInvitations, A.verifyTeamInvitations, A.verifyV1TextFitsLimits],
   }),
   deleteStep(A.deleteV1JoinRequests, {
@@ -865,7 +849,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'The `joinRequests` collection.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyTeamJoinRequests],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [A.copyTeamJoinRequests, A.verifyTeamJoinRequests, A.verifyV1TextFitsLimits],
   }),
   deleteStep(A.deleteV1FreeAgentSignups, {
@@ -873,7 +856,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'The `freeAgentSignups` collection, left-behind signups included.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyLeagueFreeAgents],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [A.copyLeagueFreeAgents, A.verifyLeagueFreeAgents],
   }),
   deleteStep(A.deleteV1TeamMembers, {
@@ -881,7 +863,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'The `teamMembers` collection.',
     owningStep: 'q-core',
     dependsOn: [A.verifyTeamMemberships],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [A.copyTeamMemberships, A.verifyTeamMemberships],
   }),
   deleteStep(A.deleteV1Teams, {
@@ -889,7 +870,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'The `teams` collection; a team still holding a subcollection is reported and kept.',
     owningStep: 'q-core',
     dependsOn: [A.verifyLeagueTeams],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [
       A.copyLeagueTeams,
       A.verifyLeagueTeams,
@@ -928,7 +908,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'The `waiverSignatures` records; the files stay, named by the copied records.',
     owningStep: 'uploads-and-media',
     dependsOn: [A.verifySignedWaivers],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [A.copySignedWaivers, A.verifySignedWaivers],
   }),
   deleteStep(A.deleteV1HardwareContracts, {
@@ -939,7 +918,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     dependsOn: [A.verifyHardwareLoanContracts],
     resumeKey:
       'The V1 collections in turn, each by document id; the resume key is `{collection}/{id}`.',
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [
       A.copyHardwareLoanContracts,
       A.verifyHardwareLoanContracts,
@@ -973,7 +951,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       A.validateStats,
       A.deleteV1GameRosters,
     ],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [
       A.copySportGames,
       A.verifySportGames,
@@ -1003,7 +980,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'q-core',
     dependsOn: [A.verifySportLeagues, A.verifyV1Pictures],
     orderedAfter: [A.verifyLeaguePlayerStats, A.deleteV1LeagueChats],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [
       A.copySportLeagues,
       A.verifySportLeagues,
@@ -1020,7 +996,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'The `hallOfFame` collection, once every sport that keeps a hall of fame has its rebuilt document.',
     owningStep: 'stat-data-model',
     dependsOn: [A.verifySportHallOfFame],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [A.verifySportHallOfFame],
   }),
   deleteStep(A.deleteV1ValidationReports, {
@@ -1030,7 +1005,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'stat-data-model',
     dependsOn: [A.checkpointV1FirestoreExport],
     orderedAfter: [A.validateStats],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [],
   }),
   deleteStep(A.deleteV1AdminStats, {
@@ -1039,7 +1013,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'The `adminStats` collection. Nothing is copied: the dashboard counts are counted live.',
     owningStep: 'q-core',
     dependsOn: [A.checkpointV1FirestoreExport],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [],
   }),
   verifyStep(A.verifyV1CommerceDiscardable, {
@@ -1056,7 +1029,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyV1CommerceDiscardable],
     resumeKey: 'The six store collections in turn, each by document id.',
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
     consumes: [A.verifyV1CommerceDiscardable],
   }),
 
