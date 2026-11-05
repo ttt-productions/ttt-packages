@@ -264,9 +264,9 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'migration-console',
   }),
   v1CheckStep(A.verifyV1LeagueCapacity, {
-    title: 'Check no V1 league is over capacity',
+    title: 'Check no V1 league or game is over capacity',
     summary:
-      'Lists every V1 league holding more games or teams than a league may. The leagues, teams, and games are copied only once it finds none.',
+      'Lists every V1 league holding more games or teams than a league may; every V1 game side holding more people than a side may, counting the people its plays name off its roster; and every open V1 game holding stats for someone no longer on the team. The leagues, teams, game rosters, and games are copied only once it finds none.',
     owningStep: 'migration-console',
   }),
   v1CheckStep(A.verifyV1HardwareContractIdsUnique, {
@@ -575,6 +575,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary:
       'One entry per team per person in each game, from each V1 roster document’s own team and user.',
     owningStep: 'high-risk-callables',
+    dependsOn: [A.verifyV1LeagueCapacity],
     resumeKey: 'The V1 games by document id; the resume key is the last game id.',
     defaultPageSize: 50,
     maxPageSize: 50,
@@ -863,7 +864,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary: 'The `teamMembers` collection.',
     owningStep: 'q-core',
     dependsOn: [A.verifyTeamMemberships],
-    consumes: [A.copyTeamMemberships, A.verifyTeamMemberships],
+    consumes: [A.copyTeamMemberships, A.verifyTeamMemberships, A.verifyV1LeagueCapacity],
   }),
   deleteStep(A.deleteV1Teams, {
     title: 'Delete the V1 teams',
@@ -938,6 +939,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       A.copySportGames,
       A.verifySportGames,
       A.verifyGameStats,
+      A.verifyV1LeagueCapacity,
     ],
   }),
   deleteStep(A.deleteV1LeagueGames, {

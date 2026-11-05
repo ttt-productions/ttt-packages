@@ -177,6 +177,9 @@ describe('the consumed-source fence', () => {
     expect(executable(A.deleteV1Users).consumes).not.toContain(A.migratePublicUsers);
     expect(executable(A.deleteV1Users).consumes).not.toContain(A.verifyPublicUsers);
     expect(executable(A.deleteV1GameRosters).consumes).toContain(A.copySportGames);
+    // The capacity check reads the V1 game rosters and memberships, so removing either fences it.
+    expect(executable(A.deleteV1GameRosters).consumes).toContain(A.verifyV1LeagueCapacity);
+    expect(executable(A.deleteV1TeamMembers).consumes).toContain(A.verifyV1LeagueCapacity);
   });
 
   it('deletes `landing/admin` in one step that waits on every verification of what it holds', () => {
@@ -264,7 +267,12 @@ describe('the pre-copy V1 data checks', () => {
     ]) {
       expect(dependsOn(copy), copy).toContain(A.verifyV1TextFitsLimits);
     }
-    for (const copy of [A.copySportLeagues, A.copyLeagueTeams, A.copySportGames]) {
+    for (const copy of [
+      A.copySportLeagues,
+      A.copyLeagueTeams,
+      A.copyGameRosterPlayers,
+      A.copySportGames,
+    ]) {
       expect(dependsOn(copy), copy).toContain(A.verifyV1LeagueCapacity);
     }
     expect(dependsOn(A.copyHardwareLoanContracts)).toContain(A.verifyV1HardwareContractIdsUnique);

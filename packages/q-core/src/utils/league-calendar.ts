@@ -14,12 +14,33 @@ export function toLeagueDayKey(epochMs: number): string {
   return LEAGUE_DAY_FORMAT.format(new Date(epochMs));
 }
 
-export function addCalendarDays(dayKey: string, days: number): string {
+// A stored calendar day read as its midnight in UTC, or null when it is not a day.
+export function calendarDayDate(dayKey: string): Date | null {
   const day = new Date(`${dayKey}T00:00:00.000Z`);
-  if (Number.isNaN(day.getTime())) {
+  return Number.isNaN(day.getTime()) ? null : day;
+}
+
+export function addCalendarDays(dayKey: string, days: number): string {
+  const day = calendarDayDate(dayKey);
+  if (day === null) {
     throw new RangeError(`Not a calendar date: '${dayKey}'.`);
   }
   return new Date(day.getTime() + days * DAY_MS).toISOString().slice(0, 10);
+}
+
+// In UTC, the zone `calendarDayDate` reads a calendar day in.
+const GAME_DAY_FORMAT = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'UTC',
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+});
+
+// A game's calendar day as every schedule shows it ("Mon, Jan 5"); a value that is not a day
+// shows as stored.
+export function formatGameDay(dayKey: string): string {
+  const day = calendarDayDate(dayKey);
+  return day ? GAME_DAY_FORMAT.format(day) : dayKey;
 }
 
 // `h23` keeps midnight at hour 0.

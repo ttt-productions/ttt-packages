@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  calendarDayDate,
+  formatGameDay,
   leagueInstantOf,
   toLeagueDayKey,
   toLeagueTimeOfDay,
@@ -76,5 +78,29 @@ describe('toLeagueTimeOfDay', () => {
 
   it('reads midnight as hour zero', () => {
     expect(toLeagueTimeOfDay(Date.UTC(2026, 0, 15, 5, 0))).toBe('00:00');
+  });
+});
+
+describe('calendarDayDate', () => {
+  it('reads a stored calendar day as its midnight in UTC', () => {
+    expect(calendarDayDate('2026-01-05')?.toISOString()).toBe('2026-01-05T00:00:00.000Z');
+  });
+
+  it('reads a value that is not a day as null', () => {
+    expect(calendarDayDate('not a day')).toBeNull();
+  });
+});
+
+describe('formatGameDay', () => {
+  it('shows a game day as its weekday, month and day', () => {
+    expect(formatGameDay('2026-01-05')).toBe('Mon, Jan 5');
+  });
+
+  it('shows the same day wherever the reader is, since a day key carries no zone', () => {
+    expect(formatGameDay('2026-11-01')).toBe('Sun, Nov 1');
+  });
+
+  it('shows a value that is not a day as stored', () => {
+    expect(formatGameDay('not a day')).toBe('not a day');
   });
 });
