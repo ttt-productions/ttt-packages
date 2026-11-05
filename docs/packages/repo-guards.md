@@ -58,6 +58,12 @@ aliases, its owner files, its reviewed exceptions — never logic.
   the stack; `--phase live` runs every live stage, against the running stack. A live-phase stage
   that declares `services` fails, never skips, when they are down — the same rule a stage named in
   `--only` follows. `--phase` takes no `--only`; no `--phase` and no `--only` runs every stage.
+  A listening port is not a ready service: a service may also declare `ready`, which answers why it
+  is not ready yet, and once every port listens the stage waits up to its `readyWaitMs`
+  (`READY_WAIT_MS` by default), asking every `READY_POLL_MS`, and fails, naming each reason, in any
+  run, when a service never answers ready. `functionsEmulatorReady` is that check for the Functions
+  emulator: ready once its `/backends` lists every function the app names, so no stage starts while
+  a codebase's triggers are still loading.
 - **Functions deploys in passes.** `deployFunctionsInPasses` deploys an app's non-function targets
   once, then each targeted codebase on its own, checking after each pass that the codebase's live
   functions are exactly its manifest names and ACTIVE (up to `DEPLOY_PASS_ATTEMPTS` tries,

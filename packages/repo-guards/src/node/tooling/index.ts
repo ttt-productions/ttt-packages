@@ -52,6 +52,7 @@ export {
 } from './dev-login.js';
 export { isStackProcess, killDevStack, listeningOn, type DevStackConfig } from './dev-stack.js';
 export { runEmulatorSeed } from './emulator-seed.js';
+export { functionsEmulatorReady } from './emulator-readiness.js';
 export {
   analyzeFieldLineage,
   runFieldLineageCli,
@@ -80,6 +81,8 @@ export {
 } from './playwright-report.js';
 export {
   GATE_PHASES,
+  READY_POLL_MS,
+  READY_WAIT_MS,
   runQuietGate,
   selectStages,
   type GatePhase,

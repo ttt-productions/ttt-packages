@@ -196,6 +196,53 @@ describe('runQuietGate', () => {
     SLOW_TEST_TIMEOUT_MS,
   );
 
+  describe('a live stage whose services listen', () => {
+    let server: net.Server;
+    let livePort: number;
+
+    beforeAll(async () => {
+      server = net.createServer();
+      livePort = await new Promise<number>((resolve) => {
+        server.listen(0, '127.0.0.1', () => resolve((server.address() as net.AddressInfo).port));
+      });
+    });
+
+    afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+
+    const liveWith = (ready: () => Promise<string | null>, readyWaitMs: number): GateStage => ({
+      ...command('live', 'pass.mjs'),
+      services: [{ name: 'functions', port: livePort, ready }],
+      readyWaitMs,
+    });
+
+    it(
+      'waits until a service reports ready, then runs the stage',
+      async () => {
+        let asked = 0;
+        const ready = async (): Promise<string | null> =>
+          ++asked < 2 ? 'triggers still loading' : null;
+        expect(await run([liveWith(ready, SLOW_TEST_TIMEOUT_MS)], ['--only', 'live'])).toBe(0);
+        expect(asked).toBe(2);
+        expect(output).toContain('live step');
+        expect(output).toContain('All stages passed');
+      },
+      SLOW_TEST_TIMEOUT_MS,
+    );
+
+    it(
+      'fails the stage, naming why, when a service never reports ready, even in a full run',
+      async () => {
+        const ready = async (): Promise<string | null> => '3 of 9 functions not loaded (a, b, c)';
+        expect(await run([liveWith(ready, 0)], [])).toBe(1);
+        expect(output).toContain(
+          'local services not ready: functions: 3 of 9 functions not loaded (a, b, c)',
+        );
+        expect(output).not.toContain('skipped');
+      },
+      SLOW_TEST_TIMEOUT_MS,
+    );
+  });
+
   it('a usage error exits 2 before any stage runs', async () => {
     expect(await run([command('a', 'pass.mjs')], ['--only', 'nope'])).toBe(2);
     expect(output).not.toContain('Running test gate');

@@ -42,6 +42,7 @@ export type GateStep =
 export interface LiveService {
   name: string;
   port: number;
+  ready?: () => Promise<string | null>;
 }
 
 export const GATE_PHASES = ['start', 'live'] as const;
@@ -55,7 +56,11 @@ export interface GateStage {
   steps: () => readonly GateStep[];
   services?: readonly LiveService[];
   startHint?: string;
+  readyWaitMs?: number;
 }
+
+export const READY_WAIT_MS = 180_000;
+export const READY_POLL_MS = 1_000;
 
 export interface QuietGateConfig {
   title: string;
@@ -141,6 +146,19 @@ export function selectStages(
     }
   }
   return { kind: 'run', only };
+}
+
+async function waitUntilReady(services: readonly LiveService[], waitMs: number): Promise<string[]> {
+  const deadline = performance.now() + waitMs;
+  for (;;) {
+    const answers = await Promise.all(
+      services.map(async (s) => ({ name: s.name, why: s.ready ? await s.ready() : null })),
+    );
+    const pending = answers.filter((a) => a.why !== null);
+    if (pending.length === 0) return [];
+    if (performance.now() >= deadline) return pending.map((a) => `${a.name}: ${a.why}`);
+    await new Promise((resolve) => setTimeout(resolve, READY_POLL_MS));
+  }
 }
 
 function fmtTime(ms: number): string {
@@ -452,6 +470,21 @@ export async function runQuietGate(
           }
         }
         continue;
+      }
+      if (stage.services.some((s) => s.ready)) {
+        heartbeat.begin(`waiting for ${stage.id}'s local services to be ready`);
+        const notReady = await waitUntilReady(stage.services, stage.readyWaitMs ?? READY_WAIT_MS);
+        heartbeat.clear();
+        if (notReady.length > 0) {
+          for (const step of steps) {
+            write(
+              `${RED}✖${RESET} ${step.label} ${DIM}(local services not ready: ${notReady.join('; ')})${RESET}
+`,
+            );
+            results.push({ name: step.label, ok: false });
+          }
+          continue;
+        }
       }
     }
     for (const step of steps) {
