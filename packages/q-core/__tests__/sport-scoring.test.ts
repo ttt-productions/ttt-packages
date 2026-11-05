@@ -602,6 +602,27 @@ describe('display — every play has a line, and every refusal has copy', () => 
     );
   });
 
+  it("describes a football final score entry by the team's new final score, not the change", () => {
+    const raised = event({
+      type: FOOTBALL_BULK_EDIT_EVENT_TYPE,
+      teamId: HOME,
+      value: 3,
+      previousValue: 7,
+    });
+    const lowered = event({
+      type: FOOTBALL_BULK_EDIT_EVENT_TYPE,
+      teamId: AWAY,
+      value: -1,
+      previousValue: 7,
+    });
+    expect(football.display.describeEvent(stored(raised), resolve)).toBe(
+      `Final score entry: Team ${HOME} 10`,
+    );
+    expect(football.display.describeEvent(stored(lowered), resolve)).toBe(
+      `Final score entry: Team ${AWAY} 6`,
+    );
+  });
+
   it("labels a void as an undo and a correction through the sport's field labels, never as a play", () => {
     for (const adapter of SPORT_ADAPTER_LIST) {
       expect(

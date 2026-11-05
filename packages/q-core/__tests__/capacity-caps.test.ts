@@ -8,7 +8,6 @@ import {
   LEAGUE_GAMES_FULL_MESSAGE,
   LEAGUE_TEAMS_FULL_MESSAGE,
   MAX_ACTIVE_TEAM_MEMBERS,
-  MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM,
   MAX_GAME_LOCATIONS,
   MAX_GAME_LOCATION_SUB_LOCATIONS,
   MAX_GAMES_PER_LEAGUE,
@@ -25,7 +24,6 @@ import {
   WEEK_HAS_COMPLETED_GAMES_DELETE_LEAD,
   countCapReachedMessage,
   gameRosterBound,
-  gameSideDepartedFullMessage,
   gameSideFullMessage,
   scheduledGameLabel,
   weekHasCompletedGamesDeleteMessage,
@@ -42,24 +40,22 @@ describe('a team holds at most 30 players, ghost players included', () => {
     expect(MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM).toBe(MAX_ACTIVE_TEAM_MEMBERS);
   });
 
-  it("reads a game side's 30 players plus the 10 departed players who recorded stats in it", () => {
-    expect(MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM).toBe(10);
-    expect(MAX_ROSTER_ENTRIES_PER_TEAM).toBe(40);
+  it('holds on a game side as many people as a team holds, so a full team fits on it', () => {
+    expect(MAX_ROSTER_ENTRIES_PER_TEAM).toBe(MAX_ACTIVE_TEAM_MEMBERS);
+    expect(MAX_ROSTER_ENTRIES_PER_TEAM).toBe(30);
+    expect(MAX_ROSTER_ENTRIES_PER_TEAM).toBe(MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM);
   });
 
   it("bounds a game's whole roster by a full side for each of its teams", () => {
-    expect(gameRosterBound(['team-a', 'team-b'])).toBe(80);
+    expect(gameRosterBound(['team-a', 'team-b'])).toBe(60);
     expect(gameRosterBound(['team-a'])).toBe(MAX_ROSTER_ENTRIES_PER_TEAM);
   });
 
-  it('names the game whose side is full, and what frees a departed place', () => {
+  it('names the game whose side is full', () => {
     const game = scheduledGameLabel('Week 3', '2026-03-04');
     expect(game).toBe('The Week 3 game on 2026-03-04');
     expect(gameSideFullMessage(game)).toBe(
-      "The Week 3 game on 2026-03-04 already has the maximum of 40 people on this team's side.",
-    );
-    expect(gameSideDepartedFullMessage(game)).toBe(
-      "The Week 3 game on 2026-03-04 already keeps the 10 players a side may hold after they leave the team with stats in it. Finalize that game, or take this player's stats off it, first.",
+      "The Week 3 game on 2026-03-04 already has the maximum of 30 people on this team's side.",
     );
   });
 
@@ -187,9 +183,9 @@ describe('the capacity limits an admin reads', () => {
     });
   });
 
-  it('says how a game side splits into players and departed players with the same numbers it enforces', () => {
+  it('names the game side limit in plain words', () => {
     const side = CAPACITY_LIMITS.find((entry) => entry.key === 'gameSidePeople');
-    expect(side?.label).toContain('30 players plus 10 who left the team');
+    expect(side?.label).toBe('People on one side of one game');
   });
 });
 

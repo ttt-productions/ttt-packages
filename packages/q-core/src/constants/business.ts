@@ -47,6 +47,8 @@ export const MAX_APP_VERSION_LENGTH = 64;
 
 export const MAX_LANDING_HERO_TITLE_LENGTH = 200;
 export const MAX_LANDING_ABOUT_TEXT_LENGTH = 5000;
+export const LANDING_OWNER_NAME = 'Q-Sports League';
+export const HERO_ROTATION_INTERVAL_MS = 6000;
 
 export const MAX_WAIVER_TEMPLATE_TITLE_LENGTH = 120;
 export const MAX_WAIVER_TEMPLATE_TEXT_LENGTH = 20000;
@@ -73,17 +75,13 @@ export const TEAM_FULL_MESSAGE = countCapReachedMessage(
   'players',
 );
 export const MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS;
-export const MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM = 10;
-export const MAX_ROSTER_ENTRIES_PER_TEAM =
-  MAX_ACTIVE_TEAM_MEMBERS + MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM;
+export const MAX_ROSTER_ENTRIES_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS;
 export const gameRosterBound = (teamIds: readonly string[]): number =>
   MAX_ROSTER_ENTRIES_PER_TEAM * teamIds.length;
 export const scheduledGameLabel = (weekTitle: string, dayKey: string): string =>
   `The ${weekTitle} game on ${dayKey}`;
 export const gameSideFullMessage = (gameLabel: string): string =>
   countCapReachedMessage(gameLabel, MAX_ROSTER_ENTRIES_PER_TEAM, "people on this team's side");
-export const gameSideDepartedFullMessage = (gameLabel: string): string =>
-  `${gameLabel} already keeps the ${MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM} players a side may hold after they leave the team with stats in it. Finalize that game, or take this player's stats off it, first.`;
 export const GAME_COMPLETED_DELETE_MESSAGE = 'This game is completed, so it cannot be deleted.';
 export const WEEK_HAS_COMPLETED_GAMES_DELETE_LEAD =
   'This week has completed games, which cannot be deleted:';
@@ -142,7 +140,7 @@ export const CAPACITY_LIMITS = [
   },
   {
     key: 'gameSidePeople',
-    label: `People on one side of one game: ${MAX_ACTIVE_TEAM_MEMBERS} players plus ${MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM} who left the team after recording stats in it`,
+    label: 'People on one side of one game',
     limit: MAX_ROSTER_ENTRIES_PER_TEAM,
   },
   { key: 'leagueTeams', label: 'Teams in a league', limit: MAX_TEAMS_PER_LEAGUE },

@@ -38,7 +38,6 @@ import {
 } from './scoring.js';
 import {
   describeStoreEvent,
-  formatSignedValue,
   type Scoreboard,
   type StatEventLabel,
   type StatEventNameResolver,
@@ -170,7 +169,7 @@ export function describeFootballEvent(
   if (!isFootballEvent(event)) return event.type;
   const team = resolve.team(event.teamId);
   if (event.type === FOOTBALL_BULK_EDIT_EVENT_TYPE) {
-    return `${team}: ${formatSignedValue(event.value)} points (${FOOTBALL_EVENT_LABELS[event.type].play.toLowerCase()})`;
+    return `${FOOTBALL_EVENT_LABELS[event.type].play}: ${team} ${event.previousValue + event.value}`;
   }
   return `${team}: ${FOOTBALL_EVENT_LABELS[event.type].play}`;
 }
