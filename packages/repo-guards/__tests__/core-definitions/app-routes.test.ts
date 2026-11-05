@@ -87,6 +87,57 @@ describe('app routes are built by the one route owner', () => {
     ]);
   });
 
+  it('flags a hand-typed home link in every link position', async () => {
+    expect(
+      await run({
+        ...clean,
+        'src/ui/home.tsx': [
+          'export const a = <Link href="/">Home</Link>;',
+          "export const b = <AppLink to={'/'}>Home</AppLink>;",
+          "export const c = () => router.push('/?welcome=1');",
+          "export const d = () => void navigate('/', { replace: true });",
+          "export const e = () => redirect('/#top');",
+          "export const SIGNED_OUT_ROUTE = '/';",
+          "export function f(destination = '/', backHref = '/') { return [destination, backHref]; }",
+          "export const g = { nextRoute: '/' };",
+          "export const h = (route) => (route === '/' ? 1 : 0);",
+          "export const i = <Link href={next ?? '/'}>Home</Link>;",
+        ].join('\n'),
+        'functions/src/email.ts': "export const link = { href: '/' };",
+      }),
+    ).toEqual([
+      'functions/src/email.ts:1 — not on the reviewed list: /',
+      'src/ui/home.tsx:1 — not on the reviewed list: /',
+      'src/ui/home.tsx:2 — not on the reviewed list: /',
+      'src/ui/home.tsx:3 — not on the reviewed list: /?welcome=1',
+      'src/ui/home.tsx:4 — not on the reviewed list: /',
+      'src/ui/home.tsx:5 — not on the reviewed list: /#top',
+      'src/ui/home.tsx:6 — not on the reviewed list: /',
+      'src/ui/home.tsx:7 — not on the reviewed list: /',
+      'src/ui/home.tsx:8 — not on the reviewed list: /',
+      'src/ui/home.tsx:9 — not on the reviewed list: /',
+      'src/ui/home.tsx:10 — not on the reviewed list: /',
+    ]);
+  });
+
+  it('passes a / that is not a page link', async () => {
+    expect(
+      await run({
+        ...clean,
+        'src/lib/plain.ts': [
+          "export const cookie = { path: '/', httpOnly: true };",
+          "export const id = (p) => p.split('/').pop();",
+          "export const robots = { allow: '/' };",
+          "app.post('/', handler);",
+          "export const pathname = usePathname() ?? '/';",
+          "export const isRoot = (path) => path === '/';",
+          "export const signedPath = '/';",
+          'export const dynamic = `/${segment}`;',
+        ].join('\n'),
+      }),
+    ).toEqual([]);
+  });
+
   it('skips the owner module itself when it is a repo file', async () => {
     const repoOwned = facts({ owner: { module: 'src/lib/routes.ts', name: 'ROUTES' } });
     expect(await run({ ...clean, 'src/lib/routes.ts': owner }, repoOwned)).toEqual([]);

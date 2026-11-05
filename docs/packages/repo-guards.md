@@ -197,7 +197,9 @@ this section says what the facts mean, area by area, and never lists them guard 
   reviewed exceptions (guarded literals, length literals, non-segment ids, verbatim fields). The
   route owner adds the module and name that build every app page path, the page roots it builds
   (each a whole leading segment), the trees where no other code may write one, and the reviewed
-  exceptions, among them the framework route files the app names.
+  exceptions, among them the framework route files the app names. The same guard holds the home
+  path `/` where it is used as a link (an `href` or `to`, a navigation call's first argument, a name
+  ending in `route` or `href`, or a comparison against one).
 
 A guard over a security boundary takes only names and paths — which module owns the boundary and
 which sites are reviewed exceptions. What the boundary does is the app's, and stays in its private

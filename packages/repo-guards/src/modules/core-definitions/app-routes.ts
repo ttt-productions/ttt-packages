@@ -66,6 +66,92 @@ export function routeLiterals(file: FileView, routePrefixes: readonly string[]):
     .map(({ text, index }) => ({ index, detail: text.slice(0, 80) }));
 }
 
+const HOME_PATH = /^\/(?:$|[?#])/;
+const NAVIGATION_CALLS = new Set([
+  'push',
+  'replace',
+  'navigate',
+  'redirect',
+  'permanentRedirect',
+  'prefetch',
+]);
+const LINK_ATTRIBUTES = new Set(['href', 'to']);
+const LINK_NAME = /(?:route|href)$/i;
+const EQUALITY = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+const FALLBACK = new Set([
+  ts.SyntaxKind.QuestionQuestionToken,
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.AmpersandAmpersandToken,
+]);
+
+function nameText(name: ts.Node | undefined): string | null {
+  if (!name) return null;
+  if (ts.isIdentifier(name) || ts.isPrivateIdentifier(name)) return name.text;
+  if (ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) return name.text;
+  if (ts.isPropertyAccessExpression(name)) return name.name.text;
+  if (ts.isElementAccessExpression(name)) return nameText(name.argumentExpression);
+  if (ts.isJsxNamespacedName(name)) return name.name.text;
+  return null;
+}
+
+function linkPosition(literal: ts.Node): boolean {
+  let node: ts.Node = literal;
+  let parent = node.parent;
+  while (
+    ts.isParenthesizedExpression(parent) ||
+    ts.isAsExpression(parent) ||
+    ts.isSatisfiesExpression(parent) ||
+    ts.isNonNullExpression(parent) ||
+    ts.isTypeAssertionExpression(parent) ||
+    (ts.isConditionalExpression(parent) && parent.condition !== node) ||
+    (ts.isBinaryExpression(parent) && FALLBACK.has(parent.operatorToken.kind)) ||
+    ts.isJsxExpression(parent)
+  ) {
+    node = parent;
+    parent = node.parent;
+  }
+  if (ts.isJsxAttribute(parent)) return LINK_ATTRIBUTES.has(nameText(parent.name) ?? '');
+  if (ts.isCallExpression(parent) && parent.arguments[0] === node)
+    return NAVIGATION_CALLS.has(nameText(parent.expression) ?? '');
+  if (
+    (ts.isVariableDeclaration(parent) ||
+      ts.isParameter(parent) ||
+      ts.isPropertyAssignment(parent) ||
+      ts.isPropertyDeclaration(parent) ||
+      ts.isBindingElement(parent)) &&
+    parent.initializer === node
+  )
+    return LINK_NAME.test(nameText(parent.name) ?? '');
+  if (ts.isBinaryExpression(parent)) {
+    if (EQUALITY.has(parent.operatorToken.kind))
+      return LINK_NAME.test(nameText(parent.left === node ? parent.right : parent.left) ?? '');
+    if (parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && parent.right === node)
+      return LINK_NAME.test(nameText(parent.left) ?? '');
+  }
+  return false;
+}
+
+export function homeLinkLiterals(file: FileView): Hit[] {
+  const sf = file.sourceFile;
+  const out: Hit[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) &&
+      HOME_PATH.test(node.text) &&
+      linkPosition(node)
+    )
+      out.push({ index: node.getStart(sf), detail: node.text.slice(0, 80) });
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 function pickEntry(entry: unknown): string | null {
   if (typeof entry === 'string') return entry;
   if (entry && typeof entry === 'object') {
@@ -226,10 +312,18 @@ export const appRouteOwnerGuard: GenericGuardDefinition<AppRouteOwnerFacts> = {
         'message, or anywhere else: a route written by hand drifts from its declaration the day the page moves. Build ' +
         `the path with \`${name}\`. A framework route file or another genuine non-route literal is a reviewed exception ` +
         'with its why; an exception that no longer holds such a literal is stale, and so is a page root the owner no ' +
-        'longer builds. The root path `/` is not a page root: every root names at least one whole segment.',
+        'longer builds. The home path `/` is held where it is used as a link: a hand-typed `/` (alone, or before ' +
+        '`?` or `#`) as an `href` or `to`, as the first argument of a navigation call (`push`, `replace`, `navigate`, ' +
+        '`redirect`, `permanentRedirect`, `prefetch`), given to a name ending in `route` or `href`, or compared ' +
+        'against one, is a hand-built home link; a `/` anywhere else (a cookie path, a server route, a path split) ' +
+        'is not a page link.',
       scope: APP_SOURCE,
       match: (file) =>
-        inTrees(file) && file.path !== module ? routeLiterals(file, facts.routePrefixes) : [],
+        inTrees(file) && file.path !== module
+          ? [...routeLiterals(file, facts.routePrefixes), ...homeLinkLiterals(file)].sort(
+              (a, b) => a.index - b.index,
+            )
+          : [],
       allowlist: facts.exceptions,
       samples: {
         flags: [
@@ -237,11 +331,19 @@ export const appRouteOwnerGuard: GenericGuardDefinition<AppRouteOwnerFacts> = {
           { path: `${tree}/probe.tsx`, text: `router.push(\`${prefix}/\${id}/edit\`);` },
           { path: `${tree}/probe.ts`, text: `redirect('${prefix}?tab=a');` },
           { path: `${tree}/probe.ts`, text: `const url = \`\${origin}${prefix}/\${id}\`;` },
+          { path: `${tree}/probe.tsx`, text: `<Link href="/">Home</Link>` },
+          { path: `${tree}/probe.ts`, text: `void navigate('/', { replace: true });` },
+          { path: `${tree}/probe.ts`, text: `export const SIGNED_OUT_ROUTE = '/';` },
+          { path: `${tree}/probe.ts`, text: `const top = route === '/' ? 1 : 0;` },
         ],
         passes: [
           { path: `${tree}/probe.tsx`, text: `<Link href={${name}.home()}>Open</Link>` },
           { path: `${tree}/probe.ts`, text: `const other = '${prefix}x';` },
           { path: `${tree}/probe.ts`, text: `// the page lives at ${prefix}\nconst n = 1;` },
+          { path: `${tree}/probe.ts`, text: `const cookie = { path: '/', httpOnly: true };` },
+          { path: `${tree}/probe.ts`, text: `const id = path.split('/').pop();` },
+          { path: `${tree}/probe.ts`, text: `app.post('/', handler);` },
+          { path: `${tree}/probe.ts`, text: `const pathname = usePathname() ?? '/';` },
         ],
       },
     });
