@@ -65,8 +65,11 @@ once they are built:
 - likely `nav-defaults.test.ts`, `headless-toggle.test.ts`, `file-chooser-primitive.test.ts`, and the
   App Check part of `profile-hygiene.test.ts`.
 
-The rest of that folder proves app code and stays: casting supply, front door, intakes, safety cases,
-run archive, timings.
+The generic halves of the run archive, the timings and casting move with their code, so their tests
+move too: Q-Sports' `testing-foundations/__tests__/` already holds `casting-engine.test.ts`,
+`run-archive.test.ts`, `update-timings.test.ts` and `emulator-client.test.ts` beside the engine
+tests. The rest of that folder proves app code and stays: casting supply and the app's casting roles,
+front door, intakes, safety cases.
 
 **Lessons that move.** The engine lessons in ttt-prod's `e2e-hosted-dev/CONVENTIONS.md` move with
 their fixes. A lesson lives where its fix lives:
@@ -92,11 +95,28 @@ Wherever both apps hold it:
 The Q-Sports files are `e2e/helpers/emulator-client.ts`, `page-helpers.ts`, `e2e/app-check.setup.ts`,
 and `e2e/auth.setup.ts`, plus their ttt-prod counterparts.
 
+### Run harness and casting: the generic half moves, the app half stays
+
+- **Casting:** the discover-or-create engine moves — ask for a situation, discover, else create; the
+  test-identity firewall; shuffled candidates; exclusion lists; person families.
+- **The run harness core** moves: run planning with the path list passed in as data, the run, the
+  failed-run and driver-flake archives, and the timings folding.
+- **The dev-environment readers** move: the read-only Firestore REST reader, built from the project
+  id and a token source the app passes in, and the Google access-token source, given the
+  service-account key path and help text by the app.
+- **Naming families** move: person families (a slug family or one exact account, each with its own
+  prefix, email shape and password, checked as a list) and a thing family, each given its facts by
+  the app.
+
 ### What stays in each app
 
-Every flow that names an app's control, route, role, or copy. Also: casting and catalogues, seeds and
-factories, the front door, safety and adult-media code, the runner (ttt-prod
-`scripts/run-hosted.mjs`), timings, evidence, ledgers, archives, `targets.json`, and `env.ts`.
+Every flow that names an app's control, route, role, or copy. Also:
+- the app's casting roles, naming and catalogue, and its situation helpers;
+- seeds and factories, the front door, safety and adult-media code;
+- the runner's entry script with the app's path registry (ttt-prod `scripts/run-hosted.mjs`), which
+  passes the registry, suite folder, config and checked target into the core;
+- the timings data, evidence, ledgers and archive folders the core writes into;
+- `targets.json` and `env.ts`.
 
 ## Shape
 

@@ -114,9 +114,34 @@ describe('app routes are built by the one route owner', () => {
       'src/ui/home.tsx:5 — not on the reviewed list: /#top',
       'src/ui/home.tsx:6 — not on the reviewed list: /',
       'src/ui/home.tsx:7 — not on the reviewed list: /',
+      'src/ui/home.tsx:7 — not on the reviewed list: /',
       'src/ui/home.tsx:8 — not on the reviewed list: /',
       'src/ui/home.tsx:9 — not on the reviewed list: /',
       'src/ui/home.tsx:10 — not on the reviewed list: /',
+    ]);
+  });
+
+  it('flags a home link opened with assign, given to a redirect name, or built as a template', async () => {
+    expect(
+      await run({
+        ...clean,
+        'src/ui/away.tsx': [
+          "export const a = () => window.location.assign('/');",
+          "export const callbackUrl = '/';",
+          "export const b = (signIn) => signIn({ redirectTo: '/#top', returnTo: '/' });",
+          "export function c(destination = '/') { return destination; }",
+          'export const d = <Link href={`/?tab=${tab}`}>Home</Link>;',
+          'export const e = (router) => router.push(`/#${anchor}`);',
+        ].join('\n'),
+      }),
+    ).toEqual([
+      'src/ui/away.tsx:1 — not on the reviewed list: /',
+      'src/ui/away.tsx:2 — not on the reviewed list: /',
+      'src/ui/away.tsx:3 — not on the reviewed list: /#top',
+      'src/ui/away.tsx:3 — not on the reviewed list: /',
+      'src/ui/away.tsx:4 — not on the reviewed list: /',
+      'src/ui/away.tsx:5 — not on the reviewed list: /?tab=',
+      'src/ui/away.tsx:6 — not on the reviewed list: /#',
     ]);
   });
 
@@ -133,6 +158,8 @@ describe('app routes are built by the one route owner', () => {
           "export const isRoot = (path) => path === '/';",
           "export const signedPath = '/';",
           'export const dynamic = `/${segment}`;',
+          'export const page = <Link href={`/${slug}`}>Open</Link>;',
+          "export class RequestFake { url = '/'; }",
         ].join('\n'),
       }),
     ).toEqual([]);

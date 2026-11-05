@@ -67,7 +67,11 @@ export function routeLiterals(file: FileView, routePrefixes: readonly string[]):
 }
 
 const HOME_PATH = /^\/(?:$|[?#])/;
+// A template's opening text before its first substitution: `/` straight into `?` or `#` is the home
+// path with a built query or hash; `/${segment}` is some other path.
+const HOME_TEMPLATE_HEAD = /^\/[?#]/;
 const NAVIGATION_CALLS = new Set([
+  'assign',
   'push',
   'replace',
   'navigate',
@@ -76,7 +80,8 @@ const NAVIGATION_CALLS = new Set([
   'prefetch',
 ]);
 const LINK_ATTRIBUTES = new Set(['href', 'to']);
-const LINK_NAME = /(?:route|href)$/i;
+const LINK_NAME =
+  /(?:route|href|redirect|redirectto|redirecturl|returnto|returnurl|callbackurl|nexturl|destination)$/i;
 const EQUALITY = new Set([
   ts.SyntaxKind.EqualsEqualsEqualsToken,
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
@@ -146,6 +151,12 @@ export function homeLinkLiterals(file: FileView): Hit[] {
       linkPosition(node)
     )
       out.push({ index: node.getStart(sf), detail: node.text.slice(0, 80) });
+    else if (
+      ts.isTemplateExpression(node) &&
+      HOME_TEMPLATE_HEAD.test(node.head.text) &&
+      linkPosition(node)
+    )
+      out.push({ index: node.getStart(sf), detail: node.head.text.slice(0, 80) });
     ts.forEachChild(node, visit);
   };
   visit(sf);
@@ -313,10 +324,11 @@ export const appRouteOwnerGuard: GenericGuardDefinition<AppRouteOwnerFacts> = {
         `the path with \`${name}\`. A framework route file or another genuine non-route literal is a reviewed exception ` +
         'with its why; an exception that no longer holds such a literal is stale, and so is a page root the owner no ' +
         'longer builds. The home path `/` is held where it is used as a link: a hand-typed `/` (alone, or before ' +
-        '`?` or `#`) as an `href` or `to`, as the first argument of a navigation call (`push`, `replace`, `navigate`, ' +
-        '`redirect`, `permanentRedirect`, `prefetch`), given to a name ending in `route` or `href`, or compared ' +
-        'against one, is a hand-built home link; a `/` anywhere else (a cookie path, a server route, a path split) ' +
-        'is not a page link.',
+        '`?` or `#`, in a string or opening a template) as an `href` or `to`, as the first argument of a navigation ' +
+        'call (`assign`, `push`, `replace`, `navigate`, `redirect`, `permanentRedirect`, `prefetch`), given to a name ' +
+        'ending in `route`, `href`, `redirect`, `redirectTo`, `redirectUrl`, `returnTo`, `returnUrl`, `callbackUrl`, ' +
+        '`nextUrl` or `destination`, or compared against one, is a hand-built home link; a `/` anywhere else (a ' +
+        "cookie path, a server route, a path split, a request's own `url`) is not a page link.",
       scope: APP_SOURCE,
       match: (file) =>
         inTrees(file) && file.path !== module
@@ -335,6 +347,10 @@ export const appRouteOwnerGuard: GenericGuardDefinition<AppRouteOwnerFacts> = {
           { path: `${tree}/probe.ts`, text: `void navigate('/', { replace: true });` },
           { path: `${tree}/probe.ts`, text: `export const SIGNED_OUT_ROUTE = '/';` },
           { path: `${tree}/probe.ts`, text: `const top = route === '/' ? 1 : 0;` },
+          { path: `${tree}/probe.ts`, text: `window.location.assign('/');` },
+          { path: `${tree}/probe.ts`, text: `const callbackUrl = '/';` },
+          { path: `${tree}/probe.ts`, text: `signIn({ redirectTo: '/#top' });` },
+          { path: `${tree}/probe.tsx`, text: `<Link href={\`/?tab=\${tab}\`}>Home</Link>` },
         ],
         passes: [
           { path: `${tree}/probe.tsx`, text: `<Link href={${name}.home()}>Open</Link>` },
@@ -344,6 +360,9 @@ export const appRouteOwnerGuard: GenericGuardDefinition<AppRouteOwnerFacts> = {
           { path: `${tree}/probe.ts`, text: `const id = path.split('/').pop();` },
           { path: `${tree}/probe.ts`, text: `app.post('/', handler);` },
           { path: `${tree}/probe.ts`, text: `const pathname = usePathname() ?? '/';` },
+          { path: `${tree}/probe.tsx`, text: `<Link href={\`/\${slug}\`}>Open</Link>` },
+          { path: `${tree}/probe.ts`, text: `const signedPath = '/';` },
+          { path: `${tree}/probe.ts`, text: `class Fake { url = '/'; }` },
         ],
       },
     });
