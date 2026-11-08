@@ -104,6 +104,14 @@ export const DECLARED_NOUNS = {
   statsBeacon: [COLLECTIONS.APP_CONFIG],
   adminList: [COLLECTIONS.SYSTEM_DATA],
   migrationConsole: [COLLECTIONS.SERVER_DATA],
+  picture: [
+    COLLECTIONS.GALLERY_PICTURES,
+    COLLECTIONS.SPORT_LEAGUES,
+    COLLECTIONS.LEAGUE_TEAMS,
+    COLLECTIONS.GAME_LOCATIONS,
+    COLLECTIONS.AWARD_DEFINITIONS,
+    COLLECTIONS.APP_CONFIG,
+  ],
 } as const satisfies Record<string, readonly string[]>;
 
 export type DeclaredNoun = keyof typeof DECLARED_NOUNS;
