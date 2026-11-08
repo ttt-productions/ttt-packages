@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { THEME_NAMES } from '@ttt-productions/theme-core';
 import { EMAIL_MAX_LENGTH } from '../constants/business.js';
-import { CONTACT_PHONE_INPUT, DISPLAY_NAME_INPUT } from '../constants/text-fields.js';
+import { DISPLAY_NAME_INPUT } from '../constants/text-fields.js';
+import { CONTACT_PHONE_INPUT } from '../constants/phone-fields.js';
 import { BasketballPlayerTotalsSchema, UserLifetimeStatsSchema } from './aggregate-stats.js';
 import { epochMsSchema, userStatusSchema } from './atoms.js';
 import { textFieldSchema } from '../schemas/text-field.js';
+import { storedPhoneFieldSchema } from '../schemas/phone-field.js';
 import { awardIdSchema } from './catalogs.js';
 
 export const themeNameSchema = z.enum(THEME_NAMES);
@@ -32,7 +34,7 @@ export const UserPrivateDataSchema = z.object({
   email: z.string().max(EMAIL_MAX_LENGTH),
   registrationStartedAt: epochMsSchema.optional(),
   orphanDeletionClaimedAt: epochMsSchema.optional(),
-  defaultContactPhone: textFieldSchema(CONTACT_PHONE_INPUT).optional(),
+  defaultContactPhone: storedPhoneFieldSchema(CONTACT_PHONE_INPUT).optional(),
   theme: themeNameSchema.optional(),
   reducedMotion: z.boolean().optional(),
   updatedAt: epochMsSchema,

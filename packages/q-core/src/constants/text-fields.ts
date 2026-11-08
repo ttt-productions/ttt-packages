@@ -3,7 +3,6 @@ import {
   MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
   MAX_APP_VERSION_LENGTH,
   MAX_AWARD_NAME_LENGTH,
-  MAX_CONTACT_PHONE_LENGTH,
   MAX_DISPLAY_NAME_LENGTH,
   MAX_GAME_LOCATION_MEMO_LENGTH,
   MAX_GAME_LOCATION_NAME_LENGTH,
@@ -65,18 +64,6 @@ export const TEAM_NAME_INPUT = defineInputFormat({
   format: 'singleLine',
   min: MIN_TEAM_NAME_LENGTH,
   max: MAX_TEAM_NAME_LENGTH,
-});
-export const CONTACT_PHONE_INPUT = defineInputFormat({
-  label: 'Contact phone',
-  format: 'singleLine',
-  min: 1,
-  max: MAX_CONTACT_PHONE_LENGTH,
-});
-export const OPTIONAL_CONTACT_PHONE_INPUT = defineInputFormat({
-  label: 'Default contact phone',
-  format: 'singleLine',
-  min: 0,
-  max: MAX_CONTACT_PHONE_LENGTH,
 });
 export const AWARD_NAME_INPUT = defineInputFormat({
   label: 'Award name',

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { THEME_NAMES } from '@ttt-productions/theme-core';
-import { EMAIL_MAX_LENGTH, MAX_CONTACT_PHONE_LENGTH } from '../src/constants/business.js';
+import { EMAIL_MAX_LENGTH } from '../src/constants/business.js';
 import { UserPrivateDataSchema, themeNameSchema } from '../src/doc-schemas/user-profile.js';
 import {
   UpdateUserProfileSettingsInputSchema,
@@ -39,25 +39,17 @@ describe('the account settings on privateData', () => {
     }
   });
 
-  it('hold the default contact phone exactly as the settings input accepts it: trimmed, one line, within its cap', () => {
+  it('hold the default contact phone as its 10 stored digits, never as typed', () => {
     const parsed = UserPrivateDataSchema.safeParse({
       ...PRIVATE_DATA,
-      defaultContactPhone: '  555-0100  ',
+      defaultContactPhone: '8148231858',
     });
-    expect(parsed.success && parsed.data.defaultContactPhone).toBe('555-0100');
-    expect(
-      UserPrivateDataSchema.safeParse({ ...PRIVATE_DATA, defaultContactPhone: '   ' }).success,
-    ).toBe(false);
-    expect(
-      UserPrivateDataSchema.safeParse({ ...PRIVATE_DATA, defaultContactPhone: '555\n0100' })
-        .success,
-    ).toBe(false);
-    expect(
-      UserPrivateDataSchema.safeParse({
-        ...PRIVATE_DATA,
-        defaultContactPhone: '5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1),
-      }).success,
-    ).toBe(false);
+    expect(parsed.success && parsed.data.defaultContactPhone).toBe('8148231858');
+    for (const defaultContactPhone of ['814-823-1858', '555-0100', '18148231858', '0148231858']) {
+      expect(
+        UserPrivateDataSchema.safeParse({ ...PRIVATE_DATA, defaultContactPhone }).success,
+      ).toBe(false);
+    }
   });
 
   it('refuse a theme outside the set and a non-boolean motion preference', () => {
@@ -77,8 +69,16 @@ describe('UpdateUserProfileSettingsInputSchema', () => {
       true,
     );
     expect(
-      UpdateUserProfileSettingsInputSchema.safeParse({ defaultContactPhone: '555-0100' }).success,
+      UpdateUserProfileSettingsInputSchema.safeParse({ defaultContactPhone: '814-823-1858' })
+        .success,
     ).toBe(true);
+  });
+
+  it('reads the phone the person typed to its 10 digits', () => {
+    for (const defaultContactPhone of ['8148231858', '(814) 823-1858', '814.823.1858']) {
+      const parsed = UpdateUserProfileSettingsInputSchema.safeParse({ defaultContactPhone });
+      expect(parsed.success && parsed.data.defaultContactPhone).toBe('8148231858');
+    }
   });
 
   it('takes several at once, as the compare prompt saves every differing setting together', () => {
@@ -110,16 +110,19 @@ describe('UpdateUserProfileSettingsInputSchema', () => {
     ).toBe(false);
   });
 
-  it('refuses a theme outside the set, a blank phone, and a phone over its cap', () => {
+  it('refuses a theme outside the set, a blank phone, and a phone that is not a full US number', () => {
     expect(UpdateUserProfileSettingsInputSchema.safeParse({ theme: 'sepia' }).success).toBe(false);
-    expect(
-      UpdateUserProfileSettingsInputSchema.safeParse({ defaultContactPhone: '   ' }).success,
-    ).toBe(false);
-    expect(
-      UpdateUserProfileSettingsInputSchema.safeParse({
-        defaultContactPhone: '5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1),
-      }).success,
-    ).toBe(false);
+    for (const defaultContactPhone of [
+      '   ',
+      '555-0100',
+      '18148231858',
+      '+1 814 823 1858',
+      '014-823-1858',
+    ]) {
+      expect(UpdateUserProfileSettingsInputSchema.safeParse({ defaultContactPhone }).success).toBe(
+        false,
+      );
+    }
   });
 
   it('answers with every setting as committed, null where nothing is saved', () => {
@@ -138,7 +141,7 @@ describe('UpdateUserProfileSettingsInputSchema', () => {
       UpdateUserProfileSettingsResultSchema.safeParse({
         theme: null,
         reducedMotion: null,
-        defaultContactPhone: '5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1),
+        defaultContactPhone: '814-823-1858',
         updatedAt: 5,
       }).success,
     ).toBe(false);

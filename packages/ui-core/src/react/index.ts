@@ -127,6 +127,8 @@ export type {
 export { Input } from './components/input.js';
 export type { MoneyInputProps } from './components/money-input.js';
 export { MoneyInput } from './components/money-input.js';
+export type { PhoneInputProps } from './components/phone-input.js';
+export { PhoneInput } from './components/phone-input.js';
 export {
   Select,
   SelectGroup,

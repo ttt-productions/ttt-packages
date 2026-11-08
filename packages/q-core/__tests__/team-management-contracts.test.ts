@@ -104,11 +104,11 @@ describe('the team-management inputs', () => {
     ).toBe(false);
   });
 
-  it('a contact edit trims the phone and refuses a blank one', () => {
+  it('a contact edit sends the typed phone as its 10 digits and refuses a blank one', () => {
     expect(
-      AdminUpdateLeagueTeamContactInputSchema.parse({ teamId: 't', contactPhone: ' 555-0100 ' })
+      AdminUpdateLeagueTeamContactInputSchema.parse({ teamId: 't', contactPhone: ' 814-823-1858 ' })
         .contactPhone,
-    ).toBe('555-0100');
+    ).toBe('8148231858');
     expect(
       AdminUpdateLeagueTeamContactInputSchema.safeParse({ teamId: 't', contactPhone: ' ' }).success,
     ).toBe(false);

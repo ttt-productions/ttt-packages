@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MAX_CONTACT_PHONE_LENGTH,
   MAX_DISPLAY_NAME_LENGTH,
   MAX_TEAM_NAME_LENGTH,
   MIN_DISPLAY_NAME_LENGTH,
@@ -245,22 +244,17 @@ describe('team creation input', () => {
     leagueId: 'league-1',
     name: 'Hoopers',
     icon: 'Shield',
-    contactPhone: '555-0100',
+    contactPhone: '814-823-1858',
   };
 
-  it('requires the contact phone, bounded by MAX_CONTACT_PHONE_LENGTH', () => {
-    expect(CreateLeagueTeamInputSchema.safeParse(valid).success).toBe(true);
+  it('requires the contact phone as a full US number and sends its 10 digits', () => {
+    const parsed = CreateLeagueTeamInputSchema.safeParse(valid);
+    expect(parsed.success && parsed.data.contactPhone).toBe('8148231858');
     const { contactPhone: _omitted, ...withoutPhone } = valid;
     expect(CreateLeagueTeamInputSchema.safeParse(withoutPhone).success).toBe(false);
-    expect(CreateLeagueTeamInputSchema.safeParse({ ...valid, contactPhone: '   ' }).success).toBe(
-      false,
-    );
-    expect(
-      CreateLeagueTeamInputSchema.safeParse({
-        ...valid,
-        contactPhone: '5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1),
-      }).success,
-    ).toBe(false);
+    for (const contactPhone of ['   ', '555-0100', '18148231858', '014-823-1858']) {
+      expect(CreateLeagueTeamInputSchema.safeParse({ ...valid, contactPhone }).success).toBe(false);
+    }
   });
 
   it('holds the name to the one length rule, measured after trimming', () => {
@@ -496,15 +490,18 @@ describe('leagueTeams and its contact document', () => {
 
   it("holds the team's contact phone on its admin-only document, keyed by the team, naming its league", () => {
     expect(
-      LeagueTeamContactSchema.safeParse({ leagueId: 'L', contactPhone: '555-0100', updatedAt: NOW })
-        .success,
+      LeagueTeamContactSchema.safeParse({
+        leagueId: 'L',
+        contactPhone: '8148231858',
+        updatedAt: NOW,
+      }).success,
     ).toBe(true);
     expect(
       LeagueTeamContactSchema.safeParse({ leagueId: 'L', contactPhone: '', updatedAt: NOW })
         .success,
     ).toBe(false);
     expect(
-      LeagueTeamContactSchema.safeParse({ contactPhone: '555-0100', updatedAt: NOW }).success,
+      LeagueTeamContactSchema.safeParse({ contactPhone: '8148231858', updatedAt: NOW }).success,
     ).toBe(false);
     expect(toPath(PATH_BUILDERS.leagueTeamContact('T'))).toBe(
       toPath([COLLECTIONS.LEAGUE_TEAM_CONTACTS, 'T']),

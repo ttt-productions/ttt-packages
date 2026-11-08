@@ -5,7 +5,6 @@ import type { DeclaredInputFormat } from '@ttt-productions/input-format-core';
 import {
   MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
   MAX_APP_VERSION_LENGTH,
-  MAX_CONTACT_PHONE_LENGTH,
   MAX_DISPLAY_NAME_LENGTH,
   MAX_GAME_LOCATION_MEMO_LENGTH,
   MAX_GAME_LOCATION_NAME_LENGTH,
@@ -33,8 +32,6 @@ import {
 import {
   ANNOUNCEMENT_MESSAGE_INPUT,
   APP_VERSION_INPUT,
-  CONTACT_PHONE_INPUT,
-  OPTIONAL_CONTACT_PHONE_INPUT,
   LEAGUE_DESCRIPTION_INPUT,
   LEAGUE_TITLE_INPUT,
   DISPLAY_NAME_INPUT,
@@ -54,7 +51,7 @@ import {
   WAIVER_TEMPLATE_TEXT_INPUT,
   WAIVER_TEMPLATE_TITLE_INPUT,
 } from '../src/constants/text-fields.js';
-import { LeagueTeamContactSchema, LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
 import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
 import { SportLeagueSchema } from '../src/doc-schemas/sport-league.js';
 import { GameLocationSchema } from '../src/doc-schemas/game-location.js';
@@ -77,12 +74,10 @@ import {
   AdminUpdateAppConfigInputSchema,
 } from '../src/schemas/app-config.js';
 import {
-  AdminUpdateLeagueTeamContactInputSchema,
   AdminUpdateLeagueTeamNameInputSchema,
   CreateGhostPlayerInputSchema,
 } from '../src/schemas/teams.js';
 import {
-  contactPhoneSchema,
   displayNameSchema,
   teamInvitationMessageSchema,
   teamJoinRequestMessageSchema,
@@ -351,39 +346,6 @@ describe("a team's name", () => {
   });
 });
 
-describe("a team's contact phone", () => {
-  it('is one line, required, and declared from the contact-phone cap', () => {
-    expect(CONTACT_PHONE_INPUT).toMatchObject({
-      format: 'singleLine',
-      min: 1,
-      max: MAX_CONTACT_PHONE_LENGTH,
-    });
-  });
-
-  it('accepts exactly the text the contact-phone schema accepts, and keeps the same trimmed value', () => {
-    for (const sample of boundarySamples(1, MAX_CONTACT_PHONE_LENGTH)) {
-      const field = checkInputFormat(sample, CONTACT_PHONE_INPUT);
-      const wire = contactPhoneSchema.safeParse(sample);
-      expect(field.ok, JSON.stringify(sample.slice(0, 20))).toBe(wire.success);
-      if (field.ok && wire.success) expect(field.value).toBe(wire.data);
-    }
-  });
-
-  it('is the number the contact edit sends and the contact document stores, kept as typed once trimmed', () => {
-    const edit = (contactPhone: string) =>
-      AdminUpdateLeagueTeamContactInputSchema.safeParse({ teamId: 't1', contactPhone });
-    expect(edit('   ').success).toBe(false);
-    expect(edit('555\n0100').success).toBe(false);
-    expect(edit('5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1)).success).toBe(false);
-    const kept = edit('  (555) 010-0100 ext. 2  ');
-    expect(kept.success && kept.data.contactPhone).toBe('(555) 010-0100 ext. 2');
-    expect(LeagueTeamContactSchema.shape.contactPhone.safeParse('  555-0100  ').data).toBe(
-      '555-0100',
-    );
-    expect(LeagueTeamContactSchema.shape.contactPhone.safeParse('').success).toBe(false);
-  });
-});
-
 describe("a league's title and description", () => {
   it('are declared from the league limits: the title one line, the description with line breaks', () => {
     expect(LEAGUE_TITLE_INPUT).toMatchObject({
@@ -420,34 +382,6 @@ describe("a league's title and description", () => {
     expect(leagueDescriptionSchema.parse('  Tuesday nights.\nBring water.  ')).toBe(
       'Tuesday nights.\nBring water.',
     );
-  });
-});
-
-describe("the account's optional default contact phone", () => {
-  it('is the contact-phone format with empty allowed', () => {
-    expect(OPTIONAL_CONTACT_PHONE_INPUT).toMatchObject({
-      format: 'singleLine',
-      min: 0,
-      max: MAX_CONTACT_PHONE_LENGTH,
-    });
-  });
-
-  it('accepts empty — removing the saved number — and otherwise exactly what the contact-phone schema accepts', () => {
-    expect(checkInputFormat('', OPTIONAL_CONTACT_PHONE_INPUT)).toMatchObject({
-      ok: true,
-      value: '',
-    });
-    expect(checkInputFormat('   ', OPTIONAL_CONTACT_PHONE_INPUT)).toMatchObject({
-      ok: true,
-      value: '',
-    });
-    for (const sample of boundarySamples(1, MAX_CONTACT_PHONE_LENGTH)) {
-      if (sample.trim() === '') continue;
-      const field = checkInputFormat(sample, OPTIONAL_CONTACT_PHONE_INPUT);
-      const wire = contactPhoneSchema.safeParse(sample);
-      expect(field.ok, JSON.stringify(sample.slice(0, 20))).toBe(wire.success);
-      if (field.ok && wire.success) expect(field.value).toBe(wire.data);
-    }
   });
 });
 

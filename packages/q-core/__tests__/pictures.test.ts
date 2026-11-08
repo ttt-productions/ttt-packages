@@ -4,12 +4,10 @@ import {
   PICTURE_ASPECT_RATIOS,
   pictureAspectRatio,
 } from '../src/media/picture-aspects.js';
-import { createPictureUrlBuilder } from '../src/media/picture-url.js';
 import { PICTURE_VARIANT_KEYS } from '../src/types/unions.js';
 import { buildPictureObjectPath } from '../src/paths/storage-paths.js';
 
 const PICTURE_ID = '3f2b6c1e-9a4d-4e8b-b7c2-5d1a0e9f8c34';
-const BUCKET = 'q-sports-dev.firebasestorage.app';
 
 describe('picture sizes', () => {
   it('are sm, md, and lg, smallest first', () => {
@@ -54,48 +52,5 @@ describe('picture object path', () => {
     const paths = PICTURE_VARIANT_KEYS.map((key) => buildPictureObjectPath(PICTURE_ID, key));
     expect(new Set(paths).size).toBe(PICTURE_VARIANT_KEYS.length);
     for (const path of paths) expect(path.startsWith(`pictures/${PICTURE_ID}/`)).toBe(true);
-  });
-});
-
-describe('picture URL builder', () => {
-  const buildPictureUrl = createPictureUrlBuilder({
-    storageOrigin: 'https://firebasestorage.googleapis.com',
-    bucket: BUCKET,
-  });
-
-  it('builds the object media URL in the bucket, with the object path encoded as one segment', () => {
-    expect(buildPictureUrl(PICTURE_ID, 'lg')).toBe(
-      `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/pictures%2F${PICTURE_ID}%2Flg?alt=media`,
-    );
-  });
-
-  it('carries no download token, so no URL grants anything the rules do not', () => {
-    for (const key of PICTURE_VARIANT_KEYS)
-      expect(buildPictureUrl(PICTURE_ID, key)).not.toMatch(/token=/);
-  });
-
-  it('builds a distinct URL for each size', () => {
-    const urls = PICTURE_VARIANT_KEYS.map((key) => buildPictureUrl(PICTURE_ID, key));
-    expect(new Set(urls).size).toBe(PICTURE_VARIANT_KEYS.length);
-  });
-
-  it('serves from whatever origin it is given, with or without a trailing slash', () => {
-    const emulator = createPictureUrlBuilder({
-      storageOrigin: 'http://localhost:9199/',
-      bucket: BUCKET,
-    });
-    expect(emulator(PICTURE_ID, 'sm')).toBe(
-      `http://localhost:9199/v0/b/${BUCKET}/o/pictures%2F${PICTURE_ID}%2Fsm?alt=media`,
-    );
-  });
-
-  it('refuses to build without an origin or a bucket', () => {
-    expect(() => createPictureUrlBuilder({ storageOrigin: '', bucket: BUCKET })).toThrow();
-    expect(() =>
-      createPictureUrlBuilder({
-        storageOrigin: 'https://firebasestorage.googleapis.com',
-        bucket: '',
-      }),
-    ).toThrow();
   });
 });

@@ -1,7 +1,7 @@
 # @ttt-productions/input-format-core
 
 The one input-format mechanism: every kind of value a person types into a box — text, money in whole cents,
-and further kinds (numbers, decimals) as they are added — has its declaration of what the box
+phone numbers, and further kinds (numbers, decimals) as they are added — has its declaration of what the box
 accepts, and the one check the box and every server bound both run.
 
 ## Owns — text formats
@@ -68,6 +68,34 @@ in what a person types and what a screen shows.
 - **Showing an amount** — `formatMoney(cents, style)`, the one money formatter: `cents` (the default,
   `$1,000.50`), `wholeDollars` (rounded, `$1,001`), or `compact` (`$2.5K`).
 
+## Owns — phone numbers
+
+A phone number is held as its bare digits everywhere it is stored, sent, or checked; the punctuation
+exists only in what a person types and what a screen shows.
+
+- **The named phone formats** (`PhoneFormat`, listed by `PHONE_FORMATS`, recognised by
+  `isPhoneFormat`). Each format's digits, display, and longest typed text are written once, inside
+  the package:
+  - `us` — a US number: exactly 10 digits, the 3-digit area code and the 3-digit exchange each
+    starting 2–9, with no country code; shown as `814-823-1858`.
+- **A phone declaration** — `PhoneFormatSpec`: `format` and `required`. `definePhoneFormat(spec)`
+  returns it frozen as a `DeclaredPhoneFormat` and throws where it is written when its format is
+  unknown. A phone box takes only that
+  type.
+- **Reading typed text** — `readPhoneText(text, spec)` → `PhoneTextResult`. It ignores surrounding
+  space and accepts digits with any spaces, dashes, dots, and parentheses between them, so
+  `8148231858`, `814-823-1858`, and `(814) 823-1858` are all `8148231858`. An empty box reads as
+  `digits: null` when the declaration is optional and refuses with `missing` when it is required.
+  It refuses with `tooLong` (more text than `phoneTextMaxLength(spec)`), `invalidCharacters` (a `+`,
+  a letter, anything else), `tooFewDigits`, `tooManyDigits` (a leading `1` country code is one digit
+  too many), `invalidAreaCode`, or `invalidExchange`.
+- **Checking stored digits** — `checkPhoneDigits(digits, spec)` → `PhoneDigitsResult`: the same
+  digit judgments on a value that must already be the bare digits, so the punctuated form is
+  `invalidCharacters`. Every stored or sent number passes it.
+- **Showing a number** — `formatPhone(digits, spec)`, the one phone formatter, writes the format's
+  display form (`814-823-1858`); a value that is not a stored number is shown as it is, and
+  `readPhoneText` reads the display form back to the same digits.
+
 ## Boundary
 
 - No dependencies, no React, no zod; the root is server-safe (the boundary suite holds it `hard`).
@@ -75,10 +103,10 @@ in what a person types and what a screen shows.
   application's field table, or a generic package's own contract (a chat message's bound lives in
   `chat-schemas`). A generic package that renders a text input takes the declaration from its consumer
   wherever the bound is application policy (RULE-STD-ARCH-201).
-- It builds no schema. A consumer that validates with zod wraps `checkInputFormat` and
-  `checkMoneyCents` in its own schema builders, so there is one zod builder per application rather than one per package.
+- It builds no schema. A consumer that validates with zod wraps `checkInputFormat`,
+  `checkMoneyCents`, and `readPhoneText` / `checkPhoneDigits` in its own schema builders, so there is one zod builder per application rather than one per package.
 - It carries no user-facing copy: an `issue` is a code, and the words shown for it belong to the app.
-- Not a profanity or content filter, and not a format for passwords, emails, phone numbers, web
-  addresses, search queries, files, or colours — those inputs keep the browser's own formats. A kind
-  of value it does not declare yet (a plain number, a decimal) joins as its own declaration and check
-  here, never as a second mechanism elsewhere.
+- Not a profanity or content filter, and not a format for passwords, emails, web addresses, search
+  queries, files, or colours — those inputs keep the browser's own formats. A kind of value it does
+  not declare yet (a plain number, a decimal, a phone number outside the US) joins as its own
+  declaration and check here, never as a second mechanism elsewhere.

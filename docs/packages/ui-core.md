@@ -14,7 +14,7 @@ Generic UI primitive package.
 
 ## Boundary
 
-Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`, and browser runtime with no React behind `./browser`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. Its one internal runtime dependency is `input-format-core` (Tier 1): input formats — text and money — and their checks live there, never here, so the server can run the same check without installing React.
+Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`, and browser runtime with no React behind `./browser`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. Its one internal runtime dependency is `input-format-core` (Tier 1): input formats — text, money, and phone numbers — and their checks live there, never here, so the server can run the same check without installing React.
 
 ## Reload recovery — `ReloadRecoveryNotice`
 
@@ -75,6 +75,26 @@ field's money declaration (`moneyFormat`, a `DeclaredMoneyFormat` from `input-fo
   The consumer's own `aria-invalid` replaces it, and the words shown for either belong to the app.
 - It renders `Input` (`textEntry: "numeric"`, `inputMode: "decimal"`), so it looks like every other
   form control, and it forwards its ref.
+
+## Phone input — `PhoneInput`
+
+A box a person types a phone number into (`./react` → `PhoneInput`, `PhoneInputProps`). It takes the
+field's phone declaration (`phoneFormat`, a `DeclaredPhoneFormat` from `input-format-core`'s
+`definePhoneFormat`) and holds the text as typed, like a native box: `value` and `onChange` are the
+caller's, so a react-hook-form field spreads onto it. Durable contract:
+
+- **Typed text in, the consumer's schema reads it.** The box never refuses a keystroke; the consumer
+  reads its text with `readPhoneText` (through its own schema) into the stored digits.
+- **Shown as the format shows it.** When focus leaves the box and its text reads as a whole number,
+  the box shows `formatPhone`'s form (`814-823-1858`) and delivers it through the caller's own
+  `onChange`, as free-text boxes tidy on blur; the caller's own `onBlur` runs after it. Text that is
+  not a whole number is left exactly as typed.
+- **Marked only when typing more cannot fix it.** `aria-invalid` is set for text `readPhoneText`
+  refuses for any reason but `missing` or `tooFewDigits`, so a half-typed number is not marked.
+  `aria-required` follows the declaration's `required`. A caller's own `aria-invalid` /
+  `aria-required` wins.
+- It renders `Input` with `type: "tel"`, `inputMode: "tel"`, `autoComplete: "tel-national"` (the
+  caller may replace it), and `maxLength` from `phoneTextMaxLength`, and it forwards its ref.
 
 ## QR code — `QrCode`
 

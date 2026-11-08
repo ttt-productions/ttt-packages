@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { CONTACT_PHONE_INPUT, TEAM_NAME_INPUT } from '../constants/text-fields.js';
+import { TEAM_NAME_INPUT } from '../constants/text-fields.js';
+import { CONTACT_PHONE_INPUT } from '../constants/phone-fields.js';
 import {
   countSchema,
   epochMsSchema,
@@ -9,6 +10,7 @@ import {
   userIdSchema,
 } from './atoms.js';
 import { textFieldSchema } from '../schemas/text-field.js';
+import { storedPhoneFieldSchema } from '../schemas/phone-field.js';
 import type { LeagueType } from '../types/sports.js';
 import { SPORT_LINE_SCHEMAS } from './aggregate-stats.js';
 import { GallerySummarySchema } from './gallery.js';
@@ -65,7 +67,7 @@ export type LeagueTeam = z.infer<typeof LeagueTeamSchema>;
 
 export const LeagueTeamContactSchema = z.object({
   leagueId: leagueIdSchema,
-  contactPhone: textFieldSchema(CONTACT_PHONE_INPUT),
+  contactPhone: storedPhoneFieldSchema(CONTACT_PHONE_INPUT),
   updatedAt: epochMsSchema,
 });
 export type LeagueTeamContact = z.infer<typeof LeagueTeamContactSchema>;

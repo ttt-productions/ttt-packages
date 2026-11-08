@@ -25,12 +25,15 @@ export function formatControlAttributes(spec: InputFormatSpec, props: CallerAttr
 }
 
 /** The native value setter plus an input event is what React hears as a typed change. */
-export function tidyOnBlur(box: HTMLInputElement | HTMLTextAreaElement, spec: InputFormatSpec) {
-  if (box.readOnly || box.disabled) return;
-  const kept = checkInputFormat(box.value, spec).value;
-  if (kept === box.value) return;
+export function replaceBoxText(box: HTMLInputElement | HTMLTextAreaElement, text: string) {
+  if (box.readOnly || box.disabled || text === box.value) return;
   const prototype =
     box instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-  Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(box, kept);
+  Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(box, text);
   box.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+export function tidyOnBlur(box: HTMLInputElement | HTMLTextAreaElement, spec: InputFormatSpec) {
+  if (box.readOnly || box.disabled) return;
+  replaceBoxText(box, checkInputFormat(box.value, spec).value);
 }
