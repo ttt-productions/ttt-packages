@@ -489,41 +489,52 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   copyStep(A.copyTeamInvitations, {
     title: 'Copy the invitations',
     summary:
-      'Each invitation by id; a pending one whose invitee is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
+      'Each pending invitation by id; one whose invitee is already on the team, or whose league is closed, is left behind, and one whose team was not copied into its league is left behind and reported.',
     owningStep: 'high-risk-callables',
-    dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships, A.verifyV1TextFitsLimits],
+    dependsOn: [
+      A.copySportLeagues,
+      A.copyLeagueTeams,
+      A.copyTeamMemberships,
+      A.verifyV1TextFitsLimits,
+    ],
   }),
   verifyStep(A.verifyTeamInvitations, {
     title: 'Verify the invitations',
     summary:
-      'Every V1 invitation copied as the transform makes it, or absent because its team is gone.',
+      'Every V1 invitation copied as the transform makes it, or absent because it was answered, its invitee is on the team, its league is closed, or its team is gone.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyTeamInvitations],
   }),
   copyStep(A.copyTeamJoinRequests, {
     title: 'Copy the join requests',
     summary:
-      'Each request by id; a pending one whose requester is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
+      'Each pending request by id; one whose requester is already on the team, or whose league is closed, is left behind, and one whose team was not copied into its league is left behind and reported.',
     owningStep: 'high-risk-callables',
-    dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships, A.verifyV1TextFitsLimits],
+    dependsOn: [
+      A.copySportLeagues,
+      A.copyLeagueTeams,
+      A.copyTeamMemberships,
+      A.verifyV1TextFitsLimits,
+    ],
   }),
   verifyStep(A.verifyTeamJoinRequests, {
     title: 'Verify the join requests',
     summary:
-      'Every V1 request copied as the transform makes it, or absent because its team is gone.',
+      'Every V1 request copied as the transform makes it, or absent because it was answered, its requester is on the team, its league is closed, or its team is gone.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyTeamJoinRequests],
   }),
   copyStep(A.copyLeagueFreeAgents, {
     title: 'Copy the free-agent signups',
     summary:
-      'Each signup under its built id; a signup whose player already joined a team in the league is left behind and reported.',
+      'Each signup under its built id; a signup whose player already joined a team in the league, or whose league is closed, is left behind and reported.',
     owningStep: 'high-risk-callables',
-    dependsOn: [A.copyTeamMemberships],
+    dependsOn: [A.copySportLeagues, A.copyTeamMemberships],
   }),
   verifyStep(A.verifyLeagueFreeAgents, {
     title: 'Verify the free-agent signups',
-    summary: 'Every V1 signup copied, or absent because joining left it behind.',
+    summary:
+      'Every V1 signup copied, or absent because joining or its closed league left it behind.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyLeagueFreeAgents],
   }),

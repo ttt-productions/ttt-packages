@@ -94,6 +94,12 @@ export const LEAGUE_GAMES_FULL_MESSAGE = countCapReachedMessage(
   MAX_GAMES_PER_LEAGUE,
   'games',
 );
+export const MAX_LEAGUE_FREE_AGENTS = MAX_TEAMS_PER_LEAGUE * MAX_ACTIVE_TEAM_MEMBERS;
+export const LEAGUE_FREE_AGENTS_FULL_MESSAGE = countCapReachedMessage(
+  'This league',
+  MAX_LEAGUE_FREE_AGENTS,
+  'free-agent signups',
+);
 
 export const MAX_SCHEDULE_WEEK_GAMES = 20;
 export const SCHEDULE_WEEK_FULL_MESSAGE = countCapReachedMessage(

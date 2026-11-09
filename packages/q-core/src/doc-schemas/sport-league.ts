@@ -71,6 +71,9 @@ export const SportLeagueSchema = z
     // Only its changing matters: the write fence of the MAX_GAMES_PER_LEAGUE cap
     // (RULE-STD-BACKEND-116).
     gameRevision: countSchema.optional(),
+    // Only its changing matters: the write fence of the MAX_LEAGUE_FREE_AGENTS cap
+    // (RULE-STD-BACKEND-116).
+    freeAgentRevision: countSchema.optional(),
     createdAt: epochMsSchema,
     updatedAt: epochMsSchema,
   })
