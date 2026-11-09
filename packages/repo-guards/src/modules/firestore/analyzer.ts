@@ -1213,6 +1213,62 @@ export function packageBuilderReturnKeys({
   return null;
 }
 
+function docsPassThroughIndex(
+  fn: ts.Node,
+  returns: readonly ts.Expression[],
+  params: readonly { name: string | null }[],
+): number | null {
+  const initializers = new Map<string, ts.Expression[]>();
+  const collect = (inner: ts.Node): void => {
+    if (inner !== fn && ts.isFunctionLike(inner)) return;
+    if (ts.isVariableDeclaration(inner) && ts.isIdentifier(inner.name) && inner.initializer) {
+      const seen = initializers.get(inner.name.text) ?? [];
+      seen.push(inner.initializer);
+      initializers.set(inner.name.text, seen);
+    }
+    ts.forEachChild(inner, collect);
+  };
+  ts.forEachChild(fn, collect);
+
+  let found: number | null = null;
+  for (const returnExpr of returns) {
+    const returned = stripWrappers(returnExpr);
+    if (!ts.isPropertyAccessExpression(returned) || returned.name.text !== 'docs') return null;
+    const snapshotName = stripWrappers(returned.expression);
+    if (!ts.isIdentifier(snapshotName)) return null;
+    const declared = initializers.get(snapshotName.text);
+    if (declared?.length !== 1) return null;
+    const read = stripWrappers(declared[0]);
+    if (
+      !ts.isCallExpression(read) ||
+      !ts.isPropertyAccessExpression(read.expression) ||
+      read.expression.name.text !== 'get' ||
+      read.arguments.length > 1
+    )
+      return null;
+    let query: ts.Node = stripWrappers(
+      read.arguments.length === 1 ? read.arguments[0] : read.expression.expression,
+    );
+    for (let hop = 0; hop < 8; hop++) {
+      if (
+        ts.isCallExpression(query) &&
+        ts.isPropertyAccessExpression(query.expression) &&
+        QUERY_PASSTHROUGH.has(query.expression.name.text)
+      ) {
+        query = stripWrappers(query.expression.expression);
+        continue;
+      }
+      break;
+    }
+    if (!ts.isIdentifier(query)) return null;
+    const name = query.text;
+    const index = params.findIndex((parameter) => parameter.name === name);
+    if (index < 0 || (found !== null && found !== index)) return null;
+    found = index;
+  }
+  return found;
+}
+
 function stripWrappers(node: ts.Expression): ts.Expression;
 function stripWrappers(node: ts.Node): ts.Node;
 function stripWrappers(node: ts.Node): ts.Node {
@@ -1749,6 +1805,7 @@ export function analyzeFiles({
   const paramGroups = new Map<string, Set<string>>();
   const returnNonFirestore = new Map<string, string>();
   const returnPassThrough = new Map<string, number>();
+  const returnDocsPassThrough = new Map<string, number>();
   const returnCarrierProperties = new Map<string, Map<string, Value[]>>();
   const returnArrayProperties = new Map<string, Map<string, Value[]>>();
 
@@ -3912,13 +3969,15 @@ export function analyzeFiles({
     function resolveDocElement(expr: ts.Node, state: ResolveState, depth: number): Resolved | null {
       if (depth > RESOLVE_DEPTH) return null;
       const node = stripWrappers(expr);
+      if (ts.isCallExpression(node) && ts.isIdentifier(stripWrappers(node.expression))) {
+        const key = calleeKey(node);
+        const index = key ? returnDocsPassThrough.get(key) : undefined;
+        const query = index === undefined ? undefined : node.arguments[index];
+        if (query) return docsOfQuery(resolve(query, state, depth + 1));
+      }
       if (ts.isPropertyAccessExpression(node) && node.name.text === 'docs') {
-        const collection = resolve(node.expression, state, depth + 1);
-        if (collection && collection.segments) return { segments: [...collection.segments, ANY] };
-        if (collection && collection.group) return { group: collection.group, document: true };
-        if (collection && collection.collections)
-          return templatesFromCollections(collection.collections);
-        if (collection && collection.templates) return { templates: collection.templates };
+        const collection = docsOfQuery(resolve(node.expression, state, depth + 1));
+        if (collection) return collection;
         const snapshot = resolveSnapshot(node.expression, state, depth + 1);
         if (snapshot && snapshot.segments) return { segments: [...snapshot.segments, ANY] };
         if (snapshot && snapshot.group) return { group: snapshot.group, document: true };
@@ -4045,6 +4104,15 @@ export function analyzeFiles({
       if (snapshot?.group) return { group: snapshot.group, document: true };
       if (snapshot?.collections) return templatesFromCollections(snapshot.collections);
       if (snapshot?.templates) return snapshot;
+      return null;
+    }
+
+    function docsOfQuery(collection: Resolved | null): Resolved | null {
+      if (collection && collection.segments) return { segments: [...collection.segments, ANY] };
+      if (collection && collection.group) return { group: collection.group, document: true };
+      if (collection && collection.collections)
+        return templatesFromCollections(collection.collections);
+      if (collection && collection.templates) return { templates: collection.templates };
       return null;
     }
 
@@ -5072,6 +5140,7 @@ export function analyzeFiles({
     const pendingReturnGroups = new Map<string, Set<string>>();
     const pendingReturnArrayProperties = new Map<string, Map<string, Value[]>>();
     const pendingPassThrough = new Map<string, number>();
+    const pendingDocsPassThrough = new Map<string, number>();
     const pendingNonFirestoreReturns = new Map<string, string>();
     resolverCache = new Map();
 
@@ -5139,6 +5208,8 @@ export function analyzeFiles({
           })();
           if (passThroughIndex !== null)
             pendingPassThrough.set(fnKey(facts.relPath, name), passThroughIndex);
+          const docsIndex = docsPassThroughIndex(fn.node, fn.returns, params);
+          if (docsIndex !== null) pendingDocsPassThrough.set(fnKey(facts.relPath, name), docsIndex);
           {
             let reason: string | null = null;
             let allNonFirestore = fn.returns.length > 0;
@@ -5527,6 +5598,7 @@ export function analyzeFiles({
       pendingReturnGroups,
       pendingReturnArrayProperties,
       pendingPassThrough,
+      pendingDocsPassThrough,
       pendingNonFirestoreReturns,
       notFirestore,
       unclassified,
@@ -6208,6 +6280,7 @@ export function analyzeFiles({
       pendingReturnGroups,
       pendingReturnArrayProperties,
       pendingPassThrough,
+      pendingDocsPassThrough,
       pendingNonFirestoreReturns,
     } = sweep({ collectKnowledge: true });
     let changed = false;
@@ -6235,6 +6308,12 @@ export function analyzeFiles({
     for (const [key, index] of pendingPassThrough) {
       if (returnPassThrough.get(key) !== index) {
         returnPassThrough.set(key, index);
+        changed = true;
+      }
+    }
+    for (const [key, index] of pendingDocsPassThrough) {
+      if (returnDocsPassThrough.get(key) !== index) {
+        returnDocsPassThrough.set(key, index);
         changed = true;
       }
     }

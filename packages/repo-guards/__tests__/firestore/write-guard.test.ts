@@ -2127,6 +2127,89 @@ describe('a query a helper merely runs and hands back', () => {
   });
 });
 
+describe('a bounded read that hands back the documents of the query it was given', () => {
+  const helper = `
+    export async function readBounded(
+      tx: FirebaseFirestore.Transaction,
+      query: FirebaseFirestore.Query,
+      bound: number,
+    ): Promise<FirebaseFirestore.QueryDocumentSnapshot[]> {
+      const snapshot = await tx.get(query.limit(bound + 1));
+      if (snapshot.docs.length > bound) throw new Error('over its bound');
+      return snapshot.docs;
+    }
+  `;
+
+  it("resolves each call's documents from that call's own query", () => {
+    const result = analyzeSources({
+      'fixture/bounded.ts': helper,
+      'fixture/writer.ts': `${PREAMBLE}
+        import { SPORT_GAME_SUBCOLLECTIONS } from '@fixture/core';
+        import { readBounded } from './bounded';
+        export async function writeIt(tx: FirebaseFirestore.Transaction, uid: string) {
+          const users = await readBounded(tx, db.collection(COLLECTIONS.PUBLIC_USERS).where('disabled', '==', true), 5);
+          const events = await readBounded(
+            tx,
+            db.collectionGroup(SPORT_GAME_SUBCOLLECTIONS.GAME_STAT_EVENTS).where('recordedByUserId', '==', uid),
+            5,
+          );
+          const rows = events.map((doc) => ({ ref: doc.ref }));
+          for (const doc of users) tx.update(doc.ref, { displayName: 'x' });
+          for (const row of rows) tx.update(row.ref, { boundedDocsUndeclared: 1 });
+        }
+      `,
+    });
+    expect(kindsOf(result)).not.toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
+    expect(detailsOf(result)).toContain('boundedDocsUndeclared');
+    expect(detailsOf(result)).toContain('gameStatEvents');
+    expect(detailsOf(result)).not.toContain('publicUsers');
+  });
+
+  it('resolves at the call site however many other callers hand it a query', () => {
+    const others = Array.from(
+      { length: 20 },
+      (_, index) =>
+        `await readBounded(tx, db.collection(COLLECTIONS.PUBLIC_USERS).where('n', '==', ${index}), 5);`,
+    ).join('\n');
+    const result = analyzeSources({
+      'fixture/bounded.ts': helper,
+      'fixture/writer.ts': `${PREAMBLE}
+        import { readBounded } from './bounded';
+        export async function writeIt(tx: FirebaseFirestore.Transaction, uid: string) {
+          ${others}
+          const docs = await readBounded(tx, db.collection(COLLECTIONS.PUBLIC_USERS).where('uid', '==', uid), 5);
+          for (const doc of docs) tx.update(doc.ref, { manyCallersUndeclared: 1 });
+        }
+      `,
+    });
+    expect(kindsOf(result)).not.toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
+    expect(detailsOf(result)).toContain('manyCallersUndeclared');
+  });
+
+  it('fails closed when the documents come from a query the function did not take', () => {
+    const result = analyzeSources({
+      'fixture/bounded.ts': `
+        declare const someQuery: FirebaseFirestore.Query;
+        export async function readOther(
+          tx: FirebaseFirestore.Transaction,
+          query: FirebaseFirestore.Query,
+        ): Promise<FirebaseFirestore.QueryDocumentSnapshot[]> {
+          const snapshot = await tx.get(someQuery);
+          return snapshot.docs;
+        }
+      `,
+      'fixture/writer.ts': `${PREAMBLE}
+        import { readOther } from './bounded';
+        export async function writeIt(tx: FirebaseFirestore.Transaction) {
+          const docs = await readOther(tx, db.collection(COLLECTIONS.PUBLIC_USERS));
+          for (const doc of docs) tx.update(doc.ref, { displayName: 'x' });
+        }
+      `,
+    });
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
+  });
+});
+
 describe('a carrier built in one array, spread into a second, read back in a later loop', () => {
   const source = (payload: string) => `${PREAMBLE}
     export async function writeIt(tx: FirebaseFirestore.Transaction, uid: string, ids: string[]) {
