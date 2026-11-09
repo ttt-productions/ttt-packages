@@ -4,7 +4,6 @@ export * from './app-config.js';
 export * from './guild-chat-access.js';
 export * from './guild-invite-system-message.js';
 export * from './hall-content.js';
-export * from './password.js';
 export * from './text-field.js';
 export * from './money-field.js';
 export * from './public-documents.js';

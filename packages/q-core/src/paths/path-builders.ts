@@ -40,10 +40,6 @@ export const PATH_BUILDERS = {
     COLLECTIONS.STATUS_RECONCILE_QUEUE,
     userId,
   ],
-  registrationStart: (userId: string): [string, string] => [
-    COLLECTIONS.REGISTRATION_STARTS,
-    userId,
-  ],
   sweepState: (name: SweepStateName): [string, string] => [COLLECTIONS.SWEEP_STATE, name],
   reservedDisplayName: (displayName: string): [string, string] => [
     COLLECTIONS.RESERVED_DISPLAY_NAMES,

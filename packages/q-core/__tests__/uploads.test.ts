@@ -7,7 +7,6 @@ import {
   STAGING_UPLOAD_PREFIX,
   buildPictureObjectPath,
   buildPictureObjectPrefix,
-  SIGNED_OUT_UPLOAD_OWNER,
   buildStagingUploadPath,
   parseStagingUploadPath,
 } from '../src/paths/storage-paths.js';
@@ -83,14 +82,12 @@ describe('the origin registry', () => {
     }
   });
 
-  it('gives every origin both settings, and only the waiver signature allows a signed-out upload', () => {
+  it('says for every origin whether it is processed, and lets none upload signed out', () => {
     for (const [origin, spec] of Object.entries(MEDIA_ORIGIN_SPECS)) {
       expect(typeof spec.preserveOriginal, `${origin} says processed or kept as given`).toBe(
         'boolean',
       );
-      expect(spec.allowSignedOut, `${origin} signed-out setting`).toBe(
-        origin === 'waiver-signature',
-      );
+      expect(spec.allowSignedOut, `${origin} signed-out setting`).not.toBe(true);
     }
     for (const origin of SIGNATURE_ORIGIN_KEYS) {
       expect(MEDIA_ORIGIN_SPECS[origin].processing, `${origin} is never processed`).toBeUndefined();
@@ -209,19 +206,6 @@ describe('the staging path', () => {
       owner: UID,
       stagingId: STAGING_ID,
     });
-  });
-
-  it('puts the signed-out owner segment where a uid goes, and it can never be a uid', () => {
-    expect(
-      parseStagingUploadPath(
-        buildStagingUploadPath('waiver-signature', SIGNED_OUT_UPLOAD_OWNER, STAGING_ID),
-      ),
-    ).toEqual({
-      fileOrigin: 'waiver-signature',
-      owner: SIGNED_OUT_UPLOAD_OWNER,
-      stagingId: STAGING_ID,
-    });
-    expect(SIGNED_OUT_UPLOAD_OWNER).not.toMatch(/^[A-Za-z0-9]+$/);
   });
 
   it('refuses anything that is not exactly a staging path', () => {

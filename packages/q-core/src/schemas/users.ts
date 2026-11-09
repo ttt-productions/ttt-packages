@@ -10,21 +10,18 @@ import {
   userIdSchema,
   userStatusSchema,
 } from '../doc-schemas/atoms.js';
-import { displayNameSchema } from './atoms.js';
+import { accountEmailSchema, accountPasswordSchema, displayNameSchema } from './atoms.js';
 
 export const CreateUserProfileInputSchema = z
   .object({
     displayName: displayNameSchema,
+    email: accountEmailSchema,
+    password: accountPasswordSchema,
     acceptedTerms: z.literal(true),
   })
   .strict();
 export type CreateUserProfileInput = z.infer<typeof CreateUserProfileInputSchema>;
-export const CreateUserProfileResultSchema = z.discriminatedUnion('status', [
-  z
-    .object({ status: z.literal('registered'), userId: userIdSchema, displayName: z.string() })
-    .strict(),
-  z.object({ status: z.literal('registrationExpired') }).strict(),
-]);
+export const CreateUserProfileResultSchema = z.object({ userId: userIdSchema }).strict();
 export type CreateUserProfileResult = z.infer<typeof CreateUserProfileResultSchema>;
 
 export const GetDisplayNameAvailabilityInputSchema = z
@@ -151,16 +148,3 @@ export type AdminUpdateUserProfileStatusResult = z.infer<
 >;
 
 export const ADMIN_STANDING_BAN_REFUSAL_REASON = 'adminStandingTarget';
-
-export const CreateRegistrationStartInputSchema = z.object({}).strict();
-export type CreateRegistrationStartInput = z.infer<typeof CreateRegistrationStartInputSchema>;
-export const REGISTRATION_START_OUTCOMES = [
-  'started',
-  'alreadyStarted',
-  'registrationExpired',
-] as const;
-export type RegistrationStartOutcome = (typeof REGISTRATION_START_OUTCOMES)[number];
-export const CreateRegistrationStartResultSchema = z
-  .object({ outcome: z.enum(REGISTRATION_START_OUTCOMES) })
-  .strict();
-export type CreateRegistrationStartResult = z.infer<typeof CreateRegistrationStartResultSchema>;

@@ -270,8 +270,17 @@ The built-in `MediaPreview` recovery overlay uses these CSS classes (all optiona
 | `.mv-recovery-auth` | auth-retry |
 | `.mv-recovery-hard` | hard-unavailable |
 | `.mv-recovery-max-wait` | max-wait-fallback |
-| `.mv-recovery-retry-btn` | Manual Retry button |
 | `.mv-recovery-label` | Text label inside any overlay |
+
+### A download the app owns
+
+An app that fetches a file itself — through its storage SDK, say — hands `MediaPreview` the
+download's state as `download` (`MediaDownloadState`): `pending` draws the pending state,
+`unavailable` the hard-unavailable screen ("Media unavailable."), and `failed` the max-wait screen
+whose Retry runs the download's own `retry`, shown pending while `retrying`. Once the file is in
+hand the app passes it as `url` (a `Blob` becomes an object URL the component revokes) and leaves
+`download` unset. The app never draws these screens itself; `placeholder` replaces them as it
+replaces every other non-content state. The Retry button is ui-core's `Button`.
 
 ### Placeholder for small surfaces
 

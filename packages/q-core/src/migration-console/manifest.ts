@@ -381,19 +381,16 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'auth',
     dependsOn: [A.copyUserProfiles],
   }),
-  {
-    kind: 'operatorCheckpoint',
-    id: A.checkpointAbandonedRegistrationSweepEnabled,
-    title: 'Enable the abandoned-registration sweep',
+  deleteStep(A.deleteProfilelessSignIns, {
+    title: 'Delete the sign-in accounts that hold no profile',
     summary:
-      'The scheduled sweep that deletes a sign-in account still holding no profile after its grace window does nothing until this is recorded, and stops again whenever the profile verification is run anew.',
+      'Production only: every Firebase Auth sign-in account with no copied profile is deleted, so no login is left that the site cannot serve. A rehearsal refuses it, since a dev project’s own sign-ins hold no copied profile.',
     owningStep: 'auth',
     dependsOn: [A.verifyUserProfiles],
-    orderedAfter: [],
-    instructions:
-      'Once the profile verification has passed, confirm every account that should keep its sign-in holds a copied profile, then record this step to let the scheduled sweep delete the sign-in accounts that hold none past their grace window.',
-    noReturnBoundary: 'The sweep’s first deletion of a sign-in account that holds no profile.',
-  },
+    consumes: [],
+    resumeKey:
+      'Sign-in accounts in Firebase Auth’s own listing order; the resume key is the next page’s token.',
+  }),
   copyStep(A.copyHistoricalStats, {
     title: 'Copy the historical baselines',
     summary: 'Each pre-Q-Sports career total becomes its sport’s `historicalStats` document.',

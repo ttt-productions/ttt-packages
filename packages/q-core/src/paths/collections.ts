@@ -3,7 +3,6 @@ export const COLLECTIONS = {
   PUBLIC_USERS: 'publicUsers',
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',
   STATUS_RECONCILE_QUEUE: 'statusReconcileQueue',
-  REGISTRATION_STARTS: 'registrationStarts',
   SWEEP_STATE: 'sweepState',
 
   SPORT_LEAGUES: 'sportLeagues',

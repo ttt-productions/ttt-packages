@@ -27,5 +27,6 @@ export type {
   VideoViewerProps,
   AudioViewerProps,
   MediaPreviewProps,
+  MediaDownloadState,
   MediaPlaybackProps,
 } from './types.js';

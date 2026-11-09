@@ -9,10 +9,12 @@ import {
 import { SYSTEM_ROLE_KEYS, USER_STATUS_KEYS } from '../src/types/unions.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
+  EMAIL_MAX_LENGTH,
   MAX_ADMIN_LIST_CHANGES,
   MAX_DISPLAY_NAME_LENGTH,
   MIN_DISPLAY_NAME_LENGTH,
 } from '../src/constants/business.js';
+import { PASSWORD_POLICY } from '../src/constants/account-policy.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { toPath } from '../src/paths/utils.js';
 import { toReservedDisplayNameKey } from '../src/utils/display-name.js';
@@ -28,7 +30,6 @@ import {
   AdminUpdateUserProfileStatusResultSchema,
   GetDisplayNameAvailabilityInputSchema,
   GetDisplayNameAvailabilityResultSchema,
-  CreateRegistrationStartResultSchema,
   detectUserSearchKind,
   CreateUserProfileInputSchema,
   CreateUserProfileResultSchema,
@@ -137,54 +138,90 @@ describe('user profile account status', () => {
 });
 
 describe('callable input schemas', () => {
-  it('createUserProfile takes a bounded name and a checked terms box, and nothing else', () => {
+  const registration = {
+    displayName: 'Jane Doe',
+    email: 'jane@example.com',
+    password: 'correct horse',
+    acceptedTerms: true,
+  };
+
+  it('createUserProfile takes a bounded name, an email, a password, and a checked terms box, and nothing else', () => {
+    expect(CreateUserProfileInputSchema.safeParse(registration).success).toBe(true);
     expect(
-      CreateUserProfileInputSchema.safeParse({ displayName: 'Jane Doe', acceptedTerms: true })
-        .success,
+      CreateUserProfileInputSchema.safeParse({ ...registration, acceptedTerms: false }).success,
+    ).toBe(false);
+    for (const missing of ['displayName', 'email', 'password', 'acceptedTerms'] as const) {
+      const { [missing]: _omitted, ...without } = registration;
+      expect(CreateUserProfileInputSchema.safeParse(without).success, missing).toBe(false);
+    }
+    expect(
+      CreateUserProfileInputSchema.safeParse({
+        ...registration,
+        displayName: 'x'.repeat(MIN_DISPLAY_NAME_LENGTH - 1),
+      }).success,
+    ).toBe(false);
+    expect(
+      CreateUserProfileInputSchema.safeParse({
+        ...registration,
+        displayName: 'x'.repeat(MAX_DISPLAY_NAME_LENGTH + 1),
+      }).success,
+    ).toBe(false);
+    expect(
+      CreateUserProfileInputSchema.safeParse({ ...registration, userId: 'someoneElse' }).success,
+    ).toBe(false);
+  });
+
+  it('createUserProfile holds the password to the product policy at both bounds', () => {
+    const at = (length: number) =>
+      CreateUserProfileInputSchema.safeParse({ ...registration, password: 'p'.repeat(length) })
+        .success;
+    expect(at(PASSWORD_POLICY.minLength)).toBe(true);
+    expect(at(PASSWORD_POLICY.maxLength)).toBe(true);
+    expect(at(PASSWORD_POLICY.minLength - 1)).toBe(false);
+    expect(at(PASSWORD_POLICY.maxLength + 1)).toBe(false);
+  });
+
+  it('createUserProfile refuses an address that is not an email, or one past the email ceiling', () => {
+    expect(
+      CreateUserProfileInputSchema.safeParse({ ...registration, email: 'not-an-email' }).success,
+    ).toBe(false);
+    const emailOfLength = (length: number) => {
+      const fixed = `${'a'.repeat(64)}@${Array(4).fill('b'.repeat(50)).join('.')}.`;
+      return `${fixed}${'c'.repeat(length - fixed.length - 4)}.com`;
+    };
+    expect(emailOfLength(EMAIL_MAX_LENGTH)).toHaveLength(EMAIL_MAX_LENGTH);
+    expect(
+      CreateUserProfileInputSchema.safeParse({
+        ...registration,
+        email: emailOfLength(EMAIL_MAX_LENGTH),
+      }).success,
     ).toBe(true);
     expect(
-      CreateUserProfileInputSchema.safeParse({ displayName: 'Jane Doe', acceptedTerms: false })
-        .success,
-    ).toBe(false);
-    expect(CreateUserProfileInputSchema.safeParse({ displayName: 'Jane Doe' }).success).toBe(false);
-    expect(
       CreateUserProfileInputSchema.safeParse({
-        displayName: 'x'.repeat(MIN_DISPLAY_NAME_LENGTH - 1),
-        acceptedTerms: true,
-      }).success,
-    ).toBe(false);
-    expect(
-      CreateUserProfileInputSchema.safeParse({
-        displayName: 'x'.repeat(MAX_DISPLAY_NAME_LENGTH + 1),
-        acceptedTerms: true,
-      }).success,
-    ).toBe(false);
-    expect(
-      CreateUserProfileInputSchema.safeParse({
-        displayName: 'Jane Doe',
-        acceptedTerms: true,
-        userId: 'someoneElse',
-      }).success,
-    ).toBe(false);
-    expect(
-      CreateUserProfileInputSchema.safeParse({
-        displayName: 'Jane Doe',
-        acceptedTerms: true,
-        email: 'a@b.c',
+        ...registration,
+        email: emailOfLength(EMAIL_MAX_LENGTH + 1),
       }).success,
     ).toBe(false);
   });
 
   it('createUserProfile trims the name before bounding it', () => {
     const parsed = CreateUserProfileInputSchema.parse({
+      ...registration,
       displayName: '  Jane Doe  ',
-      acceptedTerms: true,
     });
     expect(parsed.displayName).toBe('Jane Doe');
     expect(
-      CreateUserProfileInputSchema.safeParse({ displayName: '  ab  ', acceptedTerms: true })
+      CreateUserProfileInputSchema.safeParse({ ...registration, displayName: '  ab  ' }).success,
+    ).toBe(false);
+  });
+
+  it('createUserProfile answers the new account uid, and nothing else', () => {
+    expect(CreateUserProfileResultSchema.safeParse({ userId: 'u1' }).success).toBe(true);
+    expect(
+      CreateUserProfileResultSchema.safeParse({ userId: 'u1', status: 'registrationExpired' })
         .success,
     ).toBe(false);
+    expect(CreateUserProfileResultSchema.safeParse({}).success).toBe(false);
   });
 
   it('getDisplayNameAvailability takes the same name rule createUserProfile takes, and nothing else', () => {
@@ -196,9 +233,9 @@ describe('callable input schemas', () => {
       'x'.repeat(MAX_DISPLAY_NAME_LENGTH + 1),
     ]) {
       expect(GetDisplayNameAvailabilityInputSchema.safeParse({ displayName }).success).toBe(false);
-      expect(
-        CreateUserProfileInputSchema.safeParse({ displayName, acceptedTerms: true }).success,
-      ).toBe(false);
+      expect(CreateUserProfileInputSchema.safeParse({ ...registration, displayName }).success).toBe(
+        false,
+      );
     }
     expect(
       GetDisplayNameAvailabilityInputSchema.safeParse({ displayName: 'Jane Doe', userId: 'u1' })
@@ -249,53 +286,15 @@ describe('callable input schemas', () => {
   });
 });
 
-describe("the orphan cleanup's deletion claim", () => {
-  const privateData = { email: 'jane@example.com', updatedAt: NOW };
-
-  it('the private record stores the epoch-ms moment the cleanup claimed the uid, and is unclaimed without it', () => {
-    expect(
-      UserPrivateDataSchema.parse({ ...privateData, orphanDeletionClaimedAt: NOW })
-        .orphanDeletionClaimedAt,
-    ).toBe(NOW);
-    expect(UserPrivateDataSchema.parse(privateData).orphanDeletionClaimedAt).toBeUndefined();
-  });
-
-  it('refuses a claim that is not a whole non-negative epoch-ms value', () => {
-    expect(
-      UserPrivateDataSchema.safeParse({ ...privateData, orphanDeletionClaimedAt: -1 }).success,
-    ).toBe(false);
-    expect(
-      UserPrivateDataSchema.safeParse({ ...privateData, orphanDeletionClaimedAt: 1.5 }).success,
-    ).toBe(false);
-  });
-
-  it('starting a registration on a claimed login answers registrationExpired', () => {
-    expect(
-      CreateRegistrationStartResultSchema.safeParse({ outcome: 'registrationExpired' }).success,
-    ).toBe(true);
-    expect(CreateRegistrationStartResultSchema.safeParse({ outcome: 'started' }).success).toBe(
-      true,
-    );
-  });
-
-  it('registering on a claimed login answers registrationExpired, carrying no account', () => {
-    expect(CreateUserProfileResultSchema.safeParse({ status: 'registrationExpired' }).success).toBe(
-      true,
-    );
-    expect(
-      CreateUserProfileResultSchema.safeParse({ status: 'registrationExpired', userId: 'u1' })
-        .success,
-    ).toBe(false);
-    expect(
-      CreateUserProfileResultSchema.safeParse({
-        status: 'registered',
-        userId: 'u1',
-        displayName: 'Jane Doe',
-      }).success,
-    ).toBe(true);
-    expect(
-      CreateUserProfileResultSchema.safeParse({ userId: 'u1', displayName: 'Jane Doe' }).success,
-    ).toBe(false);
+describe('the private record after registration', () => {
+  it('drops a registration-start or deletion-claim field a document still holds', () => {
+    const parsed = UserPrivateDataSchema.parse({
+      email: 'jane@example.com',
+      updatedAt: NOW,
+      registrationStartedAt: NOW,
+      orphanDeletionClaimedAt: NOW,
+    });
+    expect(parsed).toEqual({ email: 'jane@example.com', updatedAt: NOW });
   });
 });
 

@@ -4,7 +4,6 @@ export const COLLECTION_REFS = {
   userProfiles: (): [string] => [COLLECTIONS.USER_PROFILES],
   publicUsers: (): [string] => [COLLECTIONS.PUBLIC_USERS],
   statusReconcileQueue: (): [string] => [COLLECTIONS.STATUS_RECONCILE_QUEUE],
-  registrationStarts: (): [string] => [COLLECTIONS.REGISTRATION_STARTS],
   reservedDisplayNames: (): [string] => [COLLECTIONS.RESERVED_DISPLAY_NAMES],
   sportLeagues: (): [string] => [COLLECTIONS.SPORT_LEAGUES],
   leagueTeams: (): [string] => [COLLECTIONS.LEAGUE_TEAMS],

@@ -10,11 +10,6 @@ export const FORMER_MEMBER_DISPLAY_NAME = 'Former member';
 
 export const ACCOUNT_DELETION_GRACE_DAYS = 30;
 
-// UTF-16 code units, as HTML inputs and Firebase Auth count; Firebase Auth's floor is 6.
-export const PASSWORD_MIN_LENGTH = 7;
-
-export const PASSWORD_MAX_LENGTH = 64;
-
 // The RFC 5321 ceiling on an email address.
 export const EMAIL_MAX_LENGTH = 320;
 

@@ -4,7 +4,6 @@ import { CAPTAIN_TEAM_ROLES } from './unions.js';
 export const AUDIT_EVENT_TYPE_KEYS = [
   'userProfile.registered',
   'userProfile.displayNameChanged',
-  'registrationStart.deleted',
   'userProfile.signedIn',
   'userProfile.passwordReset',
   'userProfile.banned',

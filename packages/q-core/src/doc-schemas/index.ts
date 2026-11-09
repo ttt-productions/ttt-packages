@@ -4,7 +4,6 @@ export * from './user-profile.js';
 export * from './publicUser.js';
 export * from './reserved-display-name.js';
 export * from './status-reconcile-queue.js';
-export * from './registration-start.js';
 export * from './audit-event.js';
 export * from './gallery.js';
 export * from './pending-media.js';

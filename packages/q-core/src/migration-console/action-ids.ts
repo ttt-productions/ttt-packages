@@ -5,6 +5,7 @@ export const MIGRATION_ACTION_IDS = {
   migratePublicUsers: 'migrate.publicUsers',
   copyAdminList: 'copy.adminList',
   verifyUserProfiles: 'verify.userProfiles',
+  deleteProfilelessSignIns: 'delete.profilelessSignIns',
   verifyHistoricalStats: 'verify.historicalStats',
   verifyReservedDisplayNames: 'verify.reservedDisplayNames',
   verifyPublicUsers: 'verify.publicUsers',
@@ -105,7 +106,6 @@ export const MIGRATION_ACTION_IDS = {
   checkpointPaymentCredentialsRetired: 'checkpoint.paymentCredentialsRetired',
   checkpointServiceAccountKeyRevoked: 'checkpoint.serviceAccountKeyRevoked',
   checkpointUnattachedPicturesReuploaded: 'checkpoint.unattachedPicturesReuploaded',
-  checkpointAbandonedRegistrationSweepEnabled: 'checkpoint.abandonedRegistrationSweepEnabled',
 } as const;
 
 export type MigrationActionId = (typeof MIGRATION_ACTION_IDS)[keyof typeof MIGRATION_ACTION_IDS];

@@ -75,9 +75,15 @@ export type AudioViewerProps = BaseMediaProps &
     crossOrigin?: 'anonymous' | 'use-credentials';
   };
 
+export type MediaDownloadState =
+  | { readonly status: 'pending' }
+  | { readonly status: 'unavailable' }
+  | { readonly status: 'failed'; readonly retry: () => void; readonly retrying: boolean };
+
 export type MediaPreviewProps = {
   url?: string | File | Blob | null;
   urlPending?: boolean;
+  download?: MediaDownloadState;
   alt?: string;
   type?: MediaViewerType | string;
   className?: string;

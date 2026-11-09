@@ -69,32 +69,28 @@ describe('the invite press', () => {
   const signature = {
     waiverTemplateId: 'W1',
     waiverTemplateVersion: 2,
-    storagePath: 'uploads/waiver-signature/signed-out/0b9a3c2e-7d1f-4e8a-9c3b-5f6a7d8e9f01',
+    storagePath: 'uploads/waiver-signature/u1/0b9a3c2e-7d1f-4e8a-9c3b-5f6a7d8e9f01',
   };
 
-  it('carries the waiver signature and the registration only when the page sends them', () => {
+  it('carries the waiver signature only when the page sends one', () => {
     const base = { teamId: 'T1', ghostUserId: 'ghost_g1' };
     expect(UpdateGhostPlayerLinkInviteInputSchema.safeParse(base).success).toBe(true);
-    expect(
-      UpdateGhostPlayerLinkInviteInputSchema.safeParse({
-        ...base,
-        signature,
-        registration: { displayName: 'Pat Player', acceptedTerms: true },
-      }).success,
-    ).toBe(true);
+    expect(UpdateGhostPlayerLinkInviteInputSchema.safeParse({ ...base, signature }).success).toBe(
+      true,
+    );
   });
 
-  it('refuses a registration that did not accept the terms', () => {
+  it('is a join only: it refuses a registration riding along', () => {
     expect(
       UpdateGhostPlayerLinkInviteInputSchema.safeParse({
         teamId: 'T1',
         ghostUserId: 'ghost_g1',
-        registration: { displayName: 'Pat Player', acceptedTerms: false },
+        registration: { displayName: 'Pat Player', acceptedTerms: true },
       }).success,
     ).toBe(false);
   });
 
-  it('answers linked, or that the registration expired', () => {
+  it('answers linked, and nothing else', () => {
     expect(
       UpdateGhostPlayerLinkInviteResultSchema.safeParse({
         status: 'linked',
@@ -105,12 +101,13 @@ describe('the invite press', () => {
     ).toBe(true);
     expect(
       UpdateGhostPlayerLinkInviteResultSchema.safeParse({ status: 'registrationExpired' }).success,
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it('lets the waiver signature upload signed out, and no other origin', () => {
-    expect(MEDIA_ORIGIN_SPECS['waiver-signature'].allowSignedOut).toBe(true);
-    expect(MEDIA_ORIGIN_SPECS['hardware-signature'].allowSignedOut).toBe(false);
+  it('lets no origin upload signed out', () => {
+    for (const spec of Object.values(MEDIA_ORIGIN_SPECS)) {
+      expect(spec.allowSignedOut).not.toBe(true);
+    }
   });
 });
 

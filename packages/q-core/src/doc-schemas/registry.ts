@@ -20,7 +20,6 @@ import { LeagueTeamContactSchema, LeagueTeamSchema } from './league-team.js';
 import { MigrationActionRunSchema, MigrationConsoleSchema } from './migration-console.js';
 import { AuditEventSchema } from './audit-event.js';
 import { PublicUserSchema } from './publicUser.js';
-import { RegistrationStartSchema } from './registration-start.js';
 import { ReservedDisplayNameSchema } from './reserved-display-name.js';
 import { SportLeagueSchema } from './sport-league.js';
 import { SweepStateSchema } from './sweep-state.js';
@@ -53,7 +52,6 @@ export const COLLECTION_SCHEMAS = {
   'publicUsers/{userId}': PublicUserSchema,
   'reservedDisplayNames/{reservedDisplayNameKey}': ReservedDisplayNameSchema,
   'statusReconcileQueue/{userId}': StatusReconcileQueueEntrySchema,
-  'registrationStarts/{userId}': RegistrationStartSchema,
 
   'sportLeagues/{leagueId}': SportLeagueSchema,
   'leagueTeams/{teamId}': LeagueTeamSchema,
@@ -107,7 +105,6 @@ export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;
 
 export const COLLECTION_DOC_ID_FIELDS = {
   'publicUsers/{userId}': 'uid',
-  'registrationStarts/{userId}': 'userId',
   'sportGames/{gameId}/gameStatEvents/{eventId}': 'eventId',
   'statsValidationReports/{reportId}': 'reportId',
   'auditEvents/{auditEventId}': 'id',

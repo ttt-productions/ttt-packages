@@ -12,7 +12,7 @@ import {
 import type { User } from 'firebase/auth';
 import { useAuthState } from './useAuthState.js';
 import { getIdTokenClaims } from '../client/claims.js';
-import type { AuthProviderConfig, AuthContextValue } from './types.js';
+import type { AuthProviderConfig, AuthContextValue, RegistrationHoldToken } from './types.js';
 
 interface ResolvedClaims<TClaims> {
   user: User;
@@ -112,25 +112,71 @@ export function AuthProvider<TClaims = Record<string, unknown>>({
     );
   }, [readClaims]);
 
-  const sessionClaims = user && resolved?.user === user ? resolved : null;
-  const claimsLoading = authLoading || (user !== null && sessionClaims === null);
+  const lastHoldTokenRef = useRef<RegistrationHoldToken>(0);
+  const openHoldsRef = useRef(new Set<RegistrationHoldToken>());
+  const [registering, setRegistering] = useState(false);
 
-  const exposedUser = gateOpen ? user : null;
+  const beginRegistration = useCallback((): RegistrationHoldToken => {
+    lastHoldTokenRef.current += 1;
+    const token = lastHoldTokenRef.current;
+    openHoldsRef.current.add(token);
+    setRegistering(true);
+    return token;
+  }, []);
+
+  const endRegistration = useCallback((token: RegistrationHoldToken) => {
+    openHoldsRef.current.delete(token);
+    if (openHoldsRef.current.size === 0) setRegistering(false);
+  }, []);
+
+  const holdRegistration = useCallback(
+    async <T,>(work: () => Promise<T>): Promise<T> => {
+      const token = beginRegistration();
+      try {
+        return await work();
+      } finally {
+        endRegistration(token);
+      }
+    },
+    [beginRegistration, endRegistration],
+  );
+
+  const sessionClaims = user && resolved?.user === user ? resolved : null;
+  const sessionClaimsLoading = authLoading || (user !== null && sessionClaims === null);
+
+  const exposedUser = gateOpen && !registering ? user : null;
   const claims = exposedUser && sessionClaims ? sessionClaims.claims : config.defaultClaims;
 
-  const loading = authLoading || claimsLoading || !gateOpen;
+  const exposedAuthLoading = registering ? false : authLoading;
+  const claimsLoading = registering ? false : sessionClaimsLoading;
+  const loading = registering ? false : authLoading || sessionClaimsLoading || !gateOpen;
 
   const value = useMemo<AuthContextValue<TClaims>>(
     () => ({
       user: exposedUser,
       claims,
       loading,
-      authLoading,
+      authLoading: exposedAuthLoading,
       claimsLoading,
       isAuthenticated: !!exposedUser,
       refreshClaims,
+      registering,
+      beginRegistration,
+      endRegistration,
+      holdRegistration,
     }),
-    [exposedUser, claims, loading, authLoading, claimsLoading, refreshClaims],
+    [
+      exposedUser,
+      claims,
+      loading,
+      exposedAuthLoading,
+      claimsLoading,
+      refreshClaims,
+      registering,
+      beginRegistration,
+      endRegistration,
+      holdRegistration,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

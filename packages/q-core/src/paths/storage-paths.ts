@@ -10,10 +10,6 @@ const STAGING_FOLDER = 'uploads';
 
 export const STAGING_UPLOAD_PREFIX = `${STAGING_FOLDER}/`;
 
-// The owner segment of a signed-out upload, in place of a uid. Its hyphen keeps it from ever
-// equalling a Firebase Auth uid, which is alphanumeric.
-export const SIGNED_OUT_UPLOAD_OWNER = 'signed-out';
-
 // Where V1 kept a hardware contract's signature; the migration console checks a carried contract's
 // file against it.
 export function buildHardwareSignaturePath(

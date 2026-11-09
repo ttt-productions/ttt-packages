@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Button } from '@ttt-productions/ui-core/react';
 import { getSimplifiedMediaType } from '@ttt-productions/media-schemas';
 import type { SimplifiedMediaType } from '@ttt-productions/media-schemas';
 
@@ -38,10 +39,12 @@ function inferType(props: {
 function RecoveryOverlay({
   state,
   onManualRetry,
+  retrying = false,
   isCircular,
 }: {
   state: RecoveryState;
   onManualRetry: () => void;
+  retrying?: boolean;
   isCircular?: boolean;
 }) {
   const wrapStyle: React.CSSProperties = {
@@ -104,9 +107,15 @@ function RecoveryOverlay({
     return (
       <div className="mv-recovery-max-wait" style={wrapStyle}>
         <span className="mv-recovery-label">This media is taking longer than expected.</span>
-        <button type="button" className="mv-recovery-retry-btn" onClick={onManualRetry}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          pending={retrying}
+          onClick={onManualRetry}
+        >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
@@ -122,6 +131,7 @@ export function MediaPreview(props: MediaPreviewProps) {
     className,
     unloadOnExit,
     urlPending = false,
+    download,
     isCircular = false,
     enableZoom,
     priority,
@@ -235,12 +245,35 @@ export function MediaPreview(props: MediaPreviewProps) {
     recoveryState.phase !== 'loaded' &&
     recoveryState.phase !== 'loading';
 
+  if (download?.status === 'unavailable' || download?.status === 'failed') {
+    return (
+      <div className={className} style={wrapperStyle}>
+        {placeholder !== undefined ? (
+          placeholder
+        ) : download.status === 'unavailable' ? (
+          <RecoveryOverlay
+            state={{ phase: 'hard-unavailable' }}
+            onManualRetry={() => {}}
+            isCircular={isCircular}
+          />
+        ) : (
+          <RecoveryOverlay
+            state={{ phase: 'max-wait-fallback' }}
+            onManualRetry={download.retry}
+            retrying={download.retrying}
+            isCircular={isCircular}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (!sourceUrl) {
     return (
       <div className={className} style={wrapperStyle}>
         {placeholder !== undefined ? (
           placeholder
-        ) : urlPending ? (
+        ) : urlPending || download?.status === 'pending' ? (
           <PendingFallback isCircular={isCircular} />
         ) : (
           <EmptyFallback isCircular={isCircular} />

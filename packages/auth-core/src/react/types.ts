@@ -27,4 +27,14 @@ export interface AuthContextValue<TClaims = Record<string, unknown>> {
   isAuthenticated: boolean;
 
   refreshClaims: () => Promise<void>;
+
+  registering: boolean;
+
+  beginRegistration: () => RegistrationHoldToken;
+
+  endRegistration: (token: RegistrationHoldToken) => void;
+
+  holdRegistration: <T>(work: () => Promise<T>) => Promise<T>;
 }
+
+export type RegistrationHoldToken = number;

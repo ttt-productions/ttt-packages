@@ -32,8 +32,6 @@ export type UserProfile = z.infer<typeof UserProfileSchema>;
 
 export const UserPrivateDataSchema = z.object({
   email: z.string().max(EMAIL_MAX_LENGTH),
-  registrationStartedAt: epochMsSchema.optional(),
-  orphanDeletionClaimedAt: epochMsSchema.optional(),
   defaultContactPhone: storedPhoneFieldSchema(CONTACT_PHONE_INPUT).optional(),
   theme: themeNameSchema.optional(),
   reducedMotion: z.boolean().optional(),
