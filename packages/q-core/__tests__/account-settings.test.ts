@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { THEME_NAMES } from '@ttt-productions/theme-core';
-import { EMAIL_MAX_LENGTH } from '../src/constants/business.js';
+import { ACCOUNT_EMAIL_MAX_LENGTH } from '@ttt-productions/auth-core';
 import { UserPrivateDataSchema, themeNameSchema } from '../src/doc-schemas/user-profile.js';
 import {
   UpdateUserProfileSettingsInputSchema,
@@ -23,11 +23,14 @@ describe('the account settings on privateData', () => {
   it('hold an email no longer than the email limit the sign-in boxes take', () => {
     const email = (length: number) => `${'a'.repeat(length - '@example.test'.length)}@example.test`;
     expect(
-      UserPrivateDataSchema.safeParse({ ...PRIVATE_DATA, email: email(EMAIL_MAX_LENGTH) }).success,
+      UserPrivateDataSchema.safeParse({ ...PRIVATE_DATA, email: email(ACCOUNT_EMAIL_MAX_LENGTH) })
+        .success,
     ).toBe(true);
     expect(
-      UserPrivateDataSchema.safeParse({ ...PRIVATE_DATA, email: email(EMAIL_MAX_LENGTH + 1) })
-        .success,
+      UserPrivateDataSchema.safeParse({
+        ...PRIVATE_DATA,
+        email: email(ACCOUNT_EMAIL_MAX_LENGTH + 1),
+      }).success,
     ).toBe(false);
   });
 

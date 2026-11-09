@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { THEME_NAMES } from '@ttt-productions/theme-core';
-import { EMAIL_MAX_LENGTH } from '../constants/business.js';
+import { ACCOUNT_EMAIL_MAX_LENGTH } from '@ttt-productions/auth-core';
 import { DISPLAY_NAME_INPUT } from '../constants/text-fields.js';
 import { CONTACT_PHONE_INPUT } from '../constants/phone-fields.js';
 import { BasketballPlayerTotalsSchema, UserLifetimeStatsSchema } from './aggregate-stats.js';
@@ -31,7 +31,7 @@ export const UserProfileSchema = z.object({
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
 export const UserPrivateDataSchema = z.object({
-  email: z.string().max(EMAIL_MAX_LENGTH),
+  email: z.string().max(ACCOUNT_EMAIL_MAX_LENGTH),
   defaultContactPhone: storedPhoneFieldSchema(CONTACT_PHONE_INPUT).optional(),
   theme: themeNameSchema.optional(),
   reducedMotion: z.boolean().optional(),

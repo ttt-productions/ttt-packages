@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_REGISTRATION_ENGINE_SETTINGS,
   defineRegistrationEngineSettings,
   registrationRefusalReason,
 } from '../src/registration.js';
 
 describe('the registration engine settings', () => {
-  it('default to a 60-second function timeout', () => {
-    expect(DEFAULT_REGISTRATION_ENGINE_SETTINGS).toEqual({ functionTimeoutSeconds: 60 });
-  });
-
-  it('take a product override and refuse a timeout that is not whole seconds', () => {
+  it('are exactly the timeout the product gives, and refuse one that is not whole seconds', () => {
     expect(defineRegistrationEngineSettings({ functionTimeoutSeconds: 30 })).toEqual({
       functionTimeoutSeconds: 30,
     });

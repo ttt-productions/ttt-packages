@@ -384,7 +384,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   deleteStep(A.deleteProfilelessSignIns, {
     title: 'Delete the sign-in accounts that hold no profile',
     summary:
-      'Production only: every Firebase Auth sign-in account with no copied profile is deleted, so no login is left that the site cannot serve. A rehearsal refuses it, since a dev project’s own sign-ins hold no copied profile.',
+      'Production only: every Firebase Auth sign-in account with no copied profile is deleted, so no login is left that the site cannot serve.',
     owningStep: 'auth',
     dependsOn: [A.verifyUserProfiles],
     consumes: [],

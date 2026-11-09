@@ -31,3 +31,6 @@ export type {
 } from './visualizer.js';
 
 export { resolveInfiniteDuration } from './media-duration.js';
+
+export { MEDIA_SIZE_MAX_DENSITY, mediaSizeNeed, pickMediaSize } from './media-size.js';
+export type { MediaSizeOption } from './media-size.js';

@@ -18,38 +18,6 @@ export const DEFAULT_APP_CONFIG: AppConfigLevers = Object.freeze({
 export const DEFAULT_MAINTENANCE_MESSAGE =
   'Q-Sports is down for maintenance right now. We will be back shortly — thank you for your patience.';
 
-export const MAINTENANCE_REFUSAL_CODE = 'unavailable' as const;
-
-export const MAINTENANCE_REFUSAL_REASON = 'maintenance' as const;
-
-export interface MaintenanceRefusalDetails {
-  readonly reason: typeof MAINTENANCE_REFUSAL_REASON;
-}
-
-// The refusal code as the server (`unavailable`) and the Firebase client SDK
-// (`functions/unavailable`) spell it.
-const MAINTENANCE_REFUSAL_CODES: ReadonlySet<string> = new Set([
-  MAINTENANCE_REFUSAL_CODE,
-  `functions/${MAINTENANCE_REFUSAL_CODE}`,
-]);
-
-export function isMaintenanceRefusalDetails(
-  details: unknown,
-): details is MaintenanceRefusalDetails {
-  if (!details || typeof details !== 'object') return false;
-  return (details as Record<string, unknown>).reason === MAINTENANCE_REFUSAL_REASON;
-}
-
-export function isMaintenanceRefusalError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false;
-  const candidate = err as { code?: unknown; details?: unknown };
-  return (
-    typeof candidate.code === 'string' &&
-    MAINTENANCE_REFUSAL_CODES.has(candidate.code) &&
-    isMaintenanceRefusalDetails(candidate.details)
-  );
-}
-
 function definedFields(fields: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }

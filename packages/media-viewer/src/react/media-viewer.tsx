@@ -16,6 +16,7 @@ import { ImageViewer } from './image-viewer.js';
 import { VideoViewer } from './video-viewer.js';
 import { AudioViewer } from './audio-viewer.js';
 import { useMediaRecovery } from './use-media-recovery.js';
+import { useWantedMediaSize } from './use-wanted-media-size.js';
 import type { RecoveryState } from '../recovery.js';
 
 function inferType(props: {
@@ -43,7 +44,7 @@ function RecoveryOverlay({
   isCircular,
 }: {
   state: RecoveryState;
-  onManualRetry: () => void;
+  onManualRetry?: () => void;
   retrying?: boolean;
   isCircular?: boolean;
 }) {
@@ -107,15 +108,17 @@ function RecoveryOverlay({
     return (
       <div className="mv-recovery-max-wait" style={wrapStyle}>
         <span className="mv-recovery-label">This media is taking longer than expected.</span>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          pending={retrying}
-          onClick={onManualRetry}
-        >
-          Retry
-        </Button>
+        {onManualRetry !== undefined && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            pending={retrying}
+            onClick={onManualRetry}
+          >
+            Retry
+          </Button>
+        )}
       </div>
     );
   }
@@ -132,6 +135,8 @@ export function MediaPreview(props: MediaPreviewProps) {
     unloadOnExit,
     urlPending = false,
     download,
+    sizes,
+    onSizeWanted,
     isCircular = false,
     enableZoom,
     priority,
@@ -212,6 +217,13 @@ export function MediaPreview(props: MediaPreviewProps) {
     };
   }, [url]);
 
+  const slotRef = useWantedMediaSize({
+    sizes,
+    onSizeWanted,
+    priority,
+    observeView: sourceUrl === null,
+  });
+
   const handleError = React.useCallback(() => {
     setHasError(true);
     onError?.();
@@ -247,15 +259,11 @@ export function MediaPreview(props: MediaPreviewProps) {
 
   if (download?.status === 'unavailable' || download?.status === 'failed') {
     return (
-      <div className={className} style={wrapperStyle}>
+      <div ref={slotRef} className={className} style={wrapperStyle}>
         {placeholder !== undefined ? (
           placeholder
         ) : download.status === 'unavailable' ? (
-          <RecoveryOverlay
-            state={{ phase: 'hard-unavailable' }}
-            onManualRetry={() => {}}
-            isCircular={isCircular}
-          />
+          <RecoveryOverlay state={{ phase: 'hard-unavailable' }} isCircular={isCircular} />
         ) : (
           <RecoveryOverlay
             state={{ phase: 'max-wait-fallback' }}
@@ -270,7 +278,7 @@ export function MediaPreview(props: MediaPreviewProps) {
 
   if (!sourceUrl) {
     return (
-      <div className={className} style={wrapperStyle}>
+      <div ref={slotRef} className={className} style={wrapperStyle}>
         {placeholder !== undefined ? (
           placeholder
         ) : urlPending || download?.status === 'pending' ? (
@@ -298,7 +306,7 @@ export function MediaPreview(props: MediaPreviewProps) {
 
   if (hasError && !recoveryAdapter) {
     return (
-      <div className={className} style={wrapperStyle}>
+      <div ref={slotRef} className={className} style={wrapperStyle}>
         {errorFallback}
       </div>
     );
@@ -308,7 +316,7 @@ export function MediaPreview(props: MediaPreviewProps) {
 
   if (t === 'image') {
     return (
-      <div className={className} style={wrapperStyle}>
+      <div ref={slotRef} className={className} style={wrapperStyle}>
         <ImageViewer
           key={remountKey}
           url={sourceUrl}
@@ -332,7 +340,7 @@ export function MediaPreview(props: MediaPreviewProps) {
 
   if (t === 'video') {
     return (
-      <div className={className} style={wrapperStyle}>
+      <div ref={slotRef} className={className} style={wrapperStyle}>
         <VideoViewer
           key={remountKey}
           url={sourceUrl}
@@ -364,7 +372,7 @@ export function MediaPreview(props: MediaPreviewProps) {
 
   if (t === 'audio') {
     return (
-      <div className={className} style={wrapperStyle}>
+      <div ref={slotRef} className={className} style={wrapperStyle}>
         <AudioViewer
           key={remountKey}
           url={sourceUrl}
@@ -395,7 +403,7 @@ export function MediaPreview(props: MediaPreviewProps) {
   }
 
   return shouldShowFallback(fallbackMode as FallbackMode) ? (
-    <div className={className} style={wrapperStyle}>
+    <div ref={slotRef} className={className} style={wrapperStyle}>
       <MediaFallbackLink url={sourceUrl} filename={filename} label={fallbackLabel ?? 'Download'} />
     </div>
   ) : null;

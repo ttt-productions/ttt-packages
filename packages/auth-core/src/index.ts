@@ -5,3 +5,5 @@ export * from './email-verification.js';
 export * from './sign-in.js';
 export * from './password-policy.js';
 export * from './registration.js';
+export * from './account-schemas.js';
+export * from './maintenance.js';

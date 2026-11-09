@@ -24,11 +24,22 @@ const MB = 1024 * 1024;
 export const PICTURE_UPLOAD_MAX_BYTES = 25 * MB;
 
 export const PICTURE_JPEG_QUALITY = 85;
+export const PICTURE_WEBP_QUALITY = 85;
 
-// What a picture kind is stored as: a photo as JPEG, a badge as PNG, which keeps the transparent
-// corners of a badge drawn round.
-export const PICTURE_STORED_FORMAT_KEYS = ['jpeg', 'png'] as const;
+// What a picture kind is stored as: a photo as WebP, a badge as PNG, which keeps the transparent
+// corners of a badge drawn round. A photo stored before WebP stays JPEG.
+export const PICTURE_STORED_FORMAT_KEYS = ['webp', 'jpeg', 'png'] as const;
 export type PictureStoredFormat = (typeof PICTURE_STORED_FORMAT_KEYS)[number];
+
+// What the browser crop uploads: Safari's canvas cannot encode WebP, so a photo crop uploads as JPEG.
+export const PICTURE_CROP_FORMAT_KEYS = ['jpeg', 'png'] as const;
+export type PictureCropFormat = (typeof PICTURE_CROP_FORMAT_KEYS)[number];
+
+function encodingQuality(format: PictureStoredFormat): { quality?: number } {
+  if (format === 'jpeg') return { quality: PICTURE_JPEG_QUALITY };
+  if (format === 'webp') return { quality: PICTURE_WEBP_QUALITY };
+  return {};
+}
 
 export const PICTURE_CROP_SHAPE_KEYS = ['rect', 'round'] as const;
 export type PictureCropShape = (typeof PICTURE_CROP_SHAPE_KEYS)[number];
@@ -49,13 +60,15 @@ export interface PictureKind {
   readonly aspect: PictureAspect;
   readonly sizes: Readonly<Record<PictureVariantKey, PictureSize>>;
   readonly format: PictureStoredFormat;
+  readonly cropFormat: PictureCropFormat;
   readonly cropShape: PictureCropShape;
 }
 
 export const PICTURE_KINDS = {
   'league-picture': {
     aspect: 'landscape',
-    format: 'jpeg',
+    format: 'webp',
+    cropFormat: 'jpeg',
     cropShape: 'rect',
     sizes: {
       sm: { width: 480, height: 270 },
@@ -65,7 +78,8 @@ export const PICTURE_KINDS = {
   },
   'team-picture': {
     aspect: 'classic',
-    format: 'jpeg',
+    format: 'webp',
+    cropFormat: 'jpeg',
     cropShape: 'rect',
     sizes: {
       sm: { width: 480, height: 360 },
@@ -75,7 +89,8 @@ export const PICTURE_KINDS = {
   },
   'landing-picture': {
     aspect: 'banner',
-    format: 'jpeg',
+    format: 'webp',
+    cropFormat: 'jpeg',
     cropShape: 'rect',
     sizes: {
       sm: { width: 720, height: 240 },
@@ -85,7 +100,8 @@ export const PICTURE_KINDS = {
   },
   'location-picture': {
     aspect: 'landscape',
-    format: 'jpeg',
+    format: 'webp',
+    cropFormat: 'jpeg',
     cropShape: 'rect',
     sizes: {
       sm: { width: 480, height: 270 },
@@ -96,6 +112,7 @@ export const PICTURE_KINDS = {
   'award-badge': {
     aspect: 'square',
     format: 'png',
+    cropFormat: 'png',
     cropShape: 'round',
     sizes: {
       sm: { width: 64, height: 64 },
@@ -116,7 +133,7 @@ function pictureOriginSpec(kind: PictureKind): MediaOriginSpec {
       gravity: 'center' as const,
     },
     format: kind.format,
-    ...(kind.format === 'jpeg' ? { quality: PICTURE_JPEG_QUALITY } : {}),
+    ...encodingQuality(kind.format),
   }));
   return {
     kind: 'image',
@@ -127,8 +144,8 @@ function pictureOriginSpec(kind: PictureKind): MediaOriginSpec {
       outputWidth: kind.sizes.lg.width,
       outputHeight: kind.sizes.lg.height,
       shape: kind.cropShape,
-      format: kind.format,
-      ...(kind.format === 'jpeg' ? { quality: PICTURE_JPEG_QUALITY } : {}),
+      format: kind.cropFormat,
+      ...encodingQuality(kind.cropFormat),
       aspectRatioDisplay: `${width}:${height}`,
     },
     client: {

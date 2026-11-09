@@ -36,7 +36,8 @@ the audit. Write findings with the app's settled UI labels.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 2. The three states, per page
-**Rules:** RULE-STD-FRONTEND-201, RULE-STD-FRONTEND-205, RULE-STD-FRONTEND-206. **Scope:** every route
+**Rules:** RULE-STD-FRONTEND-201, RULE-STD-FRONTEND-205, RULE-STD-FRONTEND-206,
+RULE-STD-FRONTEND-208. **Scope:** every route
 from step 1. **Method (manual review on the local dev server).**
 **Expected:** each route shows all three states, each intentional:
 - **Loading** — the canonical pending state or a skeleton with no layout jump — never the empty state,
@@ -45,6 +46,10 @@ from step 1. **Method (manual review on the local dev server).**
   that shows the result and any post-action navigation — never a bare disabled or label swap. A
   path-changing navigation shows the page overlay after its short delay; a query-only one shows
   pending on the control that triggered it.
+- **Nothing moves** — with every read pending the page shows its one loading state, or a same-size
+  placeholder for what always exists; once the reads answer, nothing that was on screen is removed or
+  pushed down, and no section pops in. A failed read shows its own Try again in place, and an
+  unreadable app config shows the read-failure state in place of the page, never the default levers.
 - **Empty** — a real empty state with copy and a next action, not a blank list.
 - **Error** — the canonical load-error state for a failed read (an actionable message, no raw error
   text, a retry that shows its own pending), and the error boundary catches render failures.

@@ -1,14 +1,18 @@
 import type { AcceptanceRequiredDetails } from '../acceptance.js';
 import type { EmailVerificationRequiredDetails } from '../email-verification.js';
+import type { MaintenanceRefusalDetails } from '../maintenance.js';
 import type { SignInRequiredDetails } from '../sign-in.js';
 
 // firebase-functions' callable runtime instanceof-checks its own HttpsError class, which one built
 // in this package's ESM dist fails (a 500 INTERNAL), so the consuming app builds the HttpsError.
 export type AuthAssertionErrorCode =
-  'unauthenticated' | 'failed-precondition' | 'not-found' | 'permission-denied';
+  'unauthenticated' | 'failed-precondition' | 'not-found' | 'permission-denied' | 'unavailable';
 
 export type AuthAssertionErrorDetails =
-  AcceptanceRequiredDetails | EmailVerificationRequiredDetails | SignInRequiredDetails;
+  | AcceptanceRequiredDetails
+  | EmailVerificationRequiredDetails
+  | MaintenanceRefusalDetails
+  | SignInRequiredDetails;
 
 export class AuthAssertionError extends Error {
   readonly code: AuthAssertionErrorCode;

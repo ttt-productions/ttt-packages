@@ -124,3 +124,19 @@ Pending/confirmation UX, in-app navigation, loading states, unsaved input, the a
 - A per-editor `beforeunload` handler; a discard prompt on a surface with nothing unsaved.
 
 **References.** RULE-STD-FRONTEND-202 (the confirmation primitive), RULE-STD-FRONTEND-205 (navigation runs the guard first), RULE-STD-MEDIA-009 (the shared leave guard); ttt-packages `docs/packages/upload-ui.md`.
+
+### RULE-STD-FRONTEND-208 — A page never moves after it draws
+**Scope.** apps
+
+**Rule.** A page decides what exists before it draws. Every read that decides whether a section, tab, control, or line exists joins the page's one gate: `<LOADING_STATE>` while any of them is pending; a failed one opens the gate and shows its own Try again in place of its section, never blanking the page. The shell waits the same way for the app config and for the signed-in viewer's settings, and an app config that cannot be read shows the one read-failure state with Try again in place of the page, never the default levers. What always exists — a list, a table, the hero, stats — draws at once as a same-size placeholder shaped like its content (built on ui-core's `Skeleton`) that fills in place. Once the reads answer, nothing on screen is removed or moved.
+
+**Why.** A section that pops in when its read answers, or a small spinner that grows into a large block, pushes the page down under the reader's eye and finger: a tap lands on the wrong control and what was being read jumps away. A section hidden until its read answers reads as absent, then appears.
+
+**Prohibits.**
+- A section, tab, control, or line whose deciding read is not in the page's gate, rendering nothing while that read is pending and appearing when it answers.
+- A component with a `<LOADING_STATE>` or read-state arm and an empty (`null`) arm; `ReadState … empty={null}`.
+- A render-phase `useState` latch holding a section shown or hidden across a read.
+- A predicate that counts an unanswered read as showing (`items === undefined || …`).
+- A small spinner in place of content that draws larger; the default levers drawn while the app config is loading or unreadable.
+
+**References.** RULE-STD-FRONTEND-206 (pending, failed, and answered reads); RULE-STD-FRONTEND-001; the repo-guards `pagesNeverMove` guard.

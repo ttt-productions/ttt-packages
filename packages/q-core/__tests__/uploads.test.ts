@@ -55,7 +55,8 @@ import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 const STAGING_ID = '3f2b6c1e-9a4d-4e8b-b7c2-5d1a0e9f8c34';
 const UID = 'aB3dE5gH7jK9mN1pQ3sT5vW7xY9z';
 
-const storedFormatOf = (origin: string) => (origin === 'award-badge' ? 'png' : 'jpeg');
+const storedFormatOf = (origin: string) => (origin === 'award-badge' ? 'png' : 'webp');
+const cropFormatOf = (origin: string) => (origin === 'award-badge' ? 'png' : 'jpeg');
 const cropShapeOf = (origin: string) => (origin === 'award-badge' ? 'round' : 'rect');
 
 describe('the origin registry', () => {
@@ -133,7 +134,7 @@ describe('the origin registry', () => {
         outputHeight: kind.sizes.lg.height,
         aspectRatioDisplay: `${width}:${height}`,
         shape: cropShapeOf(origin),
-        format: storedFormatOf(origin),
+        format: cropFormatOf(origin),
       });
       expect(spec.processing?.image).toMatchObject({
         requiredAspectRatio: pictureAspectRatio(kind.aspect),
@@ -152,13 +153,19 @@ describe('the origin registry', () => {
           PICTURE_KINDS[origin].sizes[variant.key as (typeof PICTURE_VARIANT_KEYS)[number]];
         expect(variant.crop).toEqual({ width: size.width, height: size.height, gravity: 'center' });
         expect(variant.format).toBe(storedFormatOf(origin));
+        expect(variant.quality).toBe(origin === 'award-badge' ? undefined : 85);
       }
     }
   });
 
   it('keeps an award badge square, cropped round, as PNG at 64, 256, and 512 pixels', () => {
     const badge = PICTURE_KINDS['award-badge'];
-    expect(badge).toMatchObject({ aspect: 'square', cropShape: 'round', format: 'png' });
+    expect(badge).toMatchObject({
+      aspect: 'square',
+      cropShape: 'round',
+      format: 'png',
+      cropFormat: 'png',
+    });
     expect(PICTURE_VARIANT_KEYS.map((key) => badge.sizes[key])).toEqual([
       { width: 64, height: 64 },
       { width: 256, height: 256 },

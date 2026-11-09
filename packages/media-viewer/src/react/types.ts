@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import type { MediaDiagnosticAdapter, AssetStatusHint } from '../recovery.js';
+import type { MediaSizeOption } from '../media-size.js';
 import type { AudioVisualizerMode } from '../visualizer.js';
 import type {
   MediaViewerType,
@@ -84,6 +85,8 @@ export type MediaPreviewProps = {
   url?: string | File | Blob | null;
   urlPending?: boolean;
   download?: MediaDownloadState;
+  sizes?: readonly MediaSizeOption[];
+  onSizeWanted?: (key: string) => void;
   alt?: string;
   type?: MediaViewerType | string;
   className?: string;

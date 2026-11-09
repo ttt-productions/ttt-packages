@@ -3,10 +3,6 @@ import {
   APP_CONFIG_LEVER_KEYS,
   DEFAULT_APP_CONFIG,
   DEFAULT_MAINTENANCE_MESSAGE,
-  MAINTENANCE_REFUSAL_CODE,
-  MAINTENANCE_REFUSAL_REASON,
-  isMaintenanceRefusalDetails,
-  isMaintenanceRefusalError,
   mergeAppConfigUpdate,
   readAppConfigLever,
   readAppConfigLevers,
@@ -160,32 +156,7 @@ describe('mergeAppConfigUpdate — the one write rule', () => {
   });
 });
 
-describe('the maintenance refusal', () => {
-  const refusal = {
-    code: MAINTENANCE_REFUSAL_CODE,
-    details: { reason: MAINTENANCE_REFUSAL_REASON },
-  };
-
-  it('is recognised by its code and its details, in the server and the client SDK spelling', () => {
-    expect(isMaintenanceRefusalError(refusal)).toBe(true);
-    expect(
-      isMaintenanceRefusalError({ ...refusal, code: `functions/${MAINTENANCE_REFUSAL_CODE}` }),
-    ).toBe(true);
-    expect(isMaintenanceRefusalDetails({ reason: MAINTENANCE_REFUSAL_REASON })).toBe(true);
-  });
-
-  it('is never confused with a real outage, which carries the same code and no details', () => {
-    expect(isMaintenanceRefusalError({ code: 'unavailable' })).toBe(false);
-    expect(
-      isMaintenanceRefusalError({ code: 'unavailable', details: { reason: 'overloaded' } }),
-    ).toBe(false);
-    expect(isMaintenanceRefusalError({ code: 'permission-denied', details: refusal.details })).toBe(
-      false,
-    );
-    expect(isMaintenanceRefusalError(null)).toBe(false);
-    expect(isMaintenanceRefusalError('unavailable')).toBe(false);
-  });
-
+describe('the maintenance message', () => {
   it('has a default line for when the operator leaves the message blank, with no ttt name (RULE-STD-ARCH-006)', () => {
     expect(DEFAULT_MAINTENANCE_MESSAGE.trim().length).toBeGreaterThan(0);
     expect(DEFAULT_MAINTENANCE_MESSAGE).not.toMatch(/ttt/i);

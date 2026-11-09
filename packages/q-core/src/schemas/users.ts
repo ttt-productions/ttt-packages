@@ -1,22 +1,24 @@
 import { z } from 'zod';
 import {
-  EMAIL_MAX_LENGTH,
-  MAX_ADMIN_LIST_CHANGES,
-  MAX_SEARCH_QUERY_LENGTH,
-} from '../constants/business.js';
+  ACCOUNT_EMAIL_MAX_LENGTH,
+  accountEmailSchema,
+  accountPasswordSchema,
+} from '@ttt-productions/auth-core';
+import { PASSWORD_POLICY } from '../constants/account-policy.js';
+import { MAX_ADMIN_LIST_CHANGES, MAX_SEARCH_QUERY_LENGTH } from '../constants/business.js';
 import {
   countSchema,
   repairReasonSchema,
   userIdSchema,
   userStatusSchema,
 } from '../doc-schemas/atoms.js';
-import { accountEmailSchema, accountPasswordSchema, displayNameSchema } from './atoms.js';
+import { displayNameSchema } from './atoms.js';
 
 export const CreateUserProfileInputSchema = z
   .object({
     displayName: displayNameSchema,
     email: accountEmailSchema,
-    password: accountPasswordSchema,
+    password: accountPasswordSchema(PASSWORD_POLICY),
     acceptedTerms: z.literal(true),
   })
   .strict();
@@ -59,7 +61,7 @@ export const LookedUpUserSchema = z
   .object({
     uid: userIdSchema,
     displayName: z.string(),
-    email: z.string().max(EMAIL_MAX_LENGTH),
+    email: z.string().max(ACCOUNT_EMAIL_MAX_LENGTH),
     userStatus: userStatusSchema,
     isAdmin: z.literal(true).optional(),
   })

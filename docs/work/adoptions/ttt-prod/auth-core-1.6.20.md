@@ -23,8 +23,10 @@
     `RegistrationNotCompletedError`.
 - **What the app must change:** ttt-prod builds the same registration from this release; its
   design is its item `docs/work/waiting-to-be-implemented/registration-finishes-or-fails.md`. Every
-  password check reads the product policy (auth-core's default, or an override ttt-core
-  declares through `definePasswordPolicy`) instead of ttt-core's removed constants (see `ttt-core-0.79.134.md`). A fake of the auth
+  password check reads the policy ttt-core declares (6 to 74) instead of ttt-core's removed
+  constants (see `ttt-core-0.79.134.md`). auth-core's `DEFAULT_PASSWORD_POLICY` and
+  `DEFAULT_REGISTRATION_ENGINE_SETTINGS` are not used: a later auth-core release removes them, since
+  each product provides its own values. A fake of the auth
   context in tests gains the four new members. Until ttt-prod builds its item, the install alone
   changes no behavior: no hold is opened and the new exports are unused.
 - **Done when:** The lockfiles name `@ttt-productions/auth-core` 1.6.20 or later and the app's

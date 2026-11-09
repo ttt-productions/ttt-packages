@@ -8,13 +8,13 @@ import {
 } from '../src/types/claims.js';
 import { SYSTEM_ROLE_KEYS, USER_STATUS_KEYS } from '../src/types/unions.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
+import { ACCOUNT_EMAIL_MAX_LENGTH } from '@ttt-productions/auth-core';
 import {
-  EMAIL_MAX_LENGTH,
   MAX_ADMIN_LIST_CHANGES,
   MAX_DISPLAY_NAME_LENGTH,
   MIN_DISPLAY_NAME_LENGTH,
 } from '../src/constants/business.js';
-import { PASSWORD_POLICY } from '../src/constants/account-policy.js';
+import { PASSWORD_POLICY, REGISTRATION_ENGINE_SETTINGS } from '../src/constants/account-policy.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { toPath } from '../src/paths/utils.js';
 import { toReservedDisplayNameKey } from '../src/utils/display-name.js';
@@ -171,6 +171,11 @@ describe('callable input schemas', () => {
     ).toBe(false);
   });
 
+  it('declares Q-Sports passwords as 6 to 74 characters and the registration timeout as 60 seconds', () => {
+    expect(PASSWORD_POLICY).toEqual({ minLength: 6, maxLength: 74 });
+    expect(REGISTRATION_ENGINE_SETTINGS).toEqual({ functionTimeoutSeconds: 60 });
+  });
+
   it('createUserProfile holds the password to the product policy at both bounds', () => {
     const at = (length: number) =>
       CreateUserProfileInputSchema.safeParse({ ...registration, password: 'p'.repeat(length) })
@@ -189,17 +194,17 @@ describe('callable input schemas', () => {
       const fixed = `${'a'.repeat(64)}@${Array(4).fill('b'.repeat(50)).join('.')}.`;
       return `${fixed}${'c'.repeat(length - fixed.length - 4)}.com`;
     };
-    expect(emailOfLength(EMAIL_MAX_LENGTH)).toHaveLength(EMAIL_MAX_LENGTH);
+    expect(emailOfLength(ACCOUNT_EMAIL_MAX_LENGTH)).toHaveLength(ACCOUNT_EMAIL_MAX_LENGTH);
     expect(
       CreateUserProfileInputSchema.safeParse({
         ...registration,
-        email: emailOfLength(EMAIL_MAX_LENGTH),
+        email: emailOfLength(ACCOUNT_EMAIL_MAX_LENGTH),
       }).success,
     ).toBe(true);
     expect(
       CreateUserProfileInputSchema.safeParse({
         ...registration,
-        email: emailOfLength(EMAIL_MAX_LENGTH + 1),
+        email: emailOfLength(ACCOUNT_EMAIL_MAX_LENGTH + 1),
       }).success,
     ).toBe(false);
   });

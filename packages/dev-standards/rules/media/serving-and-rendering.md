@@ -32,3 +32,18 @@ Read with [core-rules.md](core-rules.md) whenever a task serves or renders a sto
 - A wrapper or feature component constructing an `IntersectionObserver` (or a second `useInView`) around a nested viewer.
 
 **References.** ttt-packages `docs/packages/media-viewer.md`.
+
+### RULE-STD-MEDIA-103 — A picture downloads only when shown, at the size it is drawn
+**Scope.** both
+
+**Rule.** A stored picture with several sizes starts its download only once its spot comes into view (a priority picture at once), and downloads the smallest stored size at least as wide as its spot is drawn, counting the screen's pixel density up to 2×; a spot later drawn wider moves up a size, never down. Both come from media-viewer's one mechanism (`MediaPreview`'s `sizes` and `onSizeWanted`, through the viewer's one observer, RULE-STD-MEDIA-102): an app never picks a size from a fixed display name and never measures or observes the spot itself. A downloaded file is held in memory only while something shows it; a revisit is the browser cache's to answer.
+
+**Why.** A picture downloaded off screen, or at the largest size on a phone, spends the visitor's data and the page's load time on bytes nobody sees, and a download kept after nothing shows it holds memory for the whole visit.
+
+**Prohibits.**
+- A download started before its spot is in view, other than a priority picture's.
+- A size chosen from a fixed name, or a size larger than the drawn width needs.
+- A downloaded file kept in a cache after nothing shows it.
+- A wrapper or feature measuring or observing a picture's spot itself.
+
+**References.** RULE-STD-MEDIA-101, RULE-STD-MEDIA-102; RULE-STD-ENG-002; ttt-packages `docs/packages/media-viewer.md`.

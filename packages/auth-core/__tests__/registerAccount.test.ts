@@ -10,7 +10,9 @@ import type {
   AccountRegistrationRequest,
   RegistrationAuth,
 } from '../src/server/registerAccount.js';
-import { DEFAULT_PASSWORD_POLICY, definePasswordPolicy } from '../src/password-policy.js';
+import { definePasswordPolicy } from '../src/password-policy.js';
+
+const POLICY = definePasswordPolicy({ minLength: 6, maxLength: 74 });
 
 const REQUEST: AccountRegistrationRequest = {
   email: 'new@example.com',
@@ -43,7 +45,7 @@ function adapter(
 ): AccountRegistrationAdapter<AccountRegistrationRequest, string> {
   return {
     auth: () => auth,
-    passwordPolicy: DEFAULT_PASSWORD_POLICY,
+    passwordPolicy: POLICY,
     preCheck: async () => {},
     writeAccount: async (uid) => `account-${uid}`,
     onLoginDeleteFailure: () => {},
@@ -131,7 +133,7 @@ describe('registerAccount', () => {
   it('checks the password against the product policy before anything else', async () => {
     const { auth, created } = fakeAuth();
     const preCheck = vi.fn(async () => {});
-    const policy = definePasswordPolicy({ minLength: 20 });
+    const policy = definePasswordPolicy({ minLength: 20, maxLength: 74 });
 
     const answer = registerAccount(adapter(auth, { passwordPolicy: policy, preCheck }), REQUEST);
 

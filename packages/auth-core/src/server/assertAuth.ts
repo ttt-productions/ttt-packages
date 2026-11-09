@@ -3,11 +3,15 @@ import { ACCEPTANCE_REQUIRED_REASON, normalizeAcceptanceLevel } from '../accepta
 import { EMAIL_VERIFICATION_REQUIRED_REASON } from '../email-verification.js';
 import { SIGN_IN_REQUIRED_REASON } from '../sign-in.js';
 import { AuthAssertionError } from './authError.js';
+import { createMaintenanceCheck } from './maintenanceCheck.js';
 import type { AssertAuthConfig, AssertAuthFn, AuthContext, AuthRequirements } from './types.js';
 
 export function createAssertAuth<TUser, TAdmin = void, TAdminOptions = never>(
   config: AssertAuthConfig<TUser, TAdmin, TAdminOptions>,
 ): AssertAuthFn<TUser, TAdmin, TAdminOptions> {
+  const assertNotInMaintenance =
+    config.maintenance === undefined ? undefined : createMaintenanceCheck(config.maintenance);
+
   return async function assertAuth(
     request: CallableRequest,
     requirements: AuthRequirements<TAdminOptions> = {},
@@ -48,6 +52,10 @@ export function createAssertAuth<TUser, TAdmin = void, TAdminOptions = never>(
         throw new AuthAssertionError('permission-denied', 'Account is not in good standing');
       }
       userDoc = userData;
+    }
+
+    if (assertNotInMaintenance !== undefined) {
+      await assertNotInMaintenance({ uid, token });
     }
 
     if (config.acceptance !== undefined && requirements.allowUnaccepted !== true) {

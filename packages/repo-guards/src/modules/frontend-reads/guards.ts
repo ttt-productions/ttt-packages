@@ -10,6 +10,7 @@ import {
   type ReadRetryStateFacts,
   type ReadStateOwnerFacts,
 } from './read-failures.js';
+import { pagesNeverMoveGuard, type PagesNeverMoveFacts } from './pages-never-move.js';
 import { readStateBranchesGuard, type ReadStateBranchFacts } from './read-state-branches.js';
 
 export type FrontendReadsGuardFacts = {
@@ -24,6 +25,7 @@ export type FrontendReadsGuardFacts = {
   queryCache: QueryCacheFacts;
   domainEventRegistry: DomainEventRegistryFacts;
   readStateBranches: ReadStateBranchFacts;
+  pagesNeverMove: PagesNeverMoveFacts;
 };
 
 export const FRONTEND_READS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -31,4 +33,5 @@ export const FRONTEND_READS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>>
   ...QUERY_KEY_GUARDS,
   ...CACHE_GUARDS,
   readStateBranchesGuard,
+  pagesNeverMoveGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

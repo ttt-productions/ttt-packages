@@ -149,6 +149,20 @@ target and streams media bytes only after a play click. `BLOCKED` unless authori
 PASS while unrun.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
+### 11. Pictures download only when shown, at the size they are drawn
+**Rules:** RULE-STD-MEDIA-103, RULE-STD-MEDIA-102. **Scope:** `src`, the app's picture renderer and
+its tests.
+```bash
+rg -n "MediaPreview" src -g '*.tsx' -g '!**/__tests__/**'
+rg -n "IntersectionObserver|useInView|ResizeObserver|getBoundingClientRect" src -g '*.tsx' -g '*.ts' -g '!**/__tests__/**'
+```
+**Expected:** every stored picture with several sizes renders through `MediaPreview` with its `sizes`
+and `onSizeWanted`, and starts its download only from `onSizeWanted` (a priority picture at once); no
+size is chosen from a fixed display name, and no app code observes or measures a picture's spot. A
+downloaded file leaves memory once nothing shows it. The renderer's tests prove an off-screen picture
+downloads nothing until it scrolls into view and that the size follows the drawn width.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
 ## Pass / Fail
 
 Per [README.md](README.md) § Verdict.

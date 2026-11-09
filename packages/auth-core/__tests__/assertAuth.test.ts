@@ -12,7 +12,13 @@ import {
   isPlatformTokenRefusal,
   isSignInRequiredError,
 } from '../src/sign-in.js';
-import type { AssertAuthConfig, AssertAuthFn, UserStatus } from '../src/server/types.js';
+import { MAINTENANCE_REFUSAL_REASON, isMaintenanceRefusalError } from '../src/maintenance.js';
+import type {
+  AssertAuthConfig,
+  AssertAuthFn,
+  MaintenanceGateConfig,
+  UserStatus,
+} from '../src/server/types.js';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { Mock } from 'vitest';
@@ -510,5 +516,51 @@ describe('Acceptance-level gate', () => {
     const banned = (await assertAuth(makeRequest()).catch((e: unknown) => e)) as AuthAssertionError;
     expect(banned.code).toBe('permission-denied');
     expect(banned.details).toBeUndefined();
+  });
+});
+
+describe('Maintenance gate', () => {
+  const MESSAGE = 'Down for maintenance, back soon.';
+
+  function gatedAssertAuth(on: boolean, adminUids: readonly string[]) {
+    const isAdmin = vi.fn<MaintenanceGateConfig['isAdmin']>(async (uid) => adminUids.includes(uid));
+    const config: AssertAuthConfig<TestUser, void, TestAdminOptions> = {
+      firestore: () => fakeDbWithUser(),
+      userProfilePath: (uid) => `profiles/${uid}`,
+      getUserStatus: (): UserStatus => 'active',
+      requireAdmin: vi.fn<RequireAdmin>().mockResolvedValue(undefined),
+      maintenance: { read: () => ({ on, message: MESSAGE }), isAdmin },
+    };
+    return { assert: createAssertAuth<TestUser, void, TestAdminOptions>(config), isAdmin };
+  }
+
+  it('passes every caller while maintenance is off', async () => {
+    const { assert, isAdmin } = gatedAssertAuth(false, []);
+    await expect(assert(makeRequest({ uid: 'member' }))).resolves.toMatchObject({ uid: 'member' });
+    expect(isAdmin).not.toHaveBeenCalled();
+  });
+
+  it('passes an admin while maintenance is on', async () => {
+    const { assert } = gatedAssertAuth(true, ['boss']);
+    await expect(assert(makeRequest({ uid: 'boss' }))).resolves.toMatchObject({ uid: 'boss' });
+  });
+
+  it('refuses a non-admin while maintenance is on with the product message', async () => {
+    const { assert } = gatedAssertAuth(true, ['boss']);
+    const err = await assert(makeRequest({ uid: 'member' })).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AuthAssertionError);
+    expect(err).toMatchObject({
+      code: 'unavailable',
+      message: MESSAGE,
+      details: { reason: MAINTENANCE_REFUSAL_REASON },
+    });
+    expect(isMaintenanceRefusalError(err)).toBe(true);
+  });
+
+  it('refuses a caller whose admin requirement passed but who is not an admin by the product check', async () => {
+    const { assert } = gatedAssertAuth(true, ['boss']);
+    await expect(
+      assert(makeRequest({ uid: 'referee' }), { admin: { level: 'basic' } }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
   });
 });

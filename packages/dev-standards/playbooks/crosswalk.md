@@ -134,6 +134,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-FRONTEND-205 | Every in-app navigation goes through the navigation helper | codebase-hygiene 37, 82, 104; ux-audit 2, 6 | `navigationHelper`, `rootLayoutOrder` |
 | RULE-STD-FRONTEND-206 | Pending, failed, and answered reads never stand in for one another | codebase-hygiene 57, 101; ux-audit 2, 11 | `hookReadDefault`, `defaultedReadBinding`, `readRetryState`, `laterPageFailure` |
 | RULE-STD-FRONTEND-207 | Unsaved input is never discarded silently | codebase-hygiene 104; ux-audit 5 | `editorPermissionGate` |
+| RULE-STD-FRONTEND-208 | A page never moves after it draws | ux-audit 2 | `pagesNeverMove` |
 
 ## MEDIA
 
@@ -150,7 +151,8 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-MEDIA-009 | Cancellation and navigation guarding are package-owned | codebase-hygiene 37, 82, 104; ux-audit 6 | — |
 | RULE-STD-MEDIA-010 | Upload-surface components own their full lifecycle | codebase-hygiene 39 | — |
 | RULE-STD-MEDIA-101 | One media renderer | codebase-hygiene 14, 53, 59; media-pipeline 5 | `mediaRenderer`, `mimePrefixClassification` |
-| RULE-STD-MEDIA-102 | One IntersectionObserver per viewer | codebase-hygiene 59 | — |
+| RULE-STD-MEDIA-102 | One IntersectionObserver per viewer | codebase-hygiene 59; performance-audit 11 | — |
+| RULE-STD-MEDIA-103 | A picture downloads only when shown, at the size it is drawn | performance-audit 11 | — |
 
 ## QUALITY
 

@@ -35,6 +35,8 @@ export interface AssertAuthConfig<TUser, TAdmin = void, TAdminOptions = never> {
   requireAdmin: (uid: string, token: DecodedIdToken, options: TAdminOptions) => Promise<TAdmin>;
 
   acceptance?: AcceptanceGateConfig;
+
+  maintenance?: MaintenanceGateConfig;
 }
 
 export interface AcceptanceGateConfig {
@@ -42,6 +44,24 @@ export interface AcceptanceGateConfig {
 
   requiredLevel: () => number | Promise<number>;
 }
+
+export interface MaintenanceState {
+  readonly on: boolean;
+  readonly message: string;
+}
+
+export interface MaintenanceGateConfig {
+  read: () => MaintenanceState | Promise<MaintenanceState>;
+
+  isAdmin: (uid: string, token: DecodedIdToken) => Promise<boolean>;
+}
+
+export interface MaintenanceCaller {
+  uid: string;
+  token: DecodedIdToken;
+}
+
+export type MaintenanceCheckFn = (caller?: MaintenanceCaller) => Promise<void>;
 
 export type AssertAuthFn<TUser, TAdmin = void, TAdminOptions = never> = (
   request: CallableRequest,

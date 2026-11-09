@@ -3,13 +3,8 @@ export interface PasswordPolicy {
   readonly maxLength: number;
 }
 
-export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = Object.freeze({
-  minLength: 6,
-  maxLength: 74,
-});
-
-export function definePasswordPolicy(override: Partial<PasswordPolicy> = {}): PasswordPolicy {
-  const policy = { ...DEFAULT_PASSWORD_POLICY, ...override };
+export function definePasswordPolicy(values: PasswordPolicy): PasswordPolicy {
+  const policy = { minLength: values.minLength, maxLength: values.maxLength };
   if (
     !Number.isInteger(policy.minLength) ||
     policy.minLength < 1 ||

@@ -1,5 +1,6 @@
 export { createAssertAuth } from './assertAuth.js';
 export { AuthAssertionError } from './authError.js';
+export { createMaintenanceCheck } from './maintenanceCheck.js';
 export type { AuthAssertionErrorCode, AuthAssertionErrorDetails } from './authError.js';
 export {
   EMAIL_ALREADY_REGISTERED_MESSAGE,
@@ -19,5 +20,9 @@ export type {
   AssertAuthFn,
   AuthContext,
   AuthRequirements,
+  MaintenanceCaller,
+  MaintenanceCheckFn,
+  MaintenanceGateConfig,
+  MaintenanceState,
   UserStatus,
 } from './types.js';

@@ -2,14 +2,10 @@ export interface RegistrationEngineSettings {
   readonly functionTimeoutSeconds: number;
 }
 
-export const DEFAULT_REGISTRATION_ENGINE_SETTINGS: RegistrationEngineSettings = Object.freeze({
-  functionTimeoutSeconds: 60,
-});
-
 export function defineRegistrationEngineSettings(
-  override: Partial<RegistrationEngineSettings> = {},
+  values: RegistrationEngineSettings,
 ): RegistrationEngineSettings {
-  const settings = { ...DEFAULT_REGISTRATION_ENGINE_SETTINGS, ...override };
+  const settings = { functionTimeoutSeconds: values.functionTimeoutSeconds };
   if (!Number.isInteger(settings.functionTimeoutSeconds) || settings.functionTimeoutSeconds < 1) {
     throw new TypeError(
       `A registration function timeout is a whole number of seconds (got ${settings.functionTimeoutSeconds}).`,
