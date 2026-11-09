@@ -17,8 +17,8 @@ follows the session unless a doc names one.
 - **An app overrides a cell only explicitly**, in its `CLAUDE.md`: "Overrides shared
   `model-tiers.md` § <tier> / <host>: <model>". An unstated difference is drift; a cell with no
   override is this table's.
-- **Implementation agents** (every spawned fixer or builder) run on Claude Code `opus`, whatever tier
-  their task names — except a **mechanical-only** implementer, which runs at LOW. A mechanical-only
+- **Implementation agents** (every spawned fixer or builder) run at HIGH, whatever tier their task
+  names — except a **mechanical-only** implementer, which runs at LOW. A mechanical-only
   task applies a fixed set of written patterns to many files; its prompt names every pattern and
   makes anything outside them a stop that returns to the HIGH session that spawned it. That session
   and its reviewer stay HIGH.

@@ -22,6 +22,9 @@ their own. It plans, starts, and checks. It never builds code and never designs:
 decisions to each piece as he made them and checks the work against them. It does help DJ plan —
 the order of the pieces, what each covers, what is in the way — each with its recommendation.
 
+Its pieces are conversations DJ works in. An orchestrator that spawns its own agents and checks
+their reports runs `fan-out-implementation.md` instead.
+
 ## The ledger
 
 `docs/work/projects/<project>/ORCHESTRATOR.md` holds only live state: where the project is, one row

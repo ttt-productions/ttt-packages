@@ -34,6 +34,10 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   is left. The prompt carries nothing else except open questions DJ chose to move. An item whose
   only remaining work is the Normal Test Flow or a hosted E2E run is deleted; if a conversation
   switches at that point, the prompt says to run it.
+- **A new conversation, never a compacted one.** DJ moves the work to a new conversation before the
+  current one passes about three quarters of its context, because a fuller or compacted conversation
+  drifts from his rules. He calls the switch. The session keeps the items it is working current as
+  it goes, so a switch at any moment loses nothing.
 - "Finish everything" / "do it all" means every single thing DJ has decided, with nothing left
   undone or parked. It never means deciding anything for DJ: when finishing needs a decision he has
   not made, ask that one question and keep doing the rest. Never stop for complexity, size, time of
@@ -206,15 +210,31 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   work or review — it proposes them to DJ — how many, each one's tier, its exact task, and its
   files — and launches them only on his yes. Launching agents, a predefined wave included, never makes it an orchestrator; it
   still runs its own Normal Test Flow.
-- **Orchestrator:** the session keeps its context for the whole project and never edits code itself;
-  it reads code only to check work against DJ's decisions. Its pieces are agents or conversations DJ
-  works in, and how it runs them, briefs them and checks what comes back is
-  `<DEV_STANDARDS>/workflows/claude/orchestrate-a-project.md`. Every piece gets the high-level picture
-  and the design: build this, this way. A piece that finds a better or different way stops and comes
-  back instead of building it. Agents run in waves of a few at a time, each owning its files, no file
-  owned twice. LOW agents never decide; they apply the examples the HIGH session gives them.
+- **Orchestrator:** the session never edits code itself; its pieces do the building, and they are
+  agents it spawns or conversations DJ works in. It reads enough to direct a piece and to check it:
+  the rules, the design docs, and the code that already owns what the piece touches. Every piece
+  gets the high-level picture and the design: build this, this way. A piece that finds a better or
+  different way stops and comes back instead of building it. Agents run in waves of a few at a time,
+  each owning its files, no file owned twice. LOW agents never decide; they apply the examples the
+  HIGH session gives them. With agents it spawns, the procedure is
+  `<DEV_STANDARDS>/workflows/claude/fan-out-implementation.md`; with conversations DJ works in
+  across a project, `<DEV_STANDARDS>/workflows/claude/orchestrate-a-project.md`.
+- **A brief names what already exists.** Before it briefs an agent, the session finds the owner the
+  work extends, in the packages and in the app, and the rules that govern it, and the brief names
+  them: extend this, here, using these. "Build X" alone is never a brief; what an agent duplicates
+  because its brief left the owner out is the session's violation (RULE-STD-ENG-003,
+  RULE-STD-ENG-010).
+- **An agent's report is a set of claims, checked against the code.** Every report lists each file,
+  function, export, constant, and type the agent created, and for each one why no existing owner
+  served. The session reads the report, looks for an owner of every new thing in the packages and
+  the app, and sends a duplicate or a rule miss back to the agent that built it.
 - The main session owns edits unless DJ explicitly approves parallel implementers with disjoint file
-  ownership. Nothing spawns without DJ's yes.
+  ownership.
+- **Agents need DJ's approval, given in that conversation.** Its form is his to choose each time: a
+  budget — so many agents at each tier, usually with "do everything that does not need me" while he
+  is away — which the session works inside and never past, or a yes for each wave with its briefs
+  shown first. An approval covers exactly what it names. No doc, plan, ledger, or earlier
+  conversation gives one, and a spent budget is a stop until DJ gives another.
 - Every prompt that spawns an agent names that agent's mandatory reading as explicit
   read-before-acting paths (RULE-STD-ENG-010), hard-bans spawning further agents and running any
   git or `gh` command, and carries a stop clause: anything unexpected, or a needed package change, stops the agent and comes back to the

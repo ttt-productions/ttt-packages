@@ -3,7 +3,7 @@
 **What:** Move the generic hosted and local E2E code that ttt-prod and Q-Sports both carry into one generic package, so a fix made once reaches both apps.
 **Severity:** medium
 **Came from:** the Q-Sports 2.0 migration orchestrator (Q-Sports scope), on DJ's call of 2026-10-30 to copy ttt-prod's hosted E2E into Q-Sports for the November 7 launch instead of building this package first. It folds in ttt-prod's earlier write-up of the hosted half (2026-10-21, from the Q-Sports `bring-up` step).
-**Trigger:** after Q-Sports 2.0 is live on production, or sooner if a hosted E2E engine fix has to be made twice
+**Trigger:** once Q-Sports' hosted paths run green on hosted dev
 
 This is a write-up of the item as it is known now, not a finished design.
 
