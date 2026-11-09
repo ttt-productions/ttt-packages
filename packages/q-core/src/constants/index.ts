@@ -11,3 +11,4 @@ export * from './text-fields.js';
 export * from './phone-fields.js';
 export * from './analytics.js';
 export * from './account-policy.js';
+export * from './contact.js';
