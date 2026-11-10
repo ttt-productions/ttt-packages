@@ -1,6 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import {
+  __resetAuthBootLookupGuard,
   classifyBootLookupFailure,
+  getLastBootLookupFailureClass,
+  installAuthBootLookupGuard,
   runGuardedBootLookup,
   type BootLookupFailureClass,
   type BootLookupResponse,
@@ -184,5 +187,209 @@ describe('runGuardedBootLookup', () => {
 
     expect(attempt).toHaveBeenCalledTimes(1);
     expect(onFailure).not.toHaveBeenCalled();
+  });
+});
+
+const LOOKUP_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=k';
+const TOKEN_URL = 'https://securetoken.googleapis.com/v1/token?key=k';
+const REFRESH_INIT: RequestInit = {
+  method: 'POST',
+  body: 'grant_type=refresh_token&refresh_token=r',
+};
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
+function refusal(status: number, message: string): Response {
+  return jsonResponse(status, { error: { code: status, message, status: 'INVALID_ARGUMENT' } });
+}
+
+const refreshed = () =>
+  jsonResponse(200, { access_token: 'a', refresh_token: 'r', expires_in: '3600' });
+
+type OriginalFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+function installGuardOver(
+  originalFetch: OriginalFetch,
+  refreshAttestation?: () => Promise<void>,
+): OriginalFetch {
+  const fakeWindow = { fetch: originalFetch };
+  (globalThis as Record<string, unknown>).window = fakeWindow;
+  installAuthBootLookupGuard({ refreshAttestation });
+  return fakeWindow.fetch;
+}
+
+async function settle<T>(pending: Promise<T>): Promise<T> {
+  await vi.runAllTimersAsync();
+  return pending;
+}
+
+describe('installAuthBootLookupGuard — the boot token refresh', () => {
+  beforeEach(() => {
+    __resetAuthBootLookupGuard();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    __resetAuthBootLookupGuard();
+    delete (globalThis as Record<string, unknown>).window;
+  });
+
+  it.each([TOKEN_EXPIRED, USER_DISABLED, 'USER_NOT_FOUND'])(
+    'returns a boot refresh refused with %s untouched, classed identity and never retried',
+    async (serverMessage) => {
+      const refused = refusal(400, serverMessage);
+      const originalFetch = vi.fn<OriginalFetch>(async () => refused);
+      const fetch = installGuardOver(originalFetch);
+
+      await expect(settle(fetch(TOKEN_URL, REFRESH_INIT))).resolves.toBe(refused);
+
+      expect(originalFetch).toHaveBeenCalledTimes(1);
+      expect(getLastBootLookupFailureClass()).toBe('identity');
+    },
+  );
+
+  it.each([
+    ['a 5xx', () => refusal(503, 'backend unavailable')],
+    ['a 429', () => refusal(429, 'TOO_MANY_ATTEMPTS_TRY_LATER')],
+  ])(
+    'retries a boot refresh that fails with %s after the lookup delays and returns the recovery',
+    async (_label, failure) => {
+      const recovered = refreshed();
+      const originalFetch = vi
+        .fn<OriginalFetch>()
+        .mockResolvedValueOnce(failure())
+        .mockResolvedValueOnce(failure())
+        .mockResolvedValueOnce(recovered);
+      const fetch = installGuardOver(originalFetch);
+
+      const pending = fetch(TOKEN_URL, REFRESH_INIT);
+      await vi.advanceTimersByTimeAsync(399);
+      expect(originalFetch).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(originalFetch).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(1199);
+      expect(originalFetch).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(1);
+
+      await expect(pending).resolves.toBe(recovered);
+      expect(originalFetch).toHaveBeenCalledTimes(3);
+    },
+  );
+
+  it('resends the same request on every retry', async () => {
+    const originalFetch = vi
+      .fn<OriginalFetch>()
+      .mockResolvedValueOnce(refusal(503, 'backend unavailable'))
+      .mockResolvedValueOnce(refreshed());
+    const fetch = installGuardOver(originalFetch);
+
+    await settle(fetch(TOKEN_URL, REFRESH_INIT));
+
+    expect(originalFetch.mock.calls).toEqual([
+      [TOKEN_URL, REFRESH_INIT],
+      [TOKEN_URL, REFRESH_INIT],
+    ]);
+  });
+
+  it('refreshes attestation before retrying a boot refresh App Check refused', async () => {
+    const order: string[] = [];
+    const originalFetch = vi
+      .fn<OriginalFetch>()
+      .mockImplementationOnce(async () => {
+        order.push('refresh');
+        return refusal(401, APP_CHECK_401);
+      })
+      .mockImplementationOnce(async () => {
+        order.push('refresh');
+        return refreshed();
+      });
+    const refreshAttestation = vi.fn(async () => {
+      order.push('attestation');
+    });
+    const fetch = installGuardOver(originalFetch, refreshAttestation);
+
+    await settle(fetch(TOKEN_URL, REFRESH_INIT));
+
+    expect(order).toEqual(['refresh', 'attestation', 'refresh']);
+  });
+
+  it('keeps the session when the boot refresh never recovers: throws a non-Firebase error and leaves the class set', async () => {
+    const originalFetch = vi.fn<OriginalFetch>(async () => refusal(503, 'backend unavailable'));
+    const fetch = installGuardOver(originalFetch);
+
+    const outcome = expect(fetch(TOKEN_URL, REFRESH_INIT)).rejects.toThrow(
+      'Boot token refresh kept failing (transient) — keeping the persisted session',
+    );
+    await vi.runAllTimersAsync();
+    await outcome;
+
+    expect(originalFetch).toHaveBeenCalledTimes(3);
+    expect(getLastBootLookupFailureClass()).toBe('transient');
+  });
+
+  it('rethrows the transport error when the boot refresh never reaches the server', async () => {
+    const transportError = new TypeError('Failed to fetch');
+    const originalFetch = vi.fn<OriginalFetch>(async () => {
+      throw transportError;
+    });
+    const fetch = installGuardOver(originalFetch);
+
+    const outcome = expect(fetch(TOKEN_URL, REFRESH_INIT)).rejects.toBe(transportError);
+    await vi.runAllTimersAsync();
+    await outcome;
+
+    expect(originalFetch).toHaveBeenCalledTimes(3);
+    expect(getLastBootLookupFailureClass()).toBe('network');
+  });
+
+  it('leaves the class unset when the boot refresh succeeds', async () => {
+    const fetch = installGuardOver(async () => refreshed());
+
+    await settle(fetch(TOKEN_URL, REFRESH_INIT));
+
+    expect(getLastBootLookupFailureClass()).toBeNull();
+  });
+
+  it('neither retries nor classes a refresh refused after the boot lookup', async () => {
+    const originalFetch = vi.fn<OriginalFetch>(async (input) =>
+      String(input).startsWith(LOOKUP_URL)
+        ? jsonResponse(200, { users: [{}] })
+        : refusal(503, 'backend unavailable'),
+    );
+    const fetch = installGuardOver(originalFetch);
+
+    await settle(fetch(LOOKUP_URL));
+    await settle(fetch(TOKEN_URL, REFRESH_INIT));
+
+    expect(originalFetch).toHaveBeenCalledTimes(2);
+    expect(getLastBootLookupFailureClass()).toBeNull();
+  });
+
+  it('neither retries nor classes a refresh after the boot refresh', async () => {
+    const originalFetch = vi
+      .fn<OriginalFetch>()
+      .mockResolvedValueOnce(refreshed())
+      .mockResolvedValueOnce(refusal(400, TOKEN_EXPIRED));
+    const fetch = installGuardOver(originalFetch);
+
+    await settle(fetch(TOKEN_URL, REFRESH_INIT));
+    await settle(fetch(TOKEN_URL, REFRESH_INIT));
+
+    expect(originalFetch).toHaveBeenCalledTimes(2);
+    expect(getLastBootLookupFailureClass()).toBeNull();
+  });
+
+  it('still guards the boot lookup that follows a successful boot refresh', async () => {
+    const fetch = installGuardOver(async (input) =>
+      String(input).startsWith(LOOKUP_URL) ? refusal(400, INVALID_ID_TOKEN) : refreshed(),
+    );
+
+    await settle(fetch(TOKEN_URL, REFRESH_INIT));
+    await settle(fetch(LOOKUP_URL));
+
+    expect(getLastBootLookupFailureClass()).toBe('identity');
   });
 });

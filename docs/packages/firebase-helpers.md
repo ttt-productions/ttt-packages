@@ -44,8 +44,13 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
   Auth starts: it classifies a failed boot `accounts:lookup` (`classifyBootLookupFailure` — identity,
   attestation, network, transient), retries the non-identity classes (an attestation retry first
   forces a fresh App Check token), and hands the SDK an identity failure untouched so it signs the
-  account out — a session is never dropped for an outage. `getLastBootLookupFailureClass()` reads
-  the last class.
+  account out — a session is never dropped for an outage. When the persisted ID token has expired,
+  the SDK's boot reload first refreshes it at the token endpoint; the guard guards that one boot
+  refresh through the same classification and retry (a server refusal that ends the session is
+  identity and reaches the SDK untouched; retries spent keep the session), and a refresh after the
+  boot lookup or after that first refresh belongs to the running session and is left alone.
+  `getLastBootLookupFailureClass()` reads the last class from either
+  (`__resetAuthBootLookupGuard` is the test seam).
 - **The boot purge sentinel.** `peekPersistedAuthUser()` reads, without creating anything, whether
   the Auth SDK held a persisted user at boot; `AuthBootPurgeSentinel` (`./react`) takes the app's
   auth `loading` and `signedIn` and calls `onPurged({ persistedUid, failureClass })` once when a
