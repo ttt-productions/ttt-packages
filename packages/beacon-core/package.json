@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/beacon-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Generic change beacon: the stamp, its writer, the pure change decision, and the observer",
   "repository": {
     "type": "git",
