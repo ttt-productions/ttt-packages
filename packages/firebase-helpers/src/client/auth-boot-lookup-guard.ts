@@ -1,10 +1,12 @@
-const BOOT_LOOKUP_URL_FRAGMENT = 'identitytoolkit.googleapis.com/v1/accounts:lookup';
+export const BOOT_LOOKUP_URL_FRAGMENT = 'identitytoolkit.googleapis.com/v1/accounts:lookup';
 
-const BOOT_TOKEN_REFRESH_URL_FRAGMENT = 'securetoken.googleapis.com/v1/token';
+export const BOOT_TOKEN_REFRESH_URL_FRAGMENT = 'securetoken.googleapis.com/v1/token';
 
 const INSTALLED_FLAG = '__FIREBASE_AUTH_BOOT_LOOKUP_GUARD__';
 
-const DEFAULT_RETRY_DELAYS_MS = [400, 1200] as const;
+export const BOOT_REQUEST_RETRY_DELAYS_MS = [400, 1200] as const;
+
+export const BOOT_REQUEST_ATTEMPTS = BOOT_REQUEST_RETRY_DELAYS_MS.length + 1;
 
 export type BootLookupFailureClass = 'identity' | 'attestation' | 'network' | 'transient';
 
@@ -82,7 +84,7 @@ async function runGuardedBootRequest<TResponse extends BootLookupResponse>(
   requestName: string,
   options: GuardedBootLookupOptions<TResponse>,
 ): Promise<TResponse> {
-  const delays = options.delaysMs ?? DEFAULT_RETRY_DELAYS_MS;
+  const delays = options.delaysMs ?? BOOT_REQUEST_RETRY_DELAYS_MS;
   const sleep = options.sleep ?? defaultSleep;
 
   let failureClass: BootLookupFailureClass = 'transient';

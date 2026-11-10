@@ -50,7 +50,11 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
   identity and reaches the SDK untouched; retries spent keep the session), and a refresh after the
   boot lookup or after that first refresh belongs to the running session and is left alone.
   `getLastBootLookupFailureClass()` reads the last class from either
-  (`__resetAuthBootLookupGuard` is the test seam).
+  (`__resetAuthBootLookupGuard` is the test seam). The guard's values are exported beside it, so a
+  reader that needs to recognise a guarded run imports them rather than restating them:
+  `BOOT_LOOKUP_URL_FRAGMENT` and `BOOT_TOKEN_REFRESH_URL_FRAGMENT` (the two requests it guards),
+  `BOOT_REQUEST_RETRY_DELAYS_MS` (the wait before each retry), and `BOOT_REQUEST_ATTEMPTS` (the
+  attempts one guarded request makes: one plus one per retry delay).
 - **The boot purge sentinel.** `peekPersistedAuthUser()` reads, without creating anything, whether
   the Auth SDK held a persisted user at boot; `AuthBootPurgeSentinel` (`./react`) takes the app's
   auth `loading` and `signedIn` and calls `onPurged({ persistedUid, failureClass })` once when a

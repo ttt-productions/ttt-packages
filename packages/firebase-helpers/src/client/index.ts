@@ -15,6 +15,10 @@ export { awaitFirstToken } from './app-check-ready.js';
 export type { AwaitFirstTokenOptions } from './app-check-ready.js';
 export {
   __resetAuthBootLookupGuard,
+  BOOT_LOOKUP_URL_FRAGMENT,
+  BOOT_REQUEST_ATTEMPTS,
+  BOOT_REQUEST_RETRY_DELAYS_MS,
+  BOOT_TOKEN_REFRESH_URL_FRAGMENT,
   classifyBootLookupFailure,
   getLastBootLookupFailureClass,
   installAuthBootLookupGuard,
