@@ -1,88 +1,94 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { QueryObserverResult, RefetchOptions, UseQueryResult } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import type {
+  QueryClient,
+  QueryKey,
+  QueryObserverResult,
+  RefetchOptions,
+  UseQueryResult,
+} from '@tanstack/react-query';
+import type { DocumentData } from 'firebase/firestore';
 import type { FirestoreSourceState, WithSourceState } from '../../firestore/types.js';
 import { isPermissionDeniedError } from './resubscribe.js';
+import { queryHashOf } from './query-hash.js';
+import {
+  acquireLiveRead,
+  liveReadStatusFor,
+  restartLiveRead,
+  retargetLiveRead,
+  sharedLiveReadStatus,
+  watchLiveRead,
+  type LiveReadTarget,
+  type PendingRestart,
+} from './live-read-registry.js';
 
-interface PendingRestart {
-  fromError: boolean;
-  failure: Error | null;
+const noWatch = () => () => {};
+
+export interface LiveReadParams {
+  queryClient: QueryClient;
+  queryKey: QueryKey;
+  target: LiveReadTarget;
+  select: { readonly current: ((data: DocumentData & { id: string }) => unknown) | undefined };
+  active: boolean;
 }
 
-interface SubscriptionStatus {
-  identity: string;
-  error: Error | null;
-  sourceState: FirestoreSourceState;
-  restart: PendingRestart | null;
-  restarts: number;
-}
+export function useLiveReadStatus({
+  queryClient,
+  queryKey,
+  target,
+  select,
+  active,
+}: LiveReadParams): SubscriptionStatusView {
+  const key = useMemo(() => queryHashOf(queryClient, queryKey), [queryClient, queryKey]);
+  const targetRef = useRef(target);
+  targetRef.current = target;
 
-type StatusPatch = Partial<Omit<SubscriptionStatus, 'identity' | 'restarts'>>;
-
-function freshStatus(identity: string): SubscriptionStatus {
-  return { identity, error: null, sourceState: 'connecting', restart: null, restarts: 0 };
-}
-
-export function useSubscriptionStatus(identity: string) {
-  const [status, setStatus] = useState<SubscriptionStatus>(() => freshStatus(identity));
-
-  const current: SubscriptionStatus = status.identity === identity ? status : freshStatus(identity);
-
-  const reset = useCallback(() => {
-    setStatus((prev) =>
-      prev.identity === identity
-        ? { ...prev, error: null, sourceState: 'connecting' }
-        : freshStatus(identity),
-    );
-  }, [identity]);
-
-  const update = useCallback(
-    (patch: StatusPatch | ((prev: SubscriptionStatus) => StatusPatch)) => {
-      setStatus((prev) => {
-        if (prev.identity !== identity) return prev;
-        const next = typeof patch === 'function' ? patch(prev) : patch;
-        return { ...prev, ...next };
-      });
-    },
-    [identity],
+  const watch = useCallback(
+    (onChange: () => void) => watchLiveRead(queryClient, key, onChange),
+    [queryClient, key],
   );
+  const readShared = () => (active ? sharedLiveReadStatus(queryClient, key) : null);
+  const shared = useSyncExternalStore(active ? watch : noWatch, readShared, readShared);
+  const status = liveReadStatusFor(shared, target);
 
-  const renderedIdentity = useRef(identity);
   useEffect(() => {
-    renderedIdentity.current = identity;
-  }, [identity]);
+    if (!active) return;
+    return acquireLiveRead({ queryClient, key, queryKey, target: targetRef.current, select });
+  }, [active, queryClient, key, queryKey, select]);
+
+  const { db, signature } = target;
+  useEffect(() => {
+    if (active) retargetLiveRead(queryClient, key, targetRef.current);
+  }, [active, queryClient, key, db, signature]);
+
+  const rendered = useRef({ key, signature, db });
+  useEffect(() => {
+    rendered.current = { key, signature, db };
+  }, [key, signature, db]);
 
   const restart = useCallback((): boolean => {
-    if (renderedIdentity.current !== identity) return false;
-    setStatus((prev) => {
-      const base = prev.identity === identity ? prev : freshStatus(identity);
-      return {
-        ...base,
-        error: null,
-        sourceState: 'connecting',
-        restart: {
-          fromError: base.error !== null || base.restart?.fromError === true,
-          failure: base.error ?? base.restart?.failure ?? null,
-        },
-        restarts: base.restarts + 1,
-      };
-    });
-    return true;
-  }, [identity]);
+    const current = rendered.current;
+    if (current.key !== key || current.signature !== signature || current.db !== db) return false;
+    return restartLiveRead(queryClient, key, { db, path: target.path, signature });
+  }, [queryClient, key, signature, db, target.path]);
 
   return {
-    error: current.error,
-    sourceState: current.sourceState,
-    pendingRestart: current.restart,
-    restarts: current.restarts,
-    reset,
-    update,
+    carried: status.carried,
+    error: status.error,
+    sourceState: status.sourceState,
+    pendingRestart: status.restart,
     restart,
   };
 }
 
-type SubscriptionStatusApi = ReturnType<typeof useSubscriptionStatus>;
+export interface SubscriptionStatusView {
+  carried: boolean;
+  error: Error | null;
+  sourceState: FirestoreSourceState;
+  pendingRestart: PendingRestart | null;
+  restart: () => boolean;
+}
 
 interface RefetchWaiter<TData> {
   resolve: (result: QueryObserverResult<TData, Error>) => void;
@@ -94,9 +100,9 @@ export function useSubscribedResult<TData>(
   query: UseQueryResult<TData, Error>,
   subscribe: boolean,
   enabled: boolean,
-  status: SubscriptionStatusApi,
+  status: SubscriptionStatusView,
 ): WithSourceState<UseQueryResult<TData, Error>> {
-  const { error, sourceState, pendingRestart, restart } = status;
+  const { carried, error, sourceState, pendingRestart, restart } = status;
   const waiters = useRef<RefetchWaiter<TData>[]>([]);
   const latest = useRef(query as QueryObserverResult<TData, Error>);
   const mounted = useRef(true);
@@ -176,6 +182,15 @@ export function useSubscribedResult<TData>(
       isFetching: true,
       isLoading: query.isPending,
       isRefetching: !query.isPending,
+      fetchStatus: 'fetching',
+      refetch,
+    } as UseQueryResult<TData, Error>;
+  } else if (active && carried && sourceState === 'connecting' && query.data !== undefined) {
+    result = {
+      ...query,
+      isPlaceholderData: true,
+      isFetching: true,
+      isRefetching: true,
       fetchStatus: 'fetching',
       refetch,
     } as UseQueryResult<TData, Error>;

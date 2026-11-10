@@ -29,7 +29,7 @@ Generic TanStack Query package.
   error callback. The source state and the listener error belong to the subscription
   identity (path, key, constraints, enabled) that produced them: a new identity reads
   `connecting` with no error from its very first render, and a retired listener's late
-  callback never lands on the new one. Consumed by an app's notification/badge tray, for example, to
+  callback never lands on the new one. That state is shared by every mount of the key (below). Consumed by an app's notification/badge tray, for example, to
   show a degraded indicator instead of a false "all caught up".
 - **A subscribed read is loading until its first snapshot.** The query underneath is disabled in
   subscribe mode, so on its own it reads `pending` but not loading; the result reports
@@ -37,7 +37,7 @@ Generic TanStack Query package.
   its error, as a one-shot read's first fetch does — a consumer deciding from `isLoading` never
   renders an unanswered read as an absence. A disabled read stays idle.
 - **`refetch()` re-opens a subscribed read.** In subscribe mode, `useFirestoreDoc` /
-  `useFirestoreCollection` keep a listener error in their own state (the `permission-denied`
+  `useFirestoreCollection` keep a listener error in the key's shared status (the `permission-denied`
   ladder spent, or at once for any other code), so the one-shot read cannot clear it. Their
   `refetch()` there clears the listener error and re-opens the listener with a fresh
   resubscribe ladder; the result reports fetching (`isFetching`, `fetchStatus: 'fetching'`)
@@ -56,6 +56,50 @@ Generic TanStack Query package.
   and a snapshot it may no longer read is never presented as readable, so it and its restart read as a
   failure before any answer. A disabled read's
   `refetch()` opens nothing; without `subscribe`, `refetch()` is the query's own one-shot re-read.
+- **One live read per query key.** A subscribed `useFirestoreDoc` or `useFirestoreCollection`
+  keeps ONE `onSnapshot` listener and ONE status (source state, listener error, pending restart,
+  carried answer) per query key in each `QueryClient`, shared by every mount of that key. The key is
+  the client's own hash of the query key (its `queryKeyHashFn`, the hash `QueryCache` keys by), so
+  keys that hash alike — object keys in another order — share one listener; both hooks
+  run on the one registry, which differs per kind only in the reference it listens to (a document, or
+  a collection with its constraints) and how a snapshot becomes the cached value (the document or
+  `null` when it is missing; the rows). The first subscribed mount opens the listener; it stays while
+  any mount of the key remains and stops a microtask after the last one unmounts (or turns `enabled`
+  / `subscribe` off). React runs every passive cleanup of a commit before that commit's passive
+  mounts, so a mount of the same key arriving in the same commit (a route change, a list moving
+  between parents, StrictMode's re-run) takes the listener over instead of starting a new one. A mount of a key that is already live is live in its first render, with its data
+  and no `connecting` pass, and opens no second listener. Every mount sees the same failure, a
+  `refetch()` from any mount restarts the one listener once (a `refetch()` while that restart is open
+  joins it) and settles every mount's waiter, and the `permission-denied` ladder runs once for the
+  key. Snapshots are mapped with the `select` of the most recently mounted instance; mounts of one key
+  write one cache entry, so they pass one `select`. A remount after the last mount left starts a fresh
+  listener and reads `connecting` until the server answers, even over data left in the cache. Two
+  query clients share nothing.
+- **A cleared cache entry is refilled.** When the key's cache entry is removed (`removeQueries`, the
+  cache's `clear()`) or reset to no data (`resetQueries`) while its listener is live, the registry
+  learns it from the query cache's own events and re-opens the listener: the status reads
+  `connecting` (nothing carried, since the copy is gone) until the next snapshot refills the entry for
+  every mount. Its own snapshot writes never re-open it, and a key with no mount left listens to
+  nothing.
+- **The latest target wins for a key.** Mounts of one key are expected to pass the same path (and,
+  for a collection, the same constraints). When one mount changes them, the key's one listener follows
+  that mount: it re-opens once, and a mount still a render behind reads the same status. A collection
+  whose constraints changed under the same path carries its answer (below); a changed path carries
+  nothing — the read is `connecting` with `isPlaceholderData` false, the previous path's data still
+  under the key, until the new path answers. A mount that later catches up changes nothing.
+- **New constraints under the same key carry the live answer.** When a subscribed
+  `useFirestoreCollection` read changes only its constraints (a wider `limit`, say) and keeps its
+  path and query key, the listener re-opens and the source state reads `connecting` like any new
+  identity. If the previous constraints' listener had answered (`live`, or `offline` after being
+  live), the rows it left under the key stay
+  as the result's data with `isPlaceholderData`, `isFetching`, and `isRefetching` true, through a
+  cached answer of the new constraints, until their first server-confirmed snapshot (or their
+  failure) ends it; while the new constraints answer only from cache (offline) the source state stays
+  `connecting` and the rows stay, so the read never claims `live`. Nothing is carried across a key,
+  path, or db change, from a read that never answered (`connecting`) or failed (`error`), or through a
+  `permission-denied` resubscribe; a read
+  mounted over rows left in the cache is `connecting` with `isPlaceholderData` false, so a consumer
+  tells a cached copy from a carried answer.
 - The generic debounced prefix-search hook `useFirestoreSearch`, its options type
   (`FirestoreSearchOptions`, on `./react`), and its config types (`FirestoreSearchConfig`,
   `SearchEqualityFilter`) and search rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`)

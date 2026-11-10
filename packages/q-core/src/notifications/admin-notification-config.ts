@@ -14,6 +14,10 @@ import {
 import type { AdminNotificationType } from '../types/notifications.js';
 import { APP_ROUTES, LEAGUE_FREE_AGENTS_SECTION } from '../paths/app-routes.js';
 
+export const ADMIN_NOTIFICATION_LIST_STEP = 10;
+
+export const ADMIN_NOTIFICATION_LIST_CEILING = 100;
+
 export interface AdminNotificationDefinition<T extends AdminNotificationType> {
   aggregationKey: (metadata: AdminNotificationMetadataByType[T]) => string;
   delivery: NotificationTypeConfig['delivery'];

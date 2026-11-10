@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { Badge, Button, ListPagination, Separator, Spinner } from '@ttt-productions/ui-core/react';
+import { Badge, Button, Separator, Spinner } from '@ttt-productions/ui-core/react';
 import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
 import { useArchiveAllNotifications } from '../hooks/useArchiveAllNotifications.js';
@@ -32,8 +32,9 @@ export function NotificationList({
   getArchiveAllStatusFn,
   title,
   onClearAll,
-  refetchInterval,
-  staleTime,
+  step,
+  ceiling,
+  ceilingText,
   emptyText,
   renderError,
   onRenderedRowsChange,
@@ -42,20 +43,18 @@ export function NotificationList({
 }: NotificationListProps) {
   const {
     data: notifications,
-    isFetching,
     retryState,
     refetch,
-    page,
-    hasNextPage,
-    hasPrevPage,
-    nextPage,
-    prevPage,
+    showMore,
+    isShowingMore,
+    canShowMore,
+    hasOlderBeyondCeiling,
   } = useActiveNotifications({
     config,
     userId,
     category,
-    refetchInterval,
-    staleTime,
+    step,
+    ceiling,
   });
 
   const archiveMutation = useArchiveNotification({
@@ -132,6 +131,17 @@ export function NotificationList({
     (nextControl ?? listRef.current)?.focus();
   }, [notifications, retryState.isLoading]);
 
+  const showMoreShown = canShowMore || isShowingMore;
+  const showMoreFocused = useRef(false);
+  useLayoutEffect(() => {
+    if (showMoreShown || !showMoreFocused.current) return;
+    showMoreFocused.current = false;
+    const active = document.activeElement;
+    if (active === null || active === document.body || !active.isConnected) {
+      listRef.current?.focus();
+    }
+  }, [showMoreShown]);
+
   const archiveOne = useCallback(
     async (notification: NotificationDoc) => {
       const generation = notification.activityGeneration;
@@ -194,10 +204,7 @@ export function NotificationList({
   );
 
   const showEmptyState =
-    retryState.error === null &&
-    notifications !== undefined &&
-    notifications.length === 0 &&
-    page === 1;
+    retryState.error === null && notifications !== undefined && notifications.length === 0;
   const isClearAllPending =
     archiveAllMutation.isPending ||
     (notifications ?? []).some((notification) => isPendingFor(pendingClearAll, notification));
@@ -303,17 +310,29 @@ export function NotificationList({
                 })
               : null}
             {showEmptyState && <NotificationEmptyState text={emptyText} />}
-            <ListPagination
-              pagination={{
-                currentPage: page,
-                canPreviousPage: hasPrevPage,
-                canNextPage: hasNextPage,
-                goToPreviousPage: prevPage,
-                goToNextPage: nextPage,
-              }}
-              busy={isFetching}
-              className="ntf-list-footer mt-0"
-            />
+            {showMoreShown || hasOlderBeyondCeiling ? (
+              <div className="ntf-list-footer">
+                {showMoreShown ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    pending={isShowingMore}
+                    onClick={showMore}
+                    onFocus={() => {
+                      showMoreFocused.current = true;
+                    }}
+                    onBlur={() => {
+                      showMoreFocused.current = false;
+                    }}
+                  >
+                    Show more
+                  </Button>
+                ) : (
+                  <p className="ntf-list-ceiling">{ceilingText}</p>
+                )}
+              </div>
+            ) : null}
           </>
         )}
       </div>

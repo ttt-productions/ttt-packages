@@ -25,6 +25,11 @@ export const ROOT_ROLES: readonly RootRole[] = Object.freeze([
   'workers',
 ]);
 
+// coreDist is built output, gitignored on purpose: no file in it is authored.
+export const AUTHORED_ROOTS: readonly RootRole[] = Object.freeze(
+  ROOT_ROLES.filter((role) => role !== 'coreDist'),
+);
+
 export interface RootDeclaration {
   path: string;
   anchor: string;

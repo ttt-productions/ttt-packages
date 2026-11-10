@@ -1,8 +1,12 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Guard } from '../../src/guard.js';
 import { createRepoReader, layoutProblems } from '../../src/node/reader.js';
-import { kindOfFile, type RepoLayout } from '../../src/node/layout.js';
+import { FILE_KINDS, kindOfFile, type RepoLayout } from '../../src/node/layout.js';
+import { runGuard } from '../../src/node/suite/run.js';
 import { viewOfText } from '../../src/reader/view.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
@@ -408,6 +412,218 @@ describe('MUST FAIL — a symbolic link in a walked tree', () => {
     expect(() => reader.installedFiles('@scope/kit', { kinds: ['code'] })).toThrow(
       'node_modules/@scope/kit/dist/linked.js is a symbolic link',
     );
+  });
+});
+
+describe('the walk reads only authored files', () => {
+  let own: TempRepo;
+  let ownLayout: RepoLayout;
+  const everything = { roots: ['app'], kinds: FILE_KINDS, tests: true } as const;
+
+  beforeAll(() => {
+    own = tempRepo({
+      '.gitignore': 'test-results/\ndist/\n',
+      'src/index.ts': 'export {};\n',
+      'src/test-results/run-1/report.md': '# report\r\n',
+      'src/test-results/run-1/results.json': '{}\r\n',
+      'src/new-notes.md': '# untracked, not ignored\n',
+      'scripts/run.mjs': 'export {};\n',
+      'core/dist/index.js': 'export const built = 1;\n',
+    });
+    ownLayout = {
+      repoRoot: own.root,
+      roots: {
+        app: { path: 'src', anchor: 'src/index.ts' },
+        scripts: { path: 'scripts', anchor: 'scripts/run.mjs' },
+        coreDist: { path: 'core/dist', anchor: 'core/dist/index.js' },
+      },
+    };
+  });
+  afterAll(() => own.remove());
+  afterEach(() => vi.restoreAllMocks());
+
+  it('leaves a gitignored folder out of every scope, and reads an untracked file git does not ignore', () => {
+    const read = paths(createRepoReader(ownLayout).files(everything));
+    expect(read).toEqual(['src/index.ts', 'src/new-notes.md']);
+  });
+
+  it("skips only what the repository's own .gitignore files ignore, nested ones included", () => {
+    const rules = tempRepo({
+      '.gitignore': 'test-results/\n',
+      'global-ignores': 'only-global.md\n',
+      'src/index.ts': 'export {};\n',
+      'src/only-info.md': '# matched only by .git/info/exclude\n',
+      'src/only-global.md': '# matched only by the global excludes file\n',
+      'src/nested/.gitignore': 'out/\n',
+      'src/nested/out/report.md': '# ignored by the nested .gitignore\n',
+      'src/nested/kept.md': '# authored\n',
+    });
+    fs.mkdirSync(join(rules.root, '.git', 'info'), { recursive: true });
+    fs.writeFileSync(join(rules.root, '.git', 'info', 'exclude'), 'only-info.md\n');
+    fs.appendFileSync(
+      join(rules.root, '.git', 'config'),
+      `[core]\n\texcludesFile = ${join(rules.root, 'global-ignores').split(sep).join('/')}\n`,
+    );
+    const reader = createRepoReader({
+      repoRoot: rules.root,
+      roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+    });
+    expect(paths(reader.files({ roots: ['app'], kinds: ['markdown'], tests: true }))).toEqual([
+      'src/nested/kept.md',
+      'src/only-global.md',
+      'src/only-info.md',
+    ]);
+  });
+
+  it('walks the built core output although git ignores it', () => {
+    const reader = createRepoReader(ownLayout);
+    expect(paths(reader.files({ roots: ['coreDist'], kinds: ['code'], tests: true }))).toEqual([
+      'core/dist/index.js',
+    ]);
+    expect(reader.unreachedAnchors()).toEqual([]);
+  });
+
+  it('never opens a gitignored folder, so one deleted after its parent was listed is no failure', () => {
+    const ignoredFolder = join(own.root, `src${sep}test-results`);
+    const real = fs.readdirSync;
+    vi.spyOn(fs, 'readdirSync').mockImplementation(((dir: fs.PathLike, ...rest: unknown[]) => {
+      if (String(dir).startsWith(ignoredFolder))
+        throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+      return (real as (...a: unknown[]) => unknown).call(fs, dir, ...rest);
+    }) as typeof fs.readdirSync);
+    expect(paths(createRepoReader(ownLayout).files(everything))).toEqual([
+      'src/index.ts',
+      'src/new-notes.md',
+    ]);
+  });
+
+  it('MUST FAIL — an anchor git ignores is never reached', () => {
+    own.write('src/test-results/anchor.ts');
+    const reader = createRepoReader({
+      ...ownLayout,
+      roots: { app: { path: 'src/test-results', anchor: 'src/test-results/anchor.ts' } },
+    });
+    expect(reader.unreachedAnchors()).toEqual(['app: src/test-results/anchor.ts']);
+  });
+
+  it('MUST FAIL — a root outside any git work tree, naming the git command and what git said', () => {
+    const outside = tempRepo({ 'src/index.ts': 'export {};\n' }, { git: false });
+    vi.stubEnv('GIT_CEILING_DIRECTORIES', tmpdir());
+    try {
+      const reader = createRepoReader({
+        repoRoot: outside.root,
+        roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+      });
+      expect(() => reader.files(everything)).toThrow(
+        /cannot tell authored files from gitignored ones: `git ls-files --others --ignored --exclude-per-directory=.gitignore --directory -z` failed in .*not a git repository/,
+      );
+    } finally {
+      vi.unstubAllEnvs();
+      outside.remove();
+    }
+  });
+});
+
+describe('what the .gitignore files leave out, case by case', () => {
+  const markdownUnder = (repoRoot: string, rootPath: string, anchor: string) =>
+    paths(
+      createRepoReader({ repoRoot, roots: { app: { path: rootPath, anchor } } }).files({
+        roots: ['app'],
+        kinds: ['markdown'],
+        tests: true,
+      }),
+    );
+
+  it('walks a tracked file a .gitignore pattern matches, since only untracked paths are ignored', () => {
+    const repo = tempRepo({
+      '.gitignore': '*.md\n',
+      'src/index.ts': 'export {};\n',
+      'src/tracked.md': '# committed before the pattern\n',
+      'src/untracked.md': '# never committed\n',
+    });
+    execFileSync('git', ['add', '--force', 'src/tracked.md'], { cwd: repo.root, stdio: 'pipe' });
+    expect(markdownUnder(repo.root, 'src', 'src/index.ts')).toEqual(['src/tracked.md']);
+  });
+
+  it('honours a nested negation: the kept file is walked and its ignored siblings are not', () => {
+    const repo = tempRepo({
+      '.gitignore': 'src/reports/*\n',
+      'src/index.ts': 'export {};\n',
+      'src/reports/.gitignore': '!keep.md\n',
+      'src/reports/keep.md': '# kept\n',
+      'src/reports/run-1.md': '# ignored\n',
+      'src/reports/run-2.md': '# ignored\n',
+    });
+    expect(markdownUnder(repo.root, 'src', 'src/index.ts')).toEqual(['src/reports/keep.md']);
+  });
+
+  it('matches what git ignores when the repository root is a subfolder of the git work tree', () => {
+    const repo = tempRepo({
+      '.gitignore': 'test-results/\n',
+      'app/index.ts': 'export {};\n',
+      'app/notes.md': '# authored\n',
+      'app/test-results/report.md': '# ignored by the top-level .gitignore\n',
+      'app/docs/.gitignore': 'drafts/\n',
+      'app/docs/guide.md': '# authored\n',
+      'app/docs/drafts/wip.md': '# ignored by the nested .gitignore\n',
+      'other/outside.md': '# outside the repository root\n',
+    });
+    expect(markdownUnder(join(repo.root, 'app'), '.', 'index.ts')).toEqual([
+      'docs/guide.md',
+      'notes.md',
+    ]);
+  });
+});
+
+describe('MUST FAIL — an authored path that cannot be read while a guard runs', () => {
+  let own: TempRepo;
+  beforeEach(() => {
+    own = tempRepo({
+      'src/index.ts': 'export {};\n',
+      'src/notes/gone.md': '# deleted mid-run\n',
+    });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    own.remove();
+  });
+
+  const reader = () =>
+    createRepoReader({
+      repoRoot: own.root,
+      roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+    });
+  const readsEverything = (beforeRead: () => void): Guard => ({
+    title: 'a guard that reads every authored file',
+    description: 'What it requires.',
+    run(context) {
+      const files = context.files({ roots: ['app'], kinds: FILE_KINDS, tests: true });
+      beforeRead();
+      for (const file of files) void file.text;
+      return [];
+    },
+  });
+
+  it('is a finding of the guard that read it, naming the file and its error code', async () => {
+    const guard = readsEverything(() => fs.rmSync(join(own.root, 'src/notes/gone.md')));
+    await expect(runGuard(guard, reader())).rejects.toThrow(
+      /^a guard that reads every authored file: 1 finding\(s\)[\s\S]*src\/notes\/gone\.md — could not be read while the guard ran \(ENOENT\)$/,
+    );
+  });
+
+  it('is a finding naming an authored folder that vanished between its listing and its read', async () => {
+    const folder = join(own.root, `src${sep}notes`);
+    const real = fs.readdirSync;
+    vi.spyOn(fs, 'readdirSync').mockImplementation(((dir: fs.PathLike, ...rest: unknown[]) => {
+      if (String(dir) === folder) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+      return (real as (...a: unknown[]) => unknown).call(fs, dir, ...rest);
+    }) as typeof fs.readdirSync);
+    await expect(
+      runGuard(
+        readsEverything(() => {}),
+        reader(),
+      ),
+    ).rejects.toThrow('src/notes — could not be read while the guard ran (ENOENT)');
   });
 });
 

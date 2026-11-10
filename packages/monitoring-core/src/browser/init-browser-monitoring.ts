@@ -7,6 +7,7 @@ import {
   replayIntegration,
   type BrowserOptions,
 } from '@sentry/nextjs';
+import { isFirestoreTabClockRoundingLine } from '../firestore-tab-clock.js';
 import { createTelemetryScrubber, redactEvent, type ForbiddenPattern } from '../scrubber.js';
 
 type SentryOptions = BrowserOptions;
@@ -71,6 +72,10 @@ function isIgnoredNetworkEvent(event: BrowserErrorEvent, ignoreUrls: readonly Re
   );
 }
 
+function isFirestoreTabClockRounding(event: BrowserErrorEvent): boolean {
+  return typeof event.message === 'string' && isFirestoreTabClockRoundingLine(event.message);
+}
+
 async function withIndexedDbNames(event: BrowserErrorEvent): Promise<BrowserErrorEvent> {
   try {
     const listing = await globalThis.indexedDB?.databases?.();
@@ -92,6 +97,7 @@ export function initBrowserMonitoring(options: BrowserMonitoringOptions): void {
   const beforeSend: BeforeSend = (event, hint) => {
     if (options.dropEvent?.(event, hint)) return null;
     if (isIgnoredNetworkEvent(event, ignoreUrls)) return null;
+    if (isFirestoreTabClockRounding(event)) return null;
     return withIndexedDbNames(scrub(event));
   };
 

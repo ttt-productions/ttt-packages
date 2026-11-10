@@ -49,7 +49,9 @@ package may consume either.
   primitives), `notification-core` (→ `firebase-helpers`; its server helpers take the
   `firebase-helpers/server` Firestore contract — its UI/query needs are optional peers),
   `short-link-core` (→ `firebase-helpers`; its create and lookup cores take the
-  `firebase-helpers/server` Firestore contract — React is an optional peer of its `./react`).
+  `firebase-helpers/server` Firestore contract — React is an optional peer of its `./react`),
+  `beacon-core` (→ `firebase-helpers`; its stamp writer takes the `firebase-helpers/server`
+  Firestore contract — React and `query-core` are optional peers of its `./react`).
 - **Tier 2:** `media-viewer` (→ `media-schemas`, `ui-core`), `file-input`
   (→ `ui-core`, `media-schemas`, `media-viewer`), `consent-core` (no internal runtime deps; its
   `./react` entry builds on the optional peers `theme-core` and `ui-core`).
@@ -64,8 +66,9 @@ package may consume either.
   edge.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
   `edge-protocol-core`, `input-format-core`, `media-schemas`, `notification-core`,
-  `report-core`) for ttt-prod, and `q-core` (→ `edge-protocol-core`, `input-format-core`,
-  `media-schemas`, `notification-core`, `short-link-core`, `theme-core`) for Q-Sports. Each is governed by its own app's
+  `report-core`) for ttt-prod, and `q-core` (→ `auth-core`, `beacon-core`, `edge-protocol-core`,
+  `input-format-core`, `media-schemas`, `notification-core`, `short-link-core`, `theme-core`) for
+  Q-Sports. Each is governed by its own app's
   rulebook (RULE-STD-ARCH-207), and neither imports the other.
 
 The internal runtime-dependency edges (peer and dev edges are left out here; the
@@ -82,13 +85,14 @@ build and release order still honors them):
     query-core             -> firebase-helpers
     notification-core      -> firebase-helpers
     short-link-core        -> firebase-helpers
+    beacon-core            -> firebase-helpers
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               input-format-core, media-schemas,
                               notification-core, report-core
-    q-core                 -> edge-protocol-core, input-format-core,
-                              media-schemas, notification-core,
-                              short-link-core, theme-core
+    q-core                 -> auth-core, beacon-core, edge-protocol-core,
+                              input-format-core, media-schemas,
+                              notification-core, short-link-core, theme-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               ui-core, upload-ui, mobile-core, firebase-helpers
 
@@ -99,7 +103,7 @@ order) already places `media-viewer` before `file-input`, so dependencies still
 build and release before their dependents.
 
 Every other package has zero internal runtime dependencies. `ui-core`,
-`report-core`, `notification-core`, `consent-core`, `upload-ui`, and `chat-react` declare some
+`report-core`, `notification-core`, `beacon-core`, `consent-core`, `upload-ui`, and `chat-react` declare some
 `@ttt-productions/*` peers (e.g. `firebase-helpers`, `ui-core`, `query-core`, `theme-core`) —
 a peer is not a runtime edge, but a package whose source imports one compiles
 against its `dist`, so the peer still builds and releases first.
@@ -219,7 +223,7 @@ mutations — rather than calling `firebase/firestore` operations (`getDoc(s)`,
 A package that needs those hooks declares `@ttt-productions/query-core` as an
 **optional peer** so the consuming app supplies the single instance (preserving
 `FirestoreProvider` context identity) — see `report-core`, `notification-core`,
-`upload-ui`, `chat-react`. `firebase-helpers` (low-level Firestore primitives) and `query-core`
+`beacon-core`, `upload-ui`, `chat-react`. `firebase-helpers` (low-level Firestore primitives) and `query-core`
 itself are the two layers that intentionally call `firebase/firestore` directly:
 they are the abstraction, not consumers of it.
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createBeaconStampSchema } from '@ttt-productions/beacon-core';
 import { MAX_APP_VERSION_LENGTH } from '../constants/business.js';
 import {
   ANNOUNCEMENT_MESSAGE_INPUT,
@@ -39,16 +40,12 @@ export const LandingPageConfigSchema = z.object({
 });
 export type LandingPageConfig = z.infer<typeof LandingPageConfigSchema>;
 
-export const StatsBeaconSchema = z.object({
-  updatedAt: epochMsSchema,
-  // A fresh document id minted by every write, so two commits in the same millisecond still move
-  // the beacon.
-  changeId: documentIdSegmentSchema.optional(),
+export const StatsBeaconSchema = createBeaconStampSchema({
   action: statsBeaconActionSchema,
   leagueId: leagueIdSchema.optional(),
   gameId: gameIdSchema.optional(),
   teamIds: z.array(teamIdSchema).optional(),
-});
+}).extend({ changeId: documentIdSegmentSchema.optional() });
 export type StatsBeacon = z.infer<typeof StatsBeaconSchema>;
 
 export const AdminListSchema = z.object({

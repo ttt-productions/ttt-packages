@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import {
   DispatchInputError,
   RELEASE_REASONS,
@@ -14,6 +14,8 @@ import {
   type ReleaseGit,
   type ReleaseScopeConfig,
 } from '../../src/node/tooling/release-scope.js';
+import { repoGit } from '../../src/node/tooling/release.js';
+import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
 const sha = (n: number): string => n.toString(16).padStart(40, '0');
 
@@ -628,5 +630,26 @@ describe('release-scope — baseline query + outputs', () => {
     ];
     for (const resolved of await Promise.all(scenarios))
       expect(RELEASE_REASON_CODES).toContain(resolved.reason);
+  });
+});
+
+describe('release tooling — the repository git', () => {
+  let repo: TempRepo | undefined;
+  afterEach(() => repo?.remove());
+
+  it('answers no for a commit that does not exist and for an ancestry it cannot prove', () => {
+    repo = tempRepo({ 'src/index.ts': 'export {};\n' });
+    const git = repoGit(repo.root);
+    expect(git.commitExists(sha(1))).toBe(false);
+    expect(git.isAncestor(sha(1), sha(2))).toBe(false);
+  });
+
+  it('MUST FAIL — a failing git command names the command and what git said', () => {
+    repo = tempRepo({ 'src/index.ts': 'export {};\n' });
+    expect(() => repoGit(repo!.root).changedFiles(sha(1), sha(2))).toThrow(
+      new RegExp(
+        `^\`git diff --name-only ${sha(1)} ${sha(2)}\` failed in .*: fatal: bad object ${sha(1)}`,
+      ),
+    );
   });
 });

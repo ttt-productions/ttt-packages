@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { afterEach, describe, expect, it } from 'vitest';
+import { tmpdir } from 'node:os';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   crEndingOf,
   crlfWorktreeFiles,
@@ -11,7 +12,10 @@ import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
 let repo: TempRepo | undefined;
-afterEach(() => repo?.remove());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  repo?.remove();
+});
 
 const git = (root: string, ...args: string[]) =>
   execFileSync('git', ['-c', 'core.autocrlf=false', ...args], { cwd: root, stdio: 'pipe' });
@@ -20,7 +24,6 @@ const git = (root: string, ...args: string[]) =>
 async function findingsOf(files: Record<string, string>) {
   repo?.remove();
   repo = tempRepo({ 'src/index.ts': 'export {};\n', ...files });
-  git(repo.root, 'init', '--quiet');
   git(repo.root, 'add', '--all');
   const [guard] = lineEndingGuard.build({});
   const reader = createRepoReader({
@@ -105,6 +108,53 @@ describe('every text file is LF', () => {
     expect((await guard.run(contextOf(reader))).map((f) => `${f.file} ${f.detail}`)).toEqual([
       'src/new.ts crlf line endings in the working tree',
     ]);
+  });
+
+  it('passes CRLF run output in a gitignored folder under a declared root, which no guard reads', async () => {
+    expect(
+      await findingsOf({
+        '.gitattributes': LF_ATTRIBUTES,
+        '.gitignore': 'test-results/\n',
+        'src/test-results/run-1/report.md': '# report\r\n',
+        'src/test-results/run-1/results.json': '{}\r\n',
+      }),
+    ).toEqual([]);
+  });
+
+  it('flags an untracked CRLF file git does not ignore, beside ignored run output', async () => {
+    expect(
+      await findingsOf({
+        '.gitattributes': LF_ATTRIBUTES,
+        '.gitignore': 'test-results/\n',
+        'src/test-results/report.md': '# report\r\n',
+      }),
+    ).toEqual([]);
+    repo?.write('src/notes.md', '# notes\r\n');
+    const [guard] = lineEndingGuard.build({});
+    const reader = createRepoReader({
+      repoRoot: repo!.root,
+      roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+    });
+    expect((await guard.run(contextOf(reader))).map((f) => `${f.file} ${f.detail}`)).toEqual([
+      'src/notes.md crlf line endings in the working tree',
+    ]);
+  });
+
+  it('MUST FAIL — git ls-files failing outside a repository, with the guard title and what git said', async () => {
+    repo?.remove();
+    repo = tempRepo(
+      { '.gitattributes': LF_ATTRIBUTES, 'src/index.ts': 'export {};\n' },
+      { git: false },
+    );
+    vi.stubEnv('GIT_CEILING_DIRECTORIES', tmpdir());
+    const [guard] = lineEndingGuard.build({});
+    const reader = createRepoReader({
+      repoRoot: repo.root,
+      roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+    });
+    await expect(async () => guard.run(contextOf(reader))).rejects.toThrow(
+      /^every text file is LF: `git ls-files --eol -z` failed in .*: fatal: not a git repository/,
+    );
   });
 
   it('flags a missing .gitattributes, and one that does not force LF', async () => {

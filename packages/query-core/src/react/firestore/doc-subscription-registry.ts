@@ -2,6 +2,7 @@
 
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { QueryClient } from '@tanstack/react-query';
+import { clientScoped } from './client-scoped.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 
 type Subscriber = {
@@ -16,7 +17,7 @@ type Entry = {
   retryTimer: ReturnType<typeof setTimeout> | null;
 };
 
-const registries = new WeakMap<QueryClient, Map<string, Entry>>();
+const getRegistry = clientScoped(() => new Map<string, Entry>());
 
 function registryKey(queryKeyPrefix: string, id: string): string {
   return `${queryKeyPrefix} ${id}`;
@@ -27,7 +28,7 @@ export function isListenerOwned(
   queryKeyPrefix: string,
   id: string,
 ): boolean {
-  return registries.get(queryClient)?.has(registryKey(queryKeyPrefix, id)) ?? false;
+  return getRegistry.peek(queryClient)?.has(registryKey(queryKeyPrefix, id)) ?? false;
 }
 
 export function listenerErrorOf(
@@ -35,16 +36,7 @@ export function listenerErrorOf(
   queryKeyPrefix: string,
   id: string,
 ): Error | null {
-  return registries.get(queryClient)?.get(registryKey(queryKeyPrefix, id))?.error ?? null;
-}
-
-function getRegistry(queryClient: QueryClient): Map<string, Entry> {
-  let registry = registries.get(queryClient);
-  if (!registry) {
-    registry = new Map();
-    registries.set(queryClient, registry);
-  }
-  return registry;
+  return getRegistry.peek(queryClient)?.get(registryKey(queryKeyPrefix, id))?.error ?? null;
 }
 
 export interface SubscribeDocParams {
@@ -132,5 +124,5 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
 }
 
 export function __activeListenerCount(queryClient: QueryClient): number {
-  return registries.get(queryClient)?.size ?? 0;
+  return getRegistry.peek(queryClient)?.size ?? 0;
 }

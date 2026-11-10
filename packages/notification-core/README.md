@@ -29,8 +29,8 @@ the badge.
 **The React hooks write no notification docs.** The archive React hooks (`useArchiveNotification` /
 `useArchiveAllNotifications`) perform **no Firestore writes**; they take an
 app-supplied adapter (`archiveFn`, or `enqueueArchiveAllFn` + `getArchiveAllStatusFn`) wired to the app's callables
-(e.g. `httpsCallable(functions, 'archiveNotification')`) and invalidate the
-read keys on success. On the server, the app's callable decides who may archive
+(e.g. `httpsCallable(functions, 'archiveNotification')`) and, on success, refresh
+the history and unread-count reads; the live active list follows its own listener. On the server, the app's callable decides who may archive
 a card and then runs the active → history move through
 `archiveNotificationWithGeneration`,
 which keys the history doc on a retry-stable, app-built deterministic id and
@@ -49,10 +49,17 @@ never drift in the stored doc.
 ```tsx
 import { useActiveNotifications } from '@ttt-productions/notification-core/react';
 
-const { data: notifications, isLoading } = useActiveNotifications({
+const {
+  data: notifications,
+  retryState,
+  showMore,
+  canShowMore,
+} = useActiveNotifications({
   config: NOTIFICATION_CONFIG,
   userId: currentUser.uid,
   category: 'user',
+  step: LIST_STEP,
+  ceiling: LIST_CEILING,
 });
 ```
 

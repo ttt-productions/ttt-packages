@@ -94,6 +94,126 @@ describe('every live Firestore subscription is on the reviewed list', () => {
     ).toEqual([]);
   });
 
+  describe('a package hook or component that always subscribes', () => {
+    const PACKAGE_USES = {
+      'src/hooks/alerts.ts': [
+        "import { useActiveNotifications } from '@ttt-productions/notification-core/react';",
+        'export const useAlerts = (options: Options) => useActiveNotifications(options);',
+      ].join('\n'),
+      'src/app/bell.tsx': [
+        "import { NotificationList as List } from '@ttt-productions/notification-core/react';",
+        'export const Bell = () => <List {...props} />;',
+      ].join('\n'),
+      'src/app/chat.tsx': [
+        "import * as chat from '@ttt-productions/chat-react';",
+        'export const Room = () => <chat.ChatShell config={config}>{children}</chat.ChatShell>;',
+      ].join('\n'),
+      'src/app/uploads.tsx': [
+        "import { InFlightUploadsProvider } from '@ttt-productions/upload-ui/react/tray';",
+        'export const Tray = () => <InFlightUploadsProvider db={db}>{children}</InFlightUploadsProvider>;',
+      ].join('\n'),
+    };
+
+    it('FLAGS a call or render of one outside the list, once per use, naming the export and its entry', async () => {
+      const findings = await run(build([]), PACKAGE_USES);
+      expect(findings.map((f) => `${f.file}:${f.line} ${f.detail}`)).toEqual([
+        'src/app/bell.tsx:2 not on the reviewed list: NotificationList (live by construction, from @ttt-productions/notification-core/react)',
+        'src/app/chat.tsx:2 not on the reviewed list: ChatShell (live by construction, from @ttt-productions/chat-react)',
+        'src/app/uploads.tsx:2 not on the reviewed list: InFlightUploadsProvider (live by construction, from @ttt-productions/upload-ui/react/tray)',
+        'src/hooks/alerts.ts:2 not on the reviewed list: useActiveNotifications (live by construction, from @ttt-productions/notification-core/react)',
+      ]);
+    });
+
+    it('PASSES each use on the list, and an entry whose file only uses one is not stale', async () => {
+      const allowlist = Object.keys(PACKAGE_USES).map((path) => ({
+        path,
+        why: 'shows a live list',
+      }));
+      expect(await run(build(allowlist), PACKAGE_USES)).toEqual([]);
+    });
+
+    it('takes one entry for a file that uses one and also writes its own subscribe', async () => {
+      const files = {
+        'src/hooks/both.ts': [
+          "import { useCheckedOutTasks } from '@ttt-productions/report-core/react';",
+          'export const tasks = useCheckedOutTasks(uid);',
+          'export const profile = useFirestoreDoc({ docPath, subscribe: true });',
+        ].join('\n'),
+      };
+      expect(lines(await run(build([]), files))).toEqual([
+        'src/hooks/both.ts:2',
+        'src/hooks/both.ts:3',
+      ]);
+      expect(
+        await run(build([{ path: 'src/hooks/both.ts', why: 'live tasks and profile' }]), files),
+      ).toEqual([]);
+    });
+
+    const RE_EXPORTS = {
+      'src/lib/named.ts':
+        "export { NotificationList } from '@ttt-productions/notification-core/react';",
+      'src/lib/aliased.ts':
+        "export { useCheckedOutTasks as useTasks } from '@ttt-productions/report-core/react';",
+      'src/lib/star.ts': "export * from '@ttt-productions/upload-ui/react/tray';",
+      'src/lib/local.ts': [
+        "import { useBeaconObserver } from '@ttt-productions/beacon-core/react';",
+        'export { useBeaconObserver as useObserver };',
+      ].join('\n'),
+    };
+
+    it('FLAGS a re-export of one from its entry, named, aliased, star, or of an imported binding, as re-exported', async () => {
+      const findings = await run(build([]), RE_EXPORTS);
+      expect(findings.map((f) => `${f.file}:${f.line} ${f.detail}`)).toEqual([
+        'src/lib/aliased.ts:1 not on the reviewed list: useCheckedOutTasks (live by construction, from @ttt-productions/report-core/react, re-exported)',
+        'src/lib/local.ts:2 not on the reviewed list: useBeaconObserver (live by construction, from @ttt-productions/beacon-core/react, re-exported)',
+        'src/lib/named.ts:1 not on the reviewed list: NotificationList (live by construction, from @ttt-productions/notification-core/react, re-exported)',
+        'src/lib/star.ts:1 not on the reviewed list: InFlightUploadsProvider (live by construction, from @ttt-productions/upload-ui/react/tray, re-exported)',
+      ]);
+    });
+
+    it('PASSES each re-export on the list, and its entry is not stale', async () => {
+      const allowlist = Object.keys(RE_EXPORTS).map((path) => ({
+        path,
+        why: 'the app barrel for a live list',
+      }));
+      expect(await run(build(allowlist), RE_EXPORTS)).toEqual([]);
+    });
+
+    it('PASSES a re-export of a name the list does not hold, and a type-only re-export', async () => {
+      const findings = await run(build([]), {
+        'src/lib/unlisted.ts':
+          "export { useFirestoreDoc } from '@ttt-productions/query-core/react';",
+        'src/lib/types.ts':
+          "export type { NotificationList } from '@ttt-productions/notification-core/react';",
+        'src/lib/inline-type.ts':
+          "export { type useChatMessages } from '@ttt-productions/chat-react';",
+      });
+      expect(findings).toEqual([]);
+    });
+
+    it('PASSES a same-named local function, a type-only import, a type reference, and an export the list does not name', async () => {
+      const findings = await run(build([]), {
+        'src/hooks/local.ts': [
+          'const useActiveNotifications = () => [];',
+          'export const rows = useActiveNotifications();',
+        ].join('\n'),
+        'src/hooks/types.ts': [
+          "import type { useChatMessages } from '@ttt-productions/chat-react';",
+          'export type Messages = ReturnType<typeof useChatMessages>;',
+        ].join('\n'),
+        'src/hooks/inline-type.ts': [
+          "import { type useBeaconObserver } from '@ttt-productions/beacon-core/react';",
+          'export type Observer = typeof useBeaconObserver;',
+        ].join('\n'),
+        'src/hooks/one-shot.ts': [
+          "import { useFirestoreDoc } from '@ttt-productions/query-core/react';",
+          'export const doc = useFirestoreDoc({ docPath });',
+        ].join('\n'),
+      });
+      expect(findings).toEqual([]);
+    });
+  });
+
   it('refuses a missing list and an entry with no why', () => {
     expect(factProblemsOf(liveSubscriptionGuard, {})).toEqual([
       'allowlist is missing (declare [] when there is none)',

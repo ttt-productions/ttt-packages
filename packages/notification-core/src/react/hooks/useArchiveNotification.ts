@@ -17,7 +17,6 @@ export function useArchiveNotification({
   const queryClient = useQueryClient();
 
   const defaultInvalidateKeys = [
-    ['notifications', 'active', category, userId],
     ['notifications', 'unread-count', category, userId],
     ['notifications', 'history', category, userId],
   ];

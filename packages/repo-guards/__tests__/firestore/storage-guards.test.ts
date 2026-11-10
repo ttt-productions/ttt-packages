@@ -223,21 +223,19 @@ describe("a stored object's generation and size are read only through the packag
       'const { generation, size } = file.metadata;',
       'const { size: rawSize } = meta;',
     ];
-    for (const shape of shapes) {
-      const findings = await runMetadata({ 'functions/src/probe.ts': shape });
-      expect(findings.length, shape).toBeGreaterThan(0);
+    const probes = Object.fromEntries(
+      shapes.map((shape, i) => [`functions/src/probe-${i}.ts`, shape]),
+    );
+    const findings = await runMetadata(probes);
+    for (const [file, shape] of Object.entries(probes)) {
+      const own = findings.filter((f) => f.file === file);
+      expect(own.length, shape).toBeGreaterThan(0);
       expect(
-        findings.every(
-          (f) =>
-            f.file === 'functions/src/probe.ts' &&
-            f.line === 1 &&
-            f.detail.startsWith('inline storage metadata read: '),
-        ),
+        own.every((f) => f.line === 1 && f.detail.startsWith('inline storage metadata read: ')),
         shape,
       ).toBe(true);
-      repo?.remove();
-      repo = undefined;
     }
+    expect(findings.every((f) => f.file in probes)).toBe(true);
   });
 
   it('FLAGS a local copy of a package-owned contract', async () => {

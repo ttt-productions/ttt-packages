@@ -1,5 +1,5 @@
-import { formatFindings, type Guard, type GuardContext } from '../../guard.js';
-import type { RepoReader, Scope } from '../reader.js';
+import { formatFindings, type Finding, type Guard, type GuardContext } from '../../guard.js';
+import { UnreadablePathError, type RepoReader, type Scope } from '../reader.js';
 import { sampleHits } from '../../shapes/shapes.js';
 
 const describeScope = (scope: Scope) =>
@@ -35,7 +35,18 @@ function contextFor(reader: RepoReader) {
 
 export async function runGuard(guard: Guard, reader: RepoReader) {
   const { context, vacuity } = contextFor(reader);
-  const findings = await guard.run(context);
+  let findings: Finding[];
+  try {
+    findings = await guard.run(context);
+  } catch (err) {
+    if (!(err instanceof UnreadablePathError)) throw err;
+    throw new Error(
+      formatFindings(guard, [
+        { file: err.path, detail: `could not be read while the guard ran (${err.code})` },
+      ]),
+      { cause: err },
+    );
+  }
   const vacuous = vacuity();
   if (vacuous) throw new Error(`${guard.title}: ${vacuous}`);
   if (findings.length) throw new Error(formatFindings(guard, findings));

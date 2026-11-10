@@ -19,6 +19,10 @@ export {
 export { viewOfText, type FileView } from './reader/view.js';
 export { rawMutations } from './modules/frontend-actions/raw-mutations.js';
 export {
+  LIVE_BY_CONSTRUCTION,
+  type LiveByConstruction,
+} from './modules/firestore/live-by-construction.js';
+export {
   MODULE_LOADS,
   type ImportedName,
   type ImportKind,

@@ -20,8 +20,9 @@ export interface NotificationListProps {
   getArchiveAllStatusFn: (jobId: string) => Promise<ArchiveAllJobSnapshot>;
   title?: ReactNode;
   onClearAll?: (result: ArchiveAllPollResult) => void;
-  refetchInterval?: number;
-  staleTime?: number;
+  step: number;
+  ceiling: number;
+  ceilingText: string;
   emptyText?: string;
   renderError: (state: NotificationListErrorState) => ReactNode;
   onRenderedRowsChange?: (rows: readonly NotificationDoc[]) => void;

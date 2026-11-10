@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import type { QueryClient } from '@tanstack/react-query';
 import { chunk, FIRESTORE_IN_FILTER_LIMIT } from '@ttt-productions/firebase-helpers';
+import { clientScoped } from './client-scoped.js';
 
 export const MAX_CONCURRENT_BATCH_REQUESTS = 4;
 
@@ -166,18 +167,14 @@ function createDocLoader(db: Firestore, collectionPath: string): DocLoader {
   return { loadBatched, loadOne };
 }
 
-const loaderScopes = new WeakMap<QueryClient, WeakMap<Firestore, Map<string, DocLoader>>>();
+const loaderScopes = clientScoped(() => new WeakMap<Firestore, Map<string, DocLoader>>());
 
 export function getDocLoader(
   queryClient: QueryClient,
   db: Firestore,
   collectionPath: string,
 ): DocLoader {
-  let byDb = loaderScopes.get(queryClient);
-  if (!byDb) {
-    byDb = new WeakMap();
-    loaderScopes.set(queryClient, byDb);
-  }
+  const byDb = loaderScopes(queryClient);
   let byPath = byDb.get(db);
   if (!byPath) {
     byPath = new Map();

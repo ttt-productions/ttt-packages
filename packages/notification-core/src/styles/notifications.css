@@ -52,6 +52,12 @@
   border-top: 1px solid hsl(var(--border));
 }
 
+.ntf-list-ceiling {
+  font-size: 0.8125rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+}
+
 /* === NOTIFICATION ITEM === */
 .ntf-item {
   display: flex;

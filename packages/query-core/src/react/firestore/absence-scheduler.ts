@@ -1,6 +1,8 @@
 'use client';
 
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
+import { clientScoped } from './client-scoped.js';
+import { queryHashOf as hashOf } from './query-hash.js';
 
 export const ABSENT_RETRY_DELAYS_MS = [5_000, 15_000, 45_000, 120_000] as const;
 
@@ -24,13 +26,6 @@ type SchedulerState = {
 };
 
 const NO_DELAYS: readonly number[] = [];
-
-const schedulers = new WeakMap<QueryClient, SchedulerState>();
-
-/** Hashes with this client's `queryKeyHashFn` so a custom hash still lines up with `QueryCache.get()`. */
-function hashOf(queryClient: QueryClient, queryKey: QueryKey): string {
-  return queryClient.defaultQueryOptions({ queryKey }).queryHash;
-}
 
 function effectiveDelays(tracked: Tracked | undefined): readonly number[] {
   if (!tracked) return NO_DELAYS;
@@ -117,14 +112,8 @@ function evaluate(queryClient: QueryClient, state: SchedulerState, hash: string)
   schedule(queryClient, state, hash);
 }
 
-function getState(queryClient: QueryClient): SchedulerState {
-  let state = schedulers.get(queryClient);
-  if (state) return state;
-
-  state = { episodes: new Map(), tracked: new Map() };
-  schedulers.set(queryClient, state);
-
-  const scheduler = state;
+const getState = clientScoped((queryClient): SchedulerState => {
+  const scheduler: SchedulerState = { episodes: new Map(), tracked: new Map() };
   queryClient.getQueryCache().subscribe((event) => {
     const hash = event.query.queryHash;
     if (!scheduler.tracked.has(hash) && !scheduler.episodes.has(hash)) return;
@@ -134,9 +123,8 @@ function getState(queryClient: QueryClient): SchedulerState {
     }
     evaluate(queryClient, scheduler, hash);
   });
-
-  return state;
-}
+  return scheduler;
+});
 
 export interface TrackAbsentDocParams {
   queryClient: QueryClient;
@@ -184,9 +172,9 @@ export function trackAbsentDoc({
 }
 
 export function __absenceEpisodeCount(queryClient: QueryClient): number {
-  return schedulers.get(queryClient)?.episodes.size ?? 0;
+  return getState.peek(queryClient)?.episodes.size ?? 0;
 }
 
 export function __absenceAttempt(queryClient: QueryClient, queryKey: QueryKey): number | null {
-  return schedulers.get(queryClient)?.episodes.get(hashOf(queryClient, queryKey))?.attempt ?? null;
+  return getState.peek(queryClient)?.episodes.get(hashOf(queryClient, queryKey))?.attempt ?? null;
 }

@@ -30,6 +30,7 @@ const h = vi.hoisted(() => ({
     vi.fn<typeof import('../src/client/auth-boot-lookup-guard.js').installAuthBootLookupGuard>(),
   initializeFirestore: vi.fn<typeof import('firebase/firestore').initializeFirestore>(),
   getFirestore: vi.fn<() => import('firebase/firestore').Firestore>(),
+  setLogLevel: vi.fn<typeof import('firebase/firestore').setLogLevel>(),
   multipleTabManagers: [] as unknown[],
 }));
 
@@ -67,6 +68,7 @@ vi.mock(import('firebase/firestore'), async (importOriginal) => {
     getFirestore: () => h.getFirestore(),
     initializeFirestore: h.initializeFirestore,
     connectFirestoreEmulator: vi.fn(),
+    setLogLevel: h.setLogLevel,
   });
 });
 vi.mock(import('firebase/auth'), async (importOriginal) => {
@@ -236,6 +238,33 @@ describe('initFirebaseClient — Firestore cache', () => {
       db = initFirebaseClient(CONFIG, { persistentFirestoreCache: true }).db;
     });
     expect(db).toBe(sdk.db);
+  });
+});
+
+describe('initFirebaseClient — Firestore log level', () => {
+  it('leaves the SDK log level alone when the app passes none', () => {
+    withWindow(() => initFirebaseClient(CONFIG));
+    expect(h.setLogLevel).not.toHaveBeenCalled();
+  });
+
+  it('sets the log level the app passes once, before Firestore is created', () => {
+    let calledBeforeFirestore: boolean | undefined;
+    h.getFirestore.mockImplementationOnce(() => {
+      calledBeforeFirestore = h.setLogLevel.mock.calls.length === 1;
+      return sdk.db;
+    });
+    withWindow(() => initFirebaseClient(CONFIG, { firestoreLogLevel: 'debug' }));
+    expect(calledBeforeFirestore).toBe(true);
+    expect(h.setLogLevel).toHaveBeenCalledTimes(1);
+    expect(h.setLogLevel).toHaveBeenCalledWith('debug');
+  });
+
+  it('does not set the log level again when the cached handles are returned', () => {
+    withWindow(() => {
+      initFirebaseClient(CONFIG, { firestoreLogLevel: 'debug' });
+      initFirebaseClient(CONFIG, { firestoreLogLevel: 'debug' });
+    });
+    expect(h.setLogLevel).toHaveBeenCalledTimes(1);
   });
 });
 

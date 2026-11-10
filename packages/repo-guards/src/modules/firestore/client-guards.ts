@@ -8,6 +8,7 @@ import { forEachNode } from '../../support/ast.js';
 import { namesProblem, reviewedProblems } from '../../support/facts.js';
 import { moduleImports } from '../../support/imports.js';
 import { isUnder } from '../../support/text.js';
+import { LIVE_BY_CONSTRUCTION, type LiveByConstruction } from './live-by-construction.js';
 
 const FIRESTORE_SDK = /^firebase\/firestore(?:\/|$)/;
 const APP_SOURCE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
@@ -25,19 +26,91 @@ function isStoreSource(object: ts.ObjectLiteralExpression): boolean {
   return object.properties.some((property) => propertyName(property) === 'read');
 }
 
+const liveDetail = ({ entry, export: name }: LiveByConstruction, reExported = false) =>
+  `${name} (live by construction, from ${entry}${reExported ? ', re-exported' : ''})`;
+
+function inTypePosition(node: ts.Node): boolean {
+  for (let up = node.parent; up && !ts.isSourceFile(up); up = up.parent)
+    if (ts.isTypeNode(up)) return true;
+  return false;
+}
+
+// A local `export { X }` re-exports the binding it names; `export { X as Y }` names the binding X.
+function isLocalReExport(node: ts.Node): boolean {
+  const parent = node.parent;
+  if (!ts.isExportSpecifier(parent)) return false;
+  const declaration = parent.parent.parent;
+  return (
+    !declaration.moduleSpecifier &&
+    !declaration.isTypeOnly &&
+    !parent.isTypeOnly &&
+    (parent.propertyName ?? parent.name) === node
+  );
+}
+
+// A use of a live package export: a value reference to its local binding, or to the export through
+// a namespace binding. A JSX closing tag repeats its opening tag and is not a second use.
+function isUseSite(node: ts.Node): boolean {
+  const parent = node.parent;
+  if (ts.isJsxClosingElement(parent) || inTypePosition(node)) return false;
+  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return false;
+  if ((ts.isPropertyAssignment(parent) || ts.isMethodDeclaration(parent)) && parent.name === node)
+    return false;
+  if (ts.isExportSpecifier(parent)) return isLocalReExport(node);
+  return !(
+    ts.isImportSpecifier(parent) ||
+    ts.isImportClause(parent) ||
+    ts.isNamespaceImport(parent)
+  );
+}
+
 export function liveSubscriptionHits(file: FileView): Hit[] {
   const source = file.sourceFile;
   const snapshotNames = new Set(['onSnapshot']);
   const namespaces = new Set<string>();
-  for (const site of moduleImports(source, ['import'])) {
-    if (!site.topLevel || !FIRESTORE_SDK.test(site.spec)) continue;
-    if (site.namespace) namespaces.add(site.namespace);
-    for (const name of site.named)
-      if (name.imported === 'onSnapshot') snapshotNames.add(name.local);
-  }
+  const liveLocals = new Map<string, LiveByConstruction>();
+  const liveNamespaces = new Map<string, readonly LiveByConstruction[]>();
   const hits: Hit[] = [];
   const at = (node: ts.Node, detail: string) => hits.push({ index: node.getStart(source), detail });
+  for (const site of moduleImports(source, ['import', 'export'])) {
+    if (!site.topLevel) continue;
+    if (site.kind === 'export') {
+      const listed = LIVE_BY_CONSTRUCTION.filter(({ entry }) => entry === site.spec);
+      if (site.typeOnly) continue;
+      const reExported = site.star
+        ? listed
+        : listed.filter((l) => site.named.some((n) => !n.typeOnly && n.imported === l.export));
+      for (const live of reExported) at(site.node, liveDetail(live, true));
+      continue;
+    }
+    if (FIRESTORE_SDK.test(site.spec)) {
+      if (site.namespace) namespaces.add(site.namespace);
+      for (const name of site.named)
+        if (name.imported === 'onSnapshot') snapshotNames.add(name.local);
+      continue;
+    }
+    const listed = LIVE_BY_CONSTRUCTION.filter(({ entry }) => entry === site.spec);
+    if (!listed.length || site.typeOnly) continue;
+    if (site.namespace) liveNamespaces.set(site.namespace, listed);
+    for (const name of site.named) {
+      const live = listed.find((l) => l.export === name.imported);
+      if (live && !name.typeOnly) liveLocals.set(name.local, live);
+    }
+  }
   forEachNode(source, (node) => {
+    if (ts.isIdentifier(node) && liveLocals.has(node.text) && isUseSite(node))
+      at(node, liveDetail(liveLocals.get(node.text)!, isLocalReExport(node)));
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      liveNamespaces.has(node.expression.text) &&
+      isUseSite(node)
+    ) {
+      const live = liveNamespaces
+        .get(node.expression.text)!
+        .find((l) => l.export === node.name.text);
+      if (live) at(node, liveDetail(live));
+    }
     if (ts.isPropertyAssignment(node) && ts.isObjectLiteralExpression(node.parent)) {
       if (
         propertyName(node) === 'subscribe' &&
@@ -80,8 +153,11 @@ export const liveSubscriptionGuard: GenericGuardDefinition<LiveSubscriptionFacts
         description:
           'A live read bills a document read on every change for as long as it is mounted, so it is a reviewed exception: ' +
           'a file that declares live mode — a subscribe option set to anything but a literal false, the { subscribe } ' +
-          "shorthand, or an onSnapshot call under any name the file bound the Firestore SDK's to — is on the reviewed " +
-          'list with why it needs real-time delivery. An object holding read beside subscribe is a store source (a ' +
+          "shorthand, or an onSnapshot call under any name the file bound the Firestore SDK's to — or that calls or " +
+          'renders a package hook or component that always subscribes (it is imported from its package entry by name or ' +
+          'through a namespace) or re-exports one — is on the reviewed list with why it needs real-time delivery. A file that ' +
+          're-exports such an export is the reviewed one; the files that import it through that re-export are not followed. ' +
+          'An object holding read beside subscribe is a store source (a ' +
           'session feed), not a read option, and is not live mode. Fix: read once and keep it fresh through the cache, or add the ' +
           'reviewed entry. An entry whose file no longer subscribes is stale.',
         scope: APP_SOURCE,
@@ -94,6 +170,11 @@ export const liveSubscriptionGuard: GenericGuardDefinition<LiveSubscriptionFacts
             'useFirestoreCollection({ collectionPath, subscribe, enabled });',
             "import { doc, onSnapshot as listen } from 'firebase/firestore';\nconst stop = listen(doc(db, p), render);",
             "import * as fs from 'firebase/firestore';\nconst stop = fs.onSnapshot(ref, handle);",
+            "import { useActiveNotifications } from '@ttt-productions/notification-core/react';\nconst list = useActiveNotifications(options);",
+            {
+              path: 'src/sample.tsx',
+              text: "import { NotificationList } from '@ttt-productions/notification-core/react';\nexport const Bell = () => <NotificationList {...props} />;",
+            },
           ],
           passes: [
             "useBatchFirestoreDocs({ db, collectionPath, ids, transport: 'get' });",
@@ -103,6 +184,8 @@ export const liveSubscriptionGuard: GenericGuardDefinition<LiveSubscriptionFacts
             'const LIVE_SESSION: LiveSessionSource = { read: liveUid, subscribe: subscribeSession };',
             '<MutationSessionProvider liveSession={{ read, subscribe }} />;',
             '// subscribe: true is a reviewed exception\nconst x = 1;',
+            'const useActiveNotifications = () => [];\nconst list = useActiveNotifications();',
+            "import type { useActiveNotifications } from '@ttt-productions/notification-core/react';\ntype List = ReturnType<typeof useActiveNotifications>;",
           ],
         },
       }),

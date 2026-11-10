@@ -1,5 +1,5 @@
-import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
+import { gitOutput } from '../git.js';
 import {
   DispatchInputError,
   formatOutputs,
@@ -24,8 +24,7 @@ function argOf(argv: readonly string[], name: string): string | undefined {
 }
 
 export function repoGit(repoRoot: string): ReleaseGit {
-  const run = (...args: string[]): string =>
-    execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+  const run = (...args: string[]): string => gitOutput(repoRoot, args);
   return {
     commitExists(sha) {
       try {

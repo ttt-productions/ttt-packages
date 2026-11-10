@@ -197,6 +197,40 @@ describe('useArchiveAllNotifications (server-owned job status poller)', () => {
   });
 });
 
+describe('useArchiveAllNotifications — what a finished Clear All refreshes', () => {
+  it('refreshes the archived list and the unread count, and leaves the live active list to its listener', async () => {
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const invalidate = vi.spyOn(qc, 'invalidateQueries');
+    const Wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: qc }, children);
+    Wrapper.displayName = 'QueryWrapper';
+    const { result } = renderHook(
+      () =>
+        useArchiveAllNotifications({
+          userId: 'u1',
+          category: 'user',
+          enqueueArchiveAllFn: vi.fn().mockResolvedValue({ jobId: 'job-6' }),
+          getArchiveAllStatusFn: vi
+            .fn<(jobId: string) => Promise<ArchiveAllJobSnapshot>>()
+            .mockResolvedValue({ state: 'complete', category: 'user', archived: 2 }),
+          ...FAST,
+        }),
+      { wrapper: Wrapper },
+    );
+
+    await result.current.mutateAsync();
+
+    const refreshed = invalidate.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(refreshed).toEqual(
+      expect.arrayContaining([
+        ['notifications', 'history', 'user', 'u1'],
+        ['notifications', 'unread-count', 'user', 'u1'],
+      ]),
+    );
+    expect(refreshed.some((key) => key?.[1] === 'active')).toBe(false);
+  });
+});
+
 describe('useArchiveAllNotifications after the member who cleared signed out', () => {
   it('stops polling and refreshes nothing for the next session', async () => {
     let enqueued!: (value: { jobId: string }) => void;

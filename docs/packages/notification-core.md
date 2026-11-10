@@ -21,7 +21,9 @@ in the active collection until archived; personal unread state is tracked with
 - **Focus when a row leaves.** When the row that holds focus leaves the active list (an archive
   the read has caught up with), focus moves to the first control in the action slot of the row
   that followed it, or — with no such row — to the list itself (`role="group"`, named by the
-  title, `tabIndex={-1}`). Focus that had already moved elsewhere is left alone.
+  title, `tabIndex={-1}`). Focus that had already moved elsewhere is left alone. Show more leaving
+  while it holds focus (the window took in every card, or reached the ceiling) moves focus to the
+  list the same way.
 - **Single-row archive.** The app's `archiveFn` (`NotificationArchiveFn`) receives the
   row exactly as the list rendered it (so the app sends what it observed — e.g. the
   row's activity generation) and resolves `{ archived: boolean }`, rejecting on
@@ -31,6 +33,10 @@ in the active collection until archived; personal unread state is tracked with
   A pending archive — single-row or Clear All — belongs to the activity generation it was
   sent for: a read that lists the same id at a newer generation (the card was relit) releases
   it, so the relit card's Archive control is available again.
+- **What an archive refreshes.** `useArchiveNotification` and `useArchiveAllNotifications`
+  refresh the history (archived) list and the unread count when they succeed (or the app's own
+  `invalidateKeys`). They never refresh the active list: its listener owns it, so an archive
+  reaches every mounted list, and any list mounted later, from the server.
 - **Clear All.** `useArchiveAllNotifications` enqueues the app's server job and polls its
   `ArchiveAllJobSnapshot` to a terminal state. `onClearAll` fires with the terminal
   `ArchiveAllPollResult` only when the job completed — it walked the whole category. A complete
@@ -41,30 +47,48 @@ in the active collection until archived; personal unread state is tracked with
   query-core `useSessionMutation`s: an archive or a Clear All whose answer lands after the
   member's session ended refreshes nothing and reaches no callback, and a Clear All stops
   polling its job once that session ends.
-- **Read states.** While a list's first page loads it renders ui-core's `Spinner` as
-  a status region. A failed read renders the app's required `renderError` slot
-  (`NotificationListErrorState`: `error`, `retry` — re-reads the displayed page —
-  `retrying`, and `hasRows` when an earlier read's rows are still shown above it);
-  it is never shown as the empty state. A failed page's failure is held through its
-  retry (both read hooks return query-core's `useReadRetryState` for the displayed
-  page as `retryState`), so a retry of a page that never loaded keeps the slot on
-  screen with `retrying` instead of turning back into the spinner. The empty state is
-  the answer for an answered, empty page 1 only. Both lists page with ui-core's `ListPagination`
-  (Previous / counter / Next), which stays on a failed or empty later page so the
-  user can step back; Next replaces the list, and the clicked control spins while
-  its page loads. All copy in these slots is the app's.
+- **Read states.** While a list has no answer it renders ui-core's `Spinner` as a status
+  region. A failed read renders the app's required `renderError` slot
+  (`NotificationListErrorState`: `error`, `retry`, `retrying`, and `hasRows` when an earlier
+  answer's rows are still shown above it); it is never shown as the empty state. The failure is
+  held through its retry (both read hooks return query-core's `useReadRetryState` as
+  `retryState`), so a retry of a read that never answered keeps the slot on screen with
+  `retrying` instead of turning back into the spinner. On the active list `retry` re-opens the
+  listener; on the history list it re-reads the displayed page. The empty state is the answer
+  for an answered, empty active list, or an answered, empty first history page. All copy in these
+  slots is the app's.
+- **The active list is a live window.** `useActiveNotifications` listens to the category's active
+  collection (the member's own cards for a personal category), newest first by `updatedAt`,
+  limited to the cards shown plus one look-ahead card that says whether older cards exist. Every
+  card in the window is live: a new card appears at the top, an archived card leaves, and the
+  next older card slides in, with no re-read. The app supplies the window's `step` and `ceiling`
+  (both required on the hook and on `NotificationList`); the window starts at one step and Show
+  more grows it by one step, never past the ceiling. The window size lives in the shared query
+  cache beside the rows, so every mounted list of one category and member shows the one window
+  and Show more on any of them grows all of them. While the wider window's listener has not
+  answered from the server, the rows already shown stay on screen (offline too) and Show more shows
+  ui-core's pending spinner. At the ceiling Show more is gone; while older cards lie beyond it the list
+  shows the app's required `ceilingText` in its place, and the line goes once every card fits.
+  Show more is offered only while the read is not failed.
+- **A cached copy is never the current list.** A list mounted over rows left in the cache, with
+  no other mount keeping the read live, reads as loading until the listener's first server answer; only a growing window or a restart from a
+  failure keeps rows that listener already showed. A failed listener keeps its rows with the
+  failure beside them.
+- **Kept live off screen.** A product that keeps the list current while it is not on screen (a
+  closed tray) mounts `useActiveNotifications` with the same `step` and `ceiling` where it stays
+  mounted. Every mount of one category and member shares query-core's one live collection read,
+  so the list it later opens shows the current rows in its first render, with no loading state,
+  and opens no second listener.
+- **The history list pages.** `NotificationHistoryList` pages with ui-core's `ListPagination`
+  (Previous / counter / Next), which stays on a failed or empty later page so the user can step
+  back; Next replaces the list, and the clicked control spins while its page loads.
 - **Row content.** A row shows the stored `notification.title` and `notification.message`. Both
   lists take an optional `renderContent(notification)` slot that renders in their place, for a
   row whose text the app resolves when it renders; the timestamp, count, and action slot stay
   the package's.
 - **Rendered rows.** The active list calls `onRenderedRowsChange(rows)` with the rows on
-  screen each time the displayed page's answered rows change — the rows the app marks
-  seen, on any page.
-- **Freshness.** `useActiveNotifications` re-reads the displayed page every
-  `refetchInterval` ms (default 30s) while mounted, and takes `staleTime` (default
-  30s) as a separate setting; both are list props too. Paging is query-core's
-  `useFirestorePaginated` (one cache entry per page with a look-ahead, so `hasNextPage`
-  is truthful).
+  screen each time the window's answered rows change — the rows the app marks seen, never the
+  look-ahead card.
 - **The history (archived) read surface:** `useNotificationHistory` (paginated read of the archived-history collection resolved from the category's `historyPath`, ordered `archivedAt desc`, flattening each `archivedSnapshot` wrapper into a `NotificationHistoryItem` via a `select` mapper) and the read-only `NotificationHistoryList` component. Who may read a history collection is the app's; history rows are immutable (archive is one-way — no re-archive). The active read surface stays `useActiveNotifications` / `NotificationList`.
 - The batch-processing server helper (`processBatchHelper`) for the pending-queue path
 - **The generic delivery ledger:** `createDeliveryLedger(db, config, options)` —

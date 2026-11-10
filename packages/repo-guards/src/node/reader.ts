@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { gitOutput } from './git.js';
 import {
+  AUTHORED_ROOTS,
   FILE_KINDS,
   ROOT_ROLES,
   SKIPPED_FOLDER_NAMES,
@@ -43,6 +45,51 @@ export interface RepoReader {
 }
 
 const toPosix = (p: string) => p.split(path.sep).join('/');
+
+export class UnreadablePathError extends Error {
+  readonly path: string;
+  readonly code: string;
+  constructor(rel: string, kind: 'file' | 'folder', err: unknown) {
+    const code = String((err as NodeJS.ErrnoException)?.code ?? err);
+    super(`repo-guards: cannot read ${kind === 'folder' ? 'folder ' : ''}${rel} (${code})`, {
+      cause: err,
+    });
+    this.path = rel;
+    this.code = code;
+  }
+}
+
+// Only the repository's own .gitignore files decide, never a machine's global excludes file or
+// .git/info/exclude, so every checkout walks the same files.
+const IGNORED_LISTING = [
+  'ls-files',
+  '--others',
+  '--ignored',
+  '--exclude-per-directory=.gitignore',
+  '--directory',
+  '-z',
+];
+
+function gitignoredPaths(repoRoot: string): ReadonlySet<string> {
+  let listed: string;
+  try {
+    listed = gitOutput(repoRoot, IGNORED_LISTING);
+  } catch (err) {
+    throw new Error(
+      `repo-guards: the reader cannot tell authored files from gitignored ones: ${(err as Error).message}`,
+      { cause: err },
+    );
+  }
+  return new Set(
+    listed
+      .split('\0')
+      .filter(Boolean)
+      .map((entry) => entry.replace(/\/$/, '')),
+  );
+}
+
+const ancestorsOf = (rel: string) =>
+  rel.split('/').map((_, i, parts) => parts.slice(0, i + 1).join('/'));
 
 function symbolicLinkError(rel: string): Error {
   return new Error(
@@ -172,10 +219,7 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
         try {
           return fs.readFileSync(path.join(repoRoot, rel), 'utf8');
         } catch (err) {
-          throw new Error(
-            `repo-guards: cannot read ${rel} (${(err as NodeJS.ErrnoException)?.code ?? err})`,
-            { cause: err },
-          );
+          throw new UnreadablePathError(rel, 'file', err);
         }
       },
     });
@@ -183,24 +227,26 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
     return view;
   };
 
-  const walkRoot = (rootPath: string) => {
-    const done = walked.get(rootPath);
+  let gitignored: ReadonlySet<string> | undefined;
+
+  const walkRoot = (role: RootRole, rootPath: string) => {
+    const authored = AUTHORED_ROOTS.includes(role);
+    const key = `${authored ? 'authored' : 'built'}:${rootPath}`;
+    const done = walked.get(key);
     if (done) return done;
+    const ignored = authored ? (gitignored ??= gitignoredPaths(repoRoot)) : new Set<string>();
     const out: Array<{ path: string; kind: FileKind }> = [];
     const walk = (dir: string) => {
       let entries: fs.Dirent[];
       try {
         entries = fs.readdirSync(dir, { withFileTypes: true });
       } catch (err) {
-        throw new Error(
-          `repo-guards: cannot read folder ${toPosix(path.relative(repoRoot, dir)) || '.'} (${(err as NodeJS.ErrnoException)?.code ?? err})`,
-          { cause: err },
-        );
+        throw new UnreadablePathError(toPosix(path.relative(repoRoot, dir)) || '.', 'folder', err);
       }
       for (const entry of entries) {
         const full = path.join(dir, entry.name);
         const rel = toPosix(path.relative(repoRoot, full));
-        if (excluded.has(rel)) continue;
+        if (excluded.has(rel) || ignored.has(rel)) continue;
         if (
           entry.isDirectory()
             ? entry.name.startsWith('.') || SKIPPED_FOLDER_NAMES.has(entry.name)
@@ -216,9 +262,10 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
         }
       }
     };
-    walk(path.join(repoRoot, rootPath));
+    if (rootPath === '.' || !ancestorsOf(rootPath).some((p) => ignored.has(p)))
+      walk(path.join(repoRoot, rootPath));
     out.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
-    walked.set(rootPath, out);
+    walked.set(key, out);
     return out;
   };
 
@@ -268,7 +315,7 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
           );
         }
         for (const { name, root } of matching) {
-          for (const entry of walkRoot(root.path)) {
+          for (const entry of walkRoot(role, root.path)) {
             if (seen.has(entry.path) || !scope.kinds.includes(entry.kind)) continue;
             const owner = roleOf(entry.path);
             if (owner && owner.name !== name) continue;
@@ -343,7 +390,10 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
     },
     unreachedAnchors() {
       return roots
-        .filter(({ root }) => !walkRoot(root.path).some((entry) => entry.path === root.anchor))
+        .filter(
+          ({ role, root }) =>
+            !walkRoot(role, root.path).some((entry) => entry.path === root.anchor),
+        )
         .map(({ name, root }) => `${name}: ${root.anchor}`);
     },
   };

@@ -14,10 +14,11 @@ vi.mock(import('firebase/firestore'), async (importOriginal) => {
 });
 
 import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
+import { limit, orderBy } from 'firebase/firestore';
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
 import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
-import { failNext, lastOpened, listensTo } from './helpers/listener-controls.js';
+import { failNext, holdNext, lastOpened, listensTo } from './helpers/listener-controls.js';
 
 beforeEach(() => {
   store.reset();
@@ -131,6 +132,168 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
     rerender({ key: 'u2' });
     expect(result.current.sourceState).toBe('connecting');
     await waitFor(() => expect(result.current.sourceState).toBe('live'));
+  });
+});
+
+describe('useFirestoreCollection — constraints that change under the same key', () => {
+  const seedItems = (count: number) => {
+    for (let i = 1; i <= count; i++) store.seed(`items/i${i}`, { rank: 100 - i });
+  };
+  const useLimited = (size: number) =>
+    useFirestoreCollection<{ rank: number }>({
+      collectionPath: 'items',
+      queryKey: ['items'],
+      constraints: [orderBy('rank', 'desc'), limit(size)],
+      subscribe: true,
+    });
+  const ids = (rows: Array<{ id: string }> | undefined) => rows?.map((row) => row.id);
+  const widerListener = (size: number) => (read: { listen: boolean; limit: number }) =>
+    read.listen && read.limit === size;
+
+  it('keeps the live answer on screen as placeholder data until the new constraints answer from the server', async () => {
+    seedItems(4);
+    const { Wrapper } = firestoreTestWrapper(store.db);
+    const { result, rerender } = renderHook(({ size }: { size: number }) => useLimited(size), {
+      wrapper: Wrapper,
+      initialProps: { size: 2 },
+    });
+    await waitFor(() => expect(result.current.sourceState).toBe('live'));
+    expect(result.current.isPlaceholderData).toBe(false);
+
+    const release = holdNext(store, widerListener(4));
+    rerender({ size: 4 });
+    expect(result.current.sourceState).toBe('connecting');
+    expect(ids(result.current.data)).toEqual(['i1', 'i2']);
+    expect(result.current.isPlaceholderData).toBe(true);
+    expect(result.current.isFetching).toBe(true);
+
+    act(release);
+    await waitFor(() => expect(result.current.sourceState).toBe('live'));
+    expect(ids(result.current.data)).toEqual(['i1', 'i2', 'i3', 'i4']);
+    expect(result.current.isPlaceholderData).toBe(false);
+  });
+
+  it('keeps the placeholder through a cached answer of the new constraints', async () => {
+    seedItems(4);
+    const { Wrapper } = firestoreTestWrapper(store.db);
+    const { result, rerender } = renderHook(({ size }: { size: number }) => useLimited(size), {
+      wrapper: Wrapper,
+      initialProps: { size: 2 },
+    });
+    await waitFor(() => expect(result.current.sourceState).toBe('live'));
+
+    store.answerFromCache(widerListener(3));
+    rerender({ size: 3 });
+    await waitFor(() => expect(ids(result.current.data)).toEqual(['i1', 'i2', 'i3']));
+    expect(result.current.sourceState).toBe('connecting');
+    expect(result.current.isPlaceholderData).toBe(true);
+
+    await act(async () => store.answerFromServer(widerListener(3)));
+    expect(result.current.sourceState).toBe('live');
+    expect(result.current.isPlaceholderData).toBe(false);
+  });
+
+  it('carries an answer that went offline, keeping it while the new constraints answer only from cache', async () => {
+    seedItems(4);
+    const { Wrapper } = firestoreTestWrapper(store.db);
+    const { result, rerender } = renderHook(({ size }: { size: number }) => useLimited(size), {
+      wrapper: Wrapper,
+      initialProps: { size: 2 },
+    });
+    await waitFor(() => expect(result.current.sourceState).toBe('live'));
+    await act(async () => store.answerFromCache(widerListener(2)));
+    expect(result.current.sourceState).toBe('offline');
+
+    store.answerFromCache(widerListener(4));
+    rerender({ size: 4 });
+    expect(result.current.sourceState).toBe('connecting');
+    expect(result.current.isPlaceholderData).toBe(true);
+    await waitFor(() => expect(ids(result.current.data)).toEqual(['i1', 'i2', 'i3', 'i4']));
+    act(() => store.seed('items/i0', { rank: 200 }));
+    await waitFor(() => expect(ids(result.current.data)?.[0]).toBe('i0'));
+    expect(result.current.sourceState).toBe('connecting');
+    expect(result.current.isPlaceholderData).toBe(true);
+
+    await act(async () => store.answerFromServer(widerListener(4)));
+    expect(result.current.sourceState).toBe('live');
+    expect(result.current.isPlaceholderData).toBe(false);
+  });
+
+  it('carries nothing from a failed read', async () => {
+    seedItems(4);
+    const { Wrapper } = firestoreTestWrapper(store.db);
+    const { result, rerender } = renderHook(({ size }: { size: number }) => useLimited(size), {
+      wrapper: Wrapper,
+      initialProps: { size: 2 },
+    });
+    await waitFor(() => expect(result.current.sourceState).toBe('live'));
+    await act(async () => store.failListeners(widerListener(2), unavailable()));
+    expect(result.current.sourceState).toBe('error');
+
+    holdNext(store, widerListener(4));
+    rerender({ size: 4 });
+    expect(result.current.sourceState).toBe('connecting');
+    expect(result.current.isPlaceholderData).toBe(false);
+  });
+
+  it('never carries an answer across a key change', async () => {
+    seedItems(2);
+    const { Wrapper } = firestoreTestWrapper(store.db);
+    const useKeyed = ({ key }: { key: string }) =>
+      useFirestoreCollection({
+        collectionPath: 'items',
+        queryKey: ['items', key],
+        subscribe: true,
+      });
+    const earlier = renderHook(useKeyed, { wrapper: Wrapper, initialProps: { key: 'b' } });
+    await waitFor(() => expect(earlier.result.current.sourceState).toBe('live'));
+    earlier.unmount();
+
+    const { result, rerender } = renderHook(useKeyed, {
+      wrapper: Wrapper,
+      initialProps: { key: 'a' },
+    });
+    await waitFor(() => expect(result.current.sourceState).toBe('live'));
+
+    holdNext(store, listensTo('items'));
+    rerender({ key: 'b' });
+    expect(result.current.data).toHaveLength(2);
+    expect(result.current.sourceState).toBe('connecting');
+    expect(result.current.isPlaceholderData).toBe(false);
+  });
+
+  it('a remount over an answer left in the cache reads connecting with no placeholder', async () => {
+    seedItems(2);
+    const { Wrapper } = firestoreTestWrapper(store.db);
+    const earlier = renderHook(() => useLimited(2), { wrapper: Wrapper });
+    await waitFor(() => expect(earlier.result.current.sourceState).toBe('live'));
+    earlier.unmount();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    holdNext(store, listensTo('items'));
+    const { result } = renderHook(() => useLimited(2), { wrapper: Wrapper });
+    expect(result.current.data).toHaveLength(2);
+    expect(result.current.sourceState).toBe('connecting');
+    expect(result.current.isPlaceholderData).toBe(false);
+  });
+
+  it('ends the placeholder when the new constraints fail, holding the rows beside the failure', async () => {
+    seedItems(4);
+    const { Wrapper } = firestoreTestWrapper(store.db);
+    const { result, rerender } = renderHook(({ size }: { size: number }) => useLimited(size), {
+      wrapper: Wrapper,
+      initialProps: { size: 2 },
+    });
+    await waitFor(() => expect(result.current.sourceState).toBe('live'));
+
+    failNext(store, widerListener(4), unavailable());
+    rerender({ size: 4 });
+    await waitFor(() => expect(result.current.sourceState).toBe('error'));
+    expect(result.current.isPlaceholderData).toBe(false);
+    expect(result.current.isRefetchError).toBe(true);
+    expect(ids(result.current.data)).toEqual(['i1', 'i2']);
   });
 });
 

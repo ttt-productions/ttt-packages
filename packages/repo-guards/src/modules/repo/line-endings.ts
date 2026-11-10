@@ -1,14 +1,14 @@
-import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
-import { FILE_KINDS, ROOT_ROLES, type RootRole } from '../../node/layout.js';
+import { gitOutput } from '../../node/git.js';
+import { AUTHORED_ROOTS, FILE_KINDS } from '../../node/layout.js';
 import type { Scope } from '../../node/reader.js';
 import { takesNoFacts } from '../../support/facts.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const GITATTRIBUTES = '.gitattributes';
-const LS_FILES_MAX_BUFFER = 256 * 1024 * 1024;
+const LS_FILES_EOL = ['ls-files', '--eol', '-z'];
 
 // A `*` line that turns text detection on and pins its checkout ending to LF.
 export function gitattributesForcesLf(text: string): boolean {
@@ -20,9 +20,6 @@ export function gitattributesForcesLf(text: string): boolean {
         pattern === '*' && attributes.includes('text=auto') && attributes.includes('eol=lf'),
     );
 }
-
-// Built output is never authored, so its endings are its compiler's.
-const AUTHORED_ROOTS: readonly RootRole[] = ROOT_ROLES.filter((role) => role !== 'coreDist');
 
 // Every authored file the reader reads, new and untracked ones included.
 export const LINE_ENDINGS_SCOPE: Scope = {
@@ -84,12 +81,12 @@ export const lineEndingGuard: GenericGuardDefinition<LineEndingFacts> = {
               file: GITATTRIBUTES,
               detail: 'no `* text=auto eol=lf` line, so a checkout can write CRLF',
             });
-          const listed = execFileSync('git', ['ls-files', '--eol', '-z'], {
-            cwd: repoRoot,
-            encoding: 'utf8',
-            maxBuffer: LS_FILES_MAX_BUFFER,
-            shell: false,
-          });
+          let listed: string;
+          try {
+            listed = gitOutput(repoRoot, LS_FILES_EOL);
+          } catch (err) {
+            throw new Error(`${LINE_ENDINGS_TITLE}: ${(err as Error).message}`, { cause: err });
+          }
           const endings = new Map<string, string>();
           for (const { file, ending } of crlfWorktreeFiles(listed)) endings.set(file, ending);
           for (const file of context.files(LINE_ENDINGS_SCOPE)) {

@@ -14,9 +14,17 @@ aliases, its owner files, its reviewed exceptions — never logic.
   kinds (code, declarations, stylesheets, rules files, config — env files by any name included —,
   markdown, shell scripts), what counts as test code
   (a `.test.` / `.spec.` name, a `__tests__` folder, an end-to-end root, or a declared test-code path
-  or name marker), and what is never read (dependency, build, and dot folders by name; anything
-  else only by a reviewed repo-relative path; a symbolic link named like a skipped folder is skipped
-  with it, and any other symbolic link is neither followed nor skipped — the walk fails naming it). Every file is read, comment-stripped (code, stylesheets, rules files), and
+  or name marker), and what is never read (dependency, build, and dot folders by name; every path
+  the repository's `.gitignore` files ignore, under every root but `coreDist`; anything else only
+  by a reviewed repo-relative path; a symbolic link named like a skipped folder is skipped with it,
+  and any other symbolic link is neither followed nor skipped — the walk fails naming it). The walk
+  reads authored files only: tracked ones and untracked ones the repository's `.gitignore` files
+  (the root one and every nested one) do not ignore. A machine's global excludes file and the
+  checkout's `.git/info/exclude` never count, so every checkout walks the same files. It asks git
+  once per reader for the ignored paths
+  (`git ls-files --others --ignored --exclude-per-directory=.gitignore --directory`), so the
+  repository root must be in a git work tree, and a git failure fails the walk with git's own
+  reason. `coreDist` is built output, gitignored on purpose, and walked whole. Every file is read, comment-stripped (code, stylesheets, rules files), and
   parsed once per run and shared by every guard. The reader also reads an installed package's
   shipped files under any folder's `node_modules` (each labelled an installed file of that package),
   and a file outside the checkout by absolute path (a sibling repository).
@@ -74,13 +82,28 @@ aliases, its owner files, its reviewed exceptions — never logic.
   live function sits under a codebase nothing deploys. The `codebaseManifest` guard also fails a
   codebase holding more than `MAX_FUNCTIONS_PER_CODEBASE` (55) functions (RULE-STD-BACKEND-311).
 
+- **Live reads a package opens.** The live-subscription guard (`firestoreLiveSubscriptions`) counts
+  as live mode, beside a `subscribe` option or an `onSnapshot` call the app writes, every value use
+  of an export on `LIVE_BY_CONSTRUCTION` — a call, a JSX render, or any other reference — imported by
+  name or through a namespace from its package entry; a type-only import, a type reference, and a
+  local of the same name are not uses. A re-export of one — named, aliased, or `export *` from its
+  entry, or `export { X }` of the imported binding — is a use too, and the re-exporting file is the
+  reviewed one: the guard does not follow the files that import it through that re-export. Such a
+  file takes one reviewed entry on the same list, however many live reads it holds. The boundary suite proves the list against the package source: an
+  export that reaches a literal `subscribe: true` passed to a query-core read, query-core's live-only
+  infinite read, or an `onSnapshot` call (other than its reviewed sites that run only behind a
+  consumer's `subscribe` flag), directly or through other code of its package or another listed
+  export, must be listed, and every listed export must still be exported and live.
+
 ## Contract shape
 
 - `.` — pure: `ownerOnly`, `reviewedAllowlist`, `declaredLiteral`, `matchPattern`, `sampleHits`, the
   `Guard` / `Finding` / `Sample` / `GuardContext` types, `formatFindings`, `viewOfText`, and
   `rawMutations(file)` — the one detector of a raw TanStack `useMutation` (by name, through a
   namespace, re-exported, or loaded at run time), which the mutation-owner guard and any
-  repository's own check share. A
+  repository's own check share. `LIVE_BY_CONSTRUCTION` (with the `LiveByConstruction` type) is the
+  one list of `@ttt-productions/*` package exports that open a live Firestore read whatever their
+  caller passes, each named by its package entry and export name. A
   `FileView` carries the file's `imports`: every place its code names a module (imports,
   re-exports, `import()`, `require()`, test-runner mocks, type-position imports) with the names each
   binds, read once from its parse. Only code and declarations have imports; reading them on any
@@ -107,7 +130,8 @@ aliases, its owner files, its reviewed exceptions — never logic.
   where the guard allows it — an `{ absent: why }`. A guard over the Functions tree or the Worker
   trees may be declared absent only when the layout declares no such root. A missing, unknown, or
   malformed entry fails the config before any guard runs.
-- **Fails closed.** A folder the reader cannot read throws naming it; a root a guard needs that the
+- **Fails closed.** A file or folder the reader cannot read while a guard runs (it vanished or is
+  locked) is a finding of that guard, naming the path and its error code; a root a guard needs that the
   layout does not declare throws; an exclusion, owner, or allowlist entry that no longer matches is
   stale and fails; a guard fails as vacuous when any scope it reads reaches no file, even beside a
   named file it also read; every declared root's anchor file must be reached by its walk.

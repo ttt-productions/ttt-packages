@@ -45,5 +45,7 @@ export type {
 } from './telemetry-content-policy.js';
 export { DEFAULT_SDK_CONTEXTS, createTelemetryContentPolicy } from './telemetry-content-policy.js';
 
+export { isFirestoreTabClockRoundingLine } from './firestore-tab-clock.js';
+
 export type { DefaultSafeEventKey, SafeEvent, BuildSafeEventOptions } from './safe-event.js';
 export { DEFAULT_SAFE_EVENT_KEYS, buildSafeEvent } from './safe-event.js';

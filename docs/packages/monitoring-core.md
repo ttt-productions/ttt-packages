@@ -12,6 +12,7 @@ Generic monitoring adapter package.
 - The browser SDK's one init on `./browser`
 - The telemetry scrubber — the forbidden-pattern redaction layer for outgoing events
 - The telemetry content policy — the allowlist that cuts an outgoing event to diagnostic fields
+- The check for Firestore's multi-tab clock-rounding console line (§ Browser init)
 
 ## Capture context
 
@@ -143,12 +144,25 @@ starts nothing — the app passes that for local and emulator runs.
 Always on: the offline transport (a send that fails at the network is queued in IndexedDB and
 retried), the console-error capture (error level only), and `beforeSend`, which runs in order the
 app's `dropEvent(event, hint)` (a designed answer, say), the network-capture URL filter, the
-telemetry scrubber (`scrubPatterns` on top of the defaults), then adds the page's IndexedDB
+Firestore tab-clock filter, the telemetry scrubber (`scrubPatterns` on top of the defaults), then adds the page's IndexedDB
 database names to every error event as `extra.indexedDbNames` — names only, never what they hold,
 so an error from a lost or broken storage connection says which store it was; a listing that fails
 or that the browser does not offer sends the event without them. `ignoreErrors` is
 `DEFAULT_BROWSER_IGNORE_ERRORS` (generic browser, network and Firebase SDK noise, and the scripts
 in-app browsers inject into every page), then the app's own list.
+
+Firestore's multi-tab persistence logs two self-healing lines through `console.error`, which the
+console capture would send as errors. "Could not reach Cloud Firestore backend" is an
+`ignoreErrors` entry. "Detected an update time that is in the future: A > B" compares one tab's
+stored `Date.now()` with another's, so `beforeSend` drops it only when the line ends the event
+message and `A - B` is more than 0 and at most 1 ms (two tabs' clocks rounding apart); a wider gap
+is a real clock disagreement and is sent. It is a predicate, not an `ignoreErrors` regex, because a
+regex cannot bound the gap.
+
+That check on the line's text is `isFirestoreTabClockRoundingLine(text)`, exported from the
+server-safe root so a Node process can apply it without loading the SDK. It is the one owner of the
+line's pattern and its 1 ms bound: the browser init calls it with the event message, and any other
+consumer that must excuse the same line imports it rather than restating either.
 
 Three switches, each `false` or its config:
 

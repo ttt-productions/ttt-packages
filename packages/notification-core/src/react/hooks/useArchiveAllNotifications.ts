@@ -23,7 +23,6 @@ export function useArchiveAllNotifications({
   const queryClient = useQueryClient();
 
   const defaultInvalidateKeys = [
-    ['notifications', 'active', category, userId],
     ['notifications', 'unread-count', category, userId],
     ['notifications', 'history', category, userId],
   ];
@@ -78,12 +77,11 @@ export function useArchiveAllNotifications({
         complete: false,
       };
     },
-    onSuccess: (result) => {
+    onSuccess: () => {
       const keysToInvalidate = invalidateKeys ?? defaultInvalidateKeys;
       keysToInvalidate.forEach((key) => {
         queryClient.invalidateQueries({ queryKey: [...key], exact: false });
       });
-      void result;
     },
   });
 }

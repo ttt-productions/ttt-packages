@@ -166,6 +166,43 @@ describe('initBrowserMonitoring', () => {
     expect(await send(options, event)).not.toBe(null);
   });
 
+  describe("Firestore's multi-tab update-time line", () => {
+    const FIRESTORE_PREFIX =
+      '[2026-11-09T21:41:21.275Z]  @firebase/firestore: Firestore (12.19.0):';
+    // The console capture joins console.error's arguments with a space into the event message.
+    const consoleEvent = (line: string): BrowserErrorEvent =>
+      errorEvent(`${FIRESTORE_PREFIX} ${line}`);
+    const futureLine = (stored: number, now: number) =>
+      `Detected an update time that is in the future: ${stored} > ${now}`;
+
+    it('drops the line when the two tab clocks read 1 ms apart', async () => {
+      const options = initWith(ERRORS_ONLY);
+      expect(await send(options, consoleEvent(futureLine(1794260481276, 1794260481275)))).toBe(
+        null,
+      );
+    });
+
+    it('sends the line when the gap is 2 ms', async () => {
+      const options = initWith(ERRORS_ONLY);
+      expect(await send(options, consoleEvent(futureLine(1794260481277, 1794260481275)))).not.toBe(
+        null,
+      );
+    });
+
+    it('sends any other Firestore console line', async () => {
+      const options = initWith(ERRORS_ONLY);
+      expect(
+        await send(options, consoleEvent('Uncaught Error in snapshot listener: permission-denied')),
+      ).not.toBe(null);
+    });
+
+    it('sends the 1 ms line when anything follows it', async () => {
+      const options = initWith(ERRORS_ONLY);
+      const line = `${futureLine(1794260481276, 1794260481275)} and more`;
+      expect(await send(options, consoleEvent(line))).not.toBe(null);
+    });
+  });
+
   it('attaches the page IndexedDB database names to every error event', async () => {
     vi.stubGlobal('indexedDB', {
       databases: () => Promise.resolve([{ name: 'firestore/app' }, { name: 'sentry-offline' }]),

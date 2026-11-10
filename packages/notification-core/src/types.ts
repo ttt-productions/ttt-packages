@@ -70,9 +70,8 @@ export interface UseActiveNotificationsOptions {
   userId: string;
   category: string;
   enabled?: boolean;
-  pageSize?: number;
-  refetchInterval?: number;
-  staleTime?: number;
+  step: number;
+  ceiling: number;
 }
 
 export interface NotificationHistoryItem extends NotificationDoc {
