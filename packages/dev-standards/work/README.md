@@ -61,6 +61,11 @@ switches the item to this header.
 The body below the header is free-form: the evidence (path + symbol), why it matters, the fix shape,
 what is out of scope, whether it is app-side, packages-side, or both, and how to prove it is done.
 
+**An item never lists the docs to update.** The conversation that builds an item updates the docs
+that describe what it changes (RULE-STD-ENG-007), and finds them as they are on that day. A list
+written into the item earlier names docs that have since been renamed, merged, or deleted, so no
+item carries a "docs that change" section or a line saying which docs to edit.
+
 ## Who reads and writes here
 
 The development workflows (`<DEV_STANDARDS>/workflows/`) each name the folders they read and
