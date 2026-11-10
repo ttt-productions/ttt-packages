@@ -13,55 +13,16 @@ registerSuiteOf(
   GENERIC_GUARDS.filter((definition) => definition.id === 'shellSafeChildProcesses'),
 );
 
-describe('boundary: the quiet runner hands its shell only shell-safe tokens', () => {
+describe('boundary: the quiet gate runs its stages through the shared runner', () => {
   const source = createRepoReader(layout).file('scripts/test-quiet.mjs').text;
-  const declared = /^const SHELL_SAFE_TOKEN = \/(.+)\/([a-z]*);\s*$/m.exec(source);
-  const safe = (token: string) =>
-    declared ? new RegExp(declared[1], declared[2]).test(token) : false;
 
-  it('declares SHELL_SAFE_TOKEN as a regex literal', () => {
-    expect(declared, 'scripts/test-quiet.mjs no longer declares SHELL_SAFE_TOKEN').not.toBeNull();
+  it("hands its stages to repo-guards' runQuietGate, whose command runner refuses an unsafe token", () => {
+    expect(source).toMatch(/await runQuietGate\(/);
   });
 
-  it('accepts commands, subcommands, flags, flag values, and relative script paths', () => {
-    for (const token of [
-      'npm',
-      'npx',
-      'run',
-      'lint',
-      '-b',
-      '--noEmit',
-      '--omit=dev',
-      '--reporter=json',
-      'scripts/x.mjs',
-      '@scope/pkg',
-    ]) {
-      expect(safe(token), token).toBe(true);
-    }
-  });
-
-  it('rejects every token cmd.exe or sh would reinterpret', () => {
-    for (const token of [
-      '',
-      'a b',
-      'a&b',
-      'a|b',
-      'a;b',
-      'a<b',
-      'a>b',
-      '$HOME',
-      '%PATH%',
-      'a^b',
-      '`id`',
-      '"q"',
-      "'q'",
-      'a\\b',
-      '*',
-      '!x',
-      '(x)',
-      'a\nb',
-    ]) {
-      expect(safe(token), JSON.stringify(token)).toBe(false);
-    }
+  it('spawns nothing itself but the one fixed command line that builds the runner', () => {
+    const spawns = source.match(/\bspawn(?:Sync)?\(|\bexec(?:File)?(?:Sync)?\(/g) ?? [];
+    expect(spawns).toEqual(['spawnSync(']);
+    expect(source).toMatch(/spawnSync\('npm run build -w @ttt-productions\/repo-guards', \{/);
   });
 });

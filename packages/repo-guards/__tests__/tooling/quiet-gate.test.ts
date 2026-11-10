@@ -272,8 +272,9 @@ describe('runQuietGate', () => {
     'a failed command step keeps its whole output in its file, past what the console prints',
     async () => {
       expect(await run([command('a', 'long-fail.mjs')], [])).toBe(1);
-      expect(output).toContain('first line of a long failure');
-      expect(output).not.toContain('last line of a long failure');
+      expect(output).toContain('last line of a long failure');
+      expect(output).not.toContain('first line of a long failure');
+      expect(output).toContain('earlier characters are in the file');
       const saved = readFileSync(logFile('a-step.log'), 'utf8');
       expect(saved).toContain('first line of a long failure');
       expect(saved).toContain('x'.repeat(20000));
@@ -339,6 +340,158 @@ describe('runQuietGate', () => {
     },
     SLOW_TEST_TIMEOUT_MS,
   );
+
+  describe('a check step with a repair', () => {
+    const checked = (repairScript: string): GateStage => ({
+      id: 'schema',
+      description: 'schema',
+      stopOnFailure: true,
+      steps: () => [
+        {
+          kind: 'command',
+          label: 'schema',
+          command: 'node',
+          args: ['say.mjs', 'the-check-output', '1'],
+          cwd: dir,
+          repair: {
+            command: 'node',
+            args: [repairScript, 'the-repair-output'],
+            note: 'regenerated; commit the docs',
+          },
+        },
+      ],
+    });
+
+    it(
+      'passes, carrying its note, when the check fails and the repair passes, and keeps both outputs',
+      async () => {
+        expect(await run([checked('say.mjs')], [])).toBe(0);
+        expect(output).toContain('schema (regenerated; commit the docs');
+        expect(output).toContain('All stages passed — schema: regenerated; commit the docs');
+        const saved = readFileSync(logFile('schema.log'), 'utf8');
+        expect(saved).toContain('the-check-output');
+        expect(saved).toContain('the-repair-output');
+      },
+      SLOW_TEST_TIMEOUT_MS,
+    );
+
+    it(
+      'fails, printing the repair output, when the repair fails too',
+      async () => {
+        expect(await run([checked('fail.mjs')], [])).toBe(1);
+        expect(output).toContain('the reason it failed');
+        expect(output).not.toContain('All stages passed');
+      },
+      SLOW_TEST_TIMEOUT_MS,
+    );
+  });
+
+  describe('a Vitest step run through an npm script of the repo', () => {
+    const fileResult = (over: object): object => ({
+      name: 'C:/repo/a.test.ts',
+      status: 'passed',
+      message: '',
+      assertionResults: [{ status: 'passed', title: 'works', fullName: 'a works' }],
+      ...over,
+    });
+    const viaScript = (reportFile: string): GateStage => ({
+      id: 'test',
+      description: 'test',
+      stopOnFailure: true,
+      steps: () => [{ kind: 'vitest', label: 'vitest', cwd: dir, npmScript: reportFile }],
+    });
+
+    beforeAll(() => {
+      const reports = {
+        green: { numPassedTests: 1, numTotalTests: 1, testResults: [fileResult({})] },
+        hook: {
+          numPassedTests: 1,
+          numTotalTests: 1,
+          testResults: [fileResult({ status: 'failed', message: 'Hook timed out in 15000ms.' })],
+        },
+        skipped: {
+          numPassedTests: 1,
+          numPendingTests: 1,
+          numTotalTests: 2,
+          testResults: [
+            fileResult({
+              assertionResults: [
+                { status: 'passed', title: 'works', fullName: 'a works' },
+                { status: 'skipped', title: 'later', fullName: 'a later' },
+              ],
+            }),
+          ],
+        },
+      };
+      const scripts: Record<string, string> = {};
+      for (const [name, report] of Object.entries(reports)) {
+        writeFileSync(path.join(dir, `${name}.json`), JSON.stringify(report));
+        scripts[name] = `node print-report.mjs ${name}.json`;
+      }
+      writeFileSync(
+        path.join(dir, 'print-report.mjs'),
+        "import { readFileSync } from 'node:fs'; const failed = process.argv[2] === 'hook.json'; process.stdout.write(readFileSync(process.argv[2], 'utf8')); process.exit(failed ? 1 : 0);",
+      );
+      writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ private: true, scripts }));
+    });
+
+    it(
+      'reads the report the script prints and keeps it beside the output',
+      async () => {
+        expect(await run([viaScript('green')], [])).toBe(0);
+        expect(output).toContain('vitest (1 passed');
+        expect(JSON.parse(readFileSync(logFile('vitest.json'), 'utf8'))).toMatchObject({
+          numPassedTests: 1,
+        });
+      },
+      SLOW_TEST_TIMEOUT_MS,
+    );
+
+    it(
+      'fails on a file whose hook failed, naming it as a failure outside a test',
+      async () => {
+        expect(await run([viaScript('hook')], [])).toBe(1);
+        expect(output).toContain('1 file failed outside a test');
+        expect(output).toContain('C:/repo/a.test.ts');
+        expect(output).toContain('Hook timed out in 15000ms.');
+      },
+      SLOW_TEST_TIMEOUT_MS,
+    );
+
+    it(
+      'fails on a skipped test though the run exited 0',
+      async () => {
+        expect(await run([viaScript('skipped')], [])).toBe(1);
+        expect(output).toContain('a later');
+      },
+      SLOW_TEST_TIMEOUT_MS,
+    );
+  });
+
+  it("lists the script's own flags in the help", async () => {
+    output = '';
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      output += String(chunk);
+      return true;
+    });
+    vi.spyOn(process, 'exit').mockImplementation((code) => {
+      throw new Exit(Number(code ?? 0));
+    });
+    await expect(
+      runQuietGate(
+        {
+          title: 'test gate',
+          script: 'gate.mjs',
+          logDir: logDir(),
+          stages: [command('a', 'pass.mjs')],
+          flags: [{ flag: '--check-only', description: 'the format stage only checks' }],
+        },
+        ['--help'],
+      ),
+    ).rejects.toBeInstanceOf(Exit);
+    expect(output).toContain('--check-only');
+    expect(output).toContain('the format stage only checks');
+  });
 
   it.each([[''], ['relative/logs']])(
     'refuses a config whose output folder is %j before any stage runs',

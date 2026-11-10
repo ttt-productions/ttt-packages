@@ -83,6 +83,22 @@ describe('collectVitestFailures', () => {
     expect(totals).toMatchObject({ passed: 1, failed: 0, failedSuites: 1 });
   });
 
+  it('names a file whose hook failed after every one of its tests passed', () => {
+    const hookFailedFile: VitestFileResult = {
+      ...passingFile,
+      name: 'C:/repo/src/__tests__/browser.test.ts',
+      status: 'failed',
+      message: 'Hook timed out in 15000ms.',
+    };
+    const { failures, suiteFailures } = collectVitestFailures(
+      report([hookFailedFile], { numPassedTests: 1, numTotalTests: 1 }),
+    );
+    expect(failures).toEqual([]);
+    expect(suiteFailures).toEqual([
+      { file: hookFailedFile.name, message: 'Hook timed out in 15000ms.' },
+    ]);
+  });
+
   it('reports no load failure for a run whose files all passed', () => {
     const { failures, suiteFailures, totals } = collectVitestFailures(
       report([passingFile], { numPassedTests: 1, numTotalTests: 1 }),
@@ -114,16 +130,18 @@ describe('collectVitestFailures', () => {
 });
 
 describe('formatSuiteFailures', () => {
-  it('prints each file that failed to load with its error, so the red stage says why', () => {
+  it('prints each file that failed outside a test with its error, naming both causes, so a failed hook is not read as a file that could not load', () => {
     const text = formatSuiteFailures([
       { file: loadFailedFile.name, message: `${LOAD_ERROR}\n  at config.ts` },
     ]);
-    expect(text).toContain(`Failed to load: ${loadFailedFile.name}`);
+    expect(text).toContain(
+      `Failed outside a test (while loading, or in a beforeAll/afterAll hook): ${loadFailedFile.name}`,
+    );
     expect(text).toContain(`    ${LOAD_ERROR}`);
     expect(text).toContain('      at config.ts');
   });
 
-  it('prints nothing when no file failed to load', () => {
+  it('prints nothing when no file failed outside a test', () => {
     expect(formatSuiteFailures([])).toBe('');
   });
 });

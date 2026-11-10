@@ -23,6 +23,8 @@ describe('the suite runs on the threads pool', () => {
 
   it('runs vitest in the quiet gate only through the test script, never by spawning it itself', () => {
     expect(quietGate).not.toMatch(/['"]vitest['"]\s*,\s*['"]run['"]/);
-    expect(quietGate).toMatch(/\[\s*'run'\s*,\s*'--silent'\s*,\s*'test'\s*,\s*'--'/);
+    const vitestSteps = quietGate.match(/\{[^{}]*kind:\s*'vitest'[^{}]*\}/g) ?? [];
+    expect(vitestSteps).not.toHaveLength(0);
+    for (const step of vitestSteps) expect(step).toMatch(/npmScript:\s*'test'/);
   });
 });

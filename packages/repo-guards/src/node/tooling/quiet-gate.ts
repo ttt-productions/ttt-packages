@@ -27,9 +27,25 @@ import {
 import { formatUnhandledErrorReport } from './vitest-unhandled-errors.js';
 import { runCommand } from './shell.js';
 
+// What a failed check command runs to put right what it found; when it passes, the step passes
+// carrying the note, which says what a person still has to do.
+export interface StepRepair {
+  command: string;
+  args: readonly string[];
+  note: string;
+}
+
 export type GateStep =
-  | { kind: 'command'; label: string; command: string; args: readonly string[]; cwd: string }
-  | { kind: 'vitest'; label: string; args?: readonly string[]; cwd: string }
+  | {
+      kind: 'command';
+      label: string;
+      command: string;
+      args: readonly string[];
+      cwd: string;
+      repair?: StepRepair;
+    }
+  // `npmScript` runs Vitest through that script of the repo, which owns its own Vitest flags.
+  | { kind: 'vitest'; label: string; args?: readonly string[]; cwd: string; npmScript?: string }
   | {
       kind: 'playwright';
       label: string;
@@ -66,7 +82,11 @@ export interface QuietGateConfig {
   script: string;
   logDir: string;
   stages: readonly GateStage[];
+  // Flags the script itself reads, listed in the help.
+  flags?: readonly { flag: string; description: string }[];
 }
+
+export const PRINTED_OUTPUT_LIMIT = 4000;
 
 const ANSI = {
   RED: '\x1b[31m',
@@ -107,8 +127,22 @@ function stepFileStem(label: string): string {
 const outputFileText = (stdout: string, stderr: string): string =>
   `--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`;
 
+// A chain of commands fails at its end, so the end is what the console shows; the file holds it all.
+function printedOutput(c: Palette, text: string): string {
+  const whole = text.trim();
+  if (whole.length <= PRINTED_OUTPUT_LIMIT) return `${c.DIM}${whole}${c.RESET}`;
+  const cut = whole.length - PRINTED_OUTPUT_LIMIT;
+  return `${c.DIM}…(${cut} earlier characters are in the file)…\n${whole.slice(cut)}${c.RESET}`;
+}
+
 type Totals = { passed: number; failed: number; skipped: number; flaky?: number };
-type StepResult = { name: string; ok?: boolean; skipped?: boolean; totals?: Totals | null };
+type StepResult = {
+  name: string;
+  ok?: boolean;
+  skipped?: boolean;
+  totals?: Totals | null;
+  note?: string;
+};
 
 export type GateSelection =
   | { kind: 'help' }
@@ -292,15 +326,13 @@ function printRawTail(
   write(
     `${DIM}${tool} exited with code ${code} but the JSON report contains no failures.${RESET}\n`,
   );
-  write(`${DIM}Raw stderr (truncated):${RESET}\n${DIM}${stderr.trim().slice(0, 4000)}${RESET}\n`);
-  write(
-    `${DIM}Raw stdout (truncated, JSON portion likely present):${RESET}\n${DIM}${stdout.trim().slice(0, 4000)}${RESET}\n\n`,
-  );
+  write(`${DIM}Raw stderr:${RESET}\n${printedOutput(c, stderr)}\n`);
+  write(`${DIM}Raw stdout:${RESET}\n${printedOutput(c, stdout)}\n\n`);
 }
 
-function detailOf(totals: Totals, elapsed: number, loadFailures = 0): string {
-  const loads = loadFailures
-    ? `, ${loadFailures} ${loadFailures === 1 ? 'file' : 'files'} failed to load`
+function detailOf(totals: Totals, elapsed: number, suiteFailures = 0): string {
+  const loads = suiteFailures
+    ? `, ${suiteFailures} ${suiteFailures === 1 ? 'file' : 'files'} failed outside a test`
     : '';
   return `${totals.passed} passed${totals.failed ? `, ${totals.failed} failed` : ''}${loads}${totals.skipped ? `, ${totals.skipped} skipped` : ''}${totals.flaky ? `, ${totals.flaky} flaky` : ''} · ${fmtTime(elapsed)}`;
 }
@@ -333,6 +365,7 @@ export async function runQuietGate(
         `  --only <stages>   Comma-separated list of stages to run.\n` +
         `                    Stages: ${stageIds.join(', ')}\n` +
         config.stages.map((s) => `  --${s.id.padEnd(width)}${s.description}\n`).join('') +
+        (config.flags ?? []).map((f) => `  ${f.flag}\n      ${f.description}\n`).join('') +
         `  -h, --help        Show this help and exit\n\n`,
     );
     process.exit(0);
@@ -397,15 +430,30 @@ export async function runQuietGate(
     heartbeat.begin(step.label);
     const t0 = performance.now();
     const { code, stdout, stderr } = await runCommand(step.command, step.args, { cwd: step.cwd });
-    const elapsed = performance.now() - t0;
     saveOutput(files, stdout, stderr);
     if (code === 0) {
-      ok(step.label, fmtTime(elapsed));
+      ok(step.label, fmtTime(performance.now() - t0));
       results.push({ name: step.label, ok: true });
       return true;
     }
-    fail(step.label, fmtTime(elapsed));
-    write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n`);
+    let failedOutput = `${stdout}\n${stderr}`;
+    if (step.repair) {
+      const repaired = await runCommand(step.repair.command, step.repair.args, { cwd: step.cwd });
+      writeFileSync(
+        files.output,
+        `${outputFileText(stdout, stderr)}\n--- repair ---\n${outputFileText(repaired.stdout, repaired.stderr)}`,
+      );
+      if (repaired.code === 0) {
+        heartbeat.end(
+          `${YELLOW}✓${RESET} ${step.label} ${DIM}(${step.repair.note} · ${fmtTime(performance.now() - t0)})${RESET}`,
+        );
+        results.push({ name: step.label, ok: true, note: step.repair.note });
+        return true;
+      }
+      failedOutput = `${repaired.stdout}\n${repaired.stderr}`;
+    }
+    fail(step.label, fmtTime(performance.now() - t0));
+    write(`${printedOutput(c, failedOutput)}\n`);
     printWhere(files);
     results.push({ name: step.label, ok: false });
     return false;
@@ -417,11 +465,12 @@ export async function runQuietGate(
   ): Promise<boolean> {
     heartbeat.begin(step.label);
     const t0 = performance.now();
-    const { code, stdout, stderr } = await runCommand(
-      'npx',
-      ['vitest', 'run', '--reporter=json', ...(step.args ?? [])],
-      { cwd: step.cwd },
-    );
+    const reporterArgs = ['--reporter=json', ...(step.args ?? [])];
+    const { code, stdout, stderr } = step.npmScript
+      ? await runCommand('npm', ['run', '--silent', step.npmScript, '--', ...reporterArgs], {
+          cwd: step.cwd,
+        })
+      : await runCommand('npx', ['vitest', 'run', ...reporterArgs], { cwd: step.cwd });
     const elapsed = performance.now() - t0;
     saveOutput(files, stdout, stderr);
     const parsed = parseVitestJson(stdout);
@@ -429,8 +478,8 @@ export async function runQuietGate(
     const { failures, suiteFailures, totals, skippedTests } = collectVitestFailures(parsed);
     if (!totals) {
       fail(step.label, fmtTime(elapsed));
-      write(`${DIM}Could not parse vitest JSON output.${RESET}\n`);
-      write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n`);
+      write(`${DIM}Could not parse vitest JSON output (exit code ${code}).${RESET}\n`);
+      write(`${printedOutput(c, `${stdout}\n${stderr}`)}\n`);
       printWhere(files);
       results.push({ name: step.label, ok: false, totals: null });
       return false;
@@ -500,7 +549,7 @@ export async function runQuietGate(
     if (!report) {
       fail(step.label, fmtTime(elapsed));
       write(`${DIM}Could not parse playwright JSON output.${RESET}\n`);
-      write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n`);
+      write(`${printedOutput(c, `${stdout}\n${stderr}`)}\n`);
       printWhere(files);
       results.push({ name: step.label, ok: false });
       return false;
@@ -626,6 +675,10 @@ function finish(c: Palette, results: readonly StepResult[], total: number, logDi
       write(`  ${YELLOW}⊘${RESET} ${r.name} ${DIM}(skipped)${RESET}\n`);
       continue;
     }
+    if (r.ok && r.note) {
+      write(`  ${YELLOW}✓${RESET} ${r.name} ${DIM}(${r.note})${RESET}\n`);
+      continue;
+    }
     const t = r.totals;
     const counts = t
       ? `${t.passed} passed${t.failed || !r.ok ? `, ${t.failed} failed` : ''}${t.skipped ? `, ${t.skipped} skipped` : ''}${t.flaky ? `, ${t.flaky} flaky` : ''}`
@@ -651,6 +704,9 @@ function finish(c: Palette, results: readonly StepResult[], total: number, logDi
     );
     process.exit(0);
   }
-  write(`\n${GREEN}${BOLD}All stages passed${RESET}\n`);
+  const notes = results.flatMap((r) => (r.note ? [`${r.name}: ${r.note}`] : []));
+  write(
+    `\n${GREEN}${BOLD}All stages passed${RESET}${notes.length ? ` ${YELLOW}— ${notes.join('; ')}${RESET}` : ''}\n`,
+  );
   process.exit(0);
 }

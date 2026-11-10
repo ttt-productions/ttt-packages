@@ -81,8 +81,17 @@ aliases, its owner files, its reviewed exceptions — never logic.
   its JSON report to `<stem>.json`. A step deletes and rewrites only its own files, so the folder
   holds each step's latest run and a focused rerun leaves the other steps' files in place. A step
   whose label gives an empty stem, or the stem of a step already run in the same run, fails
-  without running. A failed step's printed block ends with
-  its file paths, and the summary names the folder. Colour codes are written only to a terminal.
+  without running. A failed step prints the end of its output (`PRINTED_OUTPUT_LIMIT` characters,
+  since a chain of commands fails at its end), then its file paths, and the summary names the
+  folder. Colour codes are written only to a terminal.
+- **One quiet gate for every repository.** ttt-packages' own gate runs on `runQuietGate` too: its
+  script builds repo-guards alone, then hands over its stages. A command step may name a `repair`,
+  run when the check fails; when the repair passes the step passes carrying its note, which the
+  summary repeats. A Vitest step may name an `npmScript`, to run Vitest through that script of the
+  repo where the script owns its Vitest flags. A config may list `flags` its own script reads, for
+  the help. A Vitest stage is red on any skipped, pending or `.todo` test, and on a file that
+  failed outside its tests — while loading, or in a `beforeAll` / `afterAll` hook — which it names
+  with the file's error.
 - **Functions deploys in passes.** `deployFunctionsInPasses` deploys an app's non-function targets
   once, then each targeted codebase on its own, checking after each pass that the codebase's live
   functions are exactly its manifest names and ACTIVE (up to `DEPLOY_PASS_ATTEMPTS` tries,

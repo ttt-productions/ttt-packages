@@ -74,8 +74,8 @@ function readableFailureMessage(message: string, durationMs?: number | null): st
   return `Timed out${ran}: the test passed its time limit.${message.slice(TIMEOUT_PLACEHOLDER.length)}`;
 }
 
-// A test file that failed to load carries its error as the file's own `message` and adds nothing
-// to `numFailedTests`.
+// A test file that failed outside its tests — while loading, or in a `beforeAll` / `afterAll`
+// hook — carries its error as the file's own `message` and adds nothing to `numFailedTests`.
 export function collectVitestFailures(report: VitestJsonReport | null): {
   failures: TestFailure[];
   suiteFailures: SuiteFailure[];
@@ -144,7 +144,7 @@ export function formatSuiteFailures(suiteFailures: SuiteFailure[]): string {
   return suiteFailures
     .map(
       (suite) =>
-        `Failed to load: ${suite.file}\n${suite.message
+        `Failed outside a test (while loading, or in a beforeAll/afterAll hook): ${suite.file}\n${suite.message
           .split('\n')
           .map((line) => `    ${line}`)
           .join('\n')}`,
