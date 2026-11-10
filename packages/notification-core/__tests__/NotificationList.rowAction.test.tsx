@@ -539,6 +539,25 @@ describe('NotificationList — archive answers, failed reads, and rendered rows'
   });
 });
 
+describe('NotificationList — console', () => {
+  it('logs nothing about a missing queryFn when it mounts and renders the list', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    mocks.useArchiveNotification.mockReturnValue(archiveMutation(vi.fn<ArchiveMutateAsync>()));
+    mocks.useArchiveAllNotifications.mockReturnValue(
+      archiveAllMutation(vi.fn<ArchiveAllMutateAsync>()),
+    );
+    seedCards(2);
+    renderLive(<NotificationList {...baseProps} />);
+    expect(await screen.findAllByText('Title')).toHaveLength(2);
+
+    const aboutQueryFn = [console.error, console.warn, console.log]
+      .flatMap((method) => vi.mocked(method).mock.calls)
+      .filter((args) => args.some((arg) => String(arg).includes('queryFn')));
+    expect(aboutQueryFn).toEqual([]);
+  });
+});
+
 describe('NotificationList — the live window', () => {
   const archiveMutateAsync = vi.fn<ArchiveMutateAsync>();
   const clearControl = (n: NotificationDoc, actions: NotificationRowActions) => (

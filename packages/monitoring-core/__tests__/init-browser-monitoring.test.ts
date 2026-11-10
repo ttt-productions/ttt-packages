@@ -5,6 +5,7 @@ const sentry = vi.hoisted(() => ({
   init: vi.fn<(options: BrowserOptions) => undefined>(),
   consoleOptions: [] as unknown[],
   replayOptions: [] as unknown[],
+  breadcrumbsOptions: [] as unknown[],
 }));
 
 vi.mock(import('@sentry/nextjs'), async (importOriginal) => {
@@ -16,6 +17,10 @@ vi.mock(import('@sentry/nextjs'), async (importOriginal) => {
     ({ name }) as Sdk[K] extends (...args: never[]) => infer R ? R : never;
   return stubModule(importOriginal, {
     init: sentry.init,
+    breadcrumbsIntegration: (options) => {
+      sentry.breadcrumbsOptions.push(options);
+      return marker<'breadcrumbsIntegration'>('Breadcrumbs');
+    },
     captureConsoleIntegration: (options) => {
       sentry.consoleOptions.push(options);
       return marker<'captureConsoleIntegration'>('CaptureConsole');
@@ -86,6 +91,7 @@ describe('initBrowserMonitoring', () => {
     sentry.init.mockClear();
     sentry.consoleOptions.length = 0;
     sentry.replayOptions.length = 0;
+    sentry.breadcrumbsOptions.length = 0;
   });
 
   it('starts no SDK when monitoring is off', () => {
@@ -95,7 +101,7 @@ describe('initBrowserMonitoring', () => {
 
   it('an errors-only config records no replay, samples no trace and captures no failed fetch', () => {
     const options = initWith(ERRORS_ONLY);
-    expect(integrationNames(options)).toEqual(['CaptureConsole']);
+    expect(integrationNames(options)).toEqual(['CaptureConsole', 'Breadcrumbs']);
     expect(options.tracesSampleRate).toBeUndefined();
     expect(options.beforeSendTransaction).toBeUndefined();
     expect(options.replaysOnErrorSampleRate).toBeUndefined();
@@ -105,6 +111,13 @@ describe('initBrowserMonitoring', () => {
   it('captures console errors only, never warnings or logs', () => {
     initWith(ERRORS_ONLY);
     expect(sentry.consoleOptions).toEqual([{ levels: ['error'] }]);
+  });
+
+  it('records no console line as a breadcrumb and keeps every other breadcrumb source', () => {
+    const options = initWith(ERRORS_ONLY);
+    expect(sentry.breadcrumbsOptions).toEqual([{ console: false }]);
+    expect(options.defaultIntegrations).toBeUndefined();
+    expect(options.maxBreadcrumbs).toBeUndefined();
   });
 
   it('sends through the offline transport with the given dsn and environment', () => {
@@ -118,6 +131,7 @@ describe('initBrowserMonitoring', () => {
     const options = initWith(FULL);
     expect(integrationNames(options)).toEqual([
       'CaptureConsole',
+      'Breadcrumbs',
       'Replay',
       'TelemetryScrubberReplayEvents',
       'HttpClient',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFirestoreCollection, useReadRetryState } from '@ttt-productions/query-core/react';
 import { limit, orderBy, where, type QueryConstraint } from 'firebase/firestore';
 import type { NotificationDoc, UseActiveNotificationsOptions } from '../../types.js';
@@ -24,13 +24,12 @@ export function useActiveNotifications({
     () => ['notifications', 'active-window', category, userId],
     [category, userId],
   );
-  const { data: requestedSize } = useQuery<number>({
+  const { data: grownSize } = useQuery<number>({
     queryKey: windowKey,
-    initialData: step,
-    enabled: false,
+    queryFn: skipToken,
     staleTime: Infinity,
   });
-  const windowSize = Math.min(requestedSize, ceiling);
+  const windowSize = Math.min(grownSize ?? step, ceiling);
 
   const isPersonal = categoryConfig.audienceType === 'personal';
   const constraints: QueryConstraint[] = [

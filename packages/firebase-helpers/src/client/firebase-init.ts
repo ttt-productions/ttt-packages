@@ -18,9 +18,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   connectFirestoreEmulator,
-  setLogLevel,
   type Firestore,
-  type LogLevel,
 } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator, type Functions } from 'firebase/functions';
@@ -53,7 +51,6 @@ export interface InitFirebaseClientOptions {
   functionsRegion?: string;
   useBrowserLocalPersistence?: boolean;
   persistentFirestoreCache?: boolean;
-  firestoreLogLevel?: LogLevel;
   appCheck?: AppCheckClientOptions;
   authBootLookupGuard?: boolean;
   analyticsConfig?: Record<string, unknown>;
@@ -233,8 +230,6 @@ export function initFirebaseClient(
     });
   }
 
-  // Set before Firestore exists, so its first connection is logged at this level.
-  if (options.firestoreLogLevel) setLogLevel(options.firestoreLogLevel);
   const db = initFirestore(app, Boolean(options.persistentFirestoreCache) && !useEmulators);
   const auth = getAuth(app);
   const storage = getStorage(app);

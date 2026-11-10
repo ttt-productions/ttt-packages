@@ -141,6 +141,12 @@ the app's `instrumentation-client.ts`, before React mounts, and must start the S
 `captureException` and the rest to that SDK, with no DSN) runs as before. With `enabled: false` it
 starts nothing — the app passes that for local and emulator runs.
 
+From the console, the browser setup collects `console.error` only: the console-error capture turns
+each call into an error event. `console.log`, `info`, `warn` and `debug` output is never collected,
+as an event or as a breadcrumb: the init replaces the SDK's default Breadcrumbs integration with
+one whose console source is off, and keeps its other sources as the SDK sets them. Breadcrumbs an
+app adds through `addBreadcrumb` are still recorded.
+
 Always on: the offline transport (a send that fails at the network is queued in IndexedDB and
 retried), the console-error capture (error level only), and `beforeSend`, which runs in order the
 app's `dropEvent(event, hint)` (a designed answer, say), the network-capture URL filter, the

@@ -1,4 +1,5 @@
 import {
+  breadcrumbsIntegration,
   captureConsoleIntegration,
   httpClientIntegration,
   init,
@@ -101,7 +102,12 @@ export function initBrowserMonitoring(options: BrowserMonitoringOptions): void {
     return withIndexedDbNames(scrub(event));
   };
 
-  const integrations: SentryIntegration[] = [captureConsoleIntegration({ levels: ['error'] })];
+  const integrations: SentryIntegration[] = [
+    captureConsoleIntegration({ levels: ['error'] }),
+    // The SDK adds this list to its defaults, and an instance named like a default replaces it, so
+    // this Breadcrumbs keeps every default source but the console.
+    breadcrumbsIntegration({ console: false }),
+  ];
   if (options.sessionReplay) {
     integrations.push(
       replayIntegration({

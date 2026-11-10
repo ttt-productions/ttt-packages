@@ -74,7 +74,26 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+const consoleLinesAbout = (text: string) =>
+  [console.error, console.warn, console.log]
+    .flatMap((method) => vi.mocked(method).mock.calls)
+    .filter((args) => args.some((arg) => String(arg).includes(text)));
+
 describe('useActiveNotifications — the live window', () => {
+  it('logs nothing about a missing queryFn while it holds and grows the window', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    seedNotifications(3);
+    const { result } = renderHook(windowOf(1, 10), {
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(1));
+    act(() => result.current.showMore());
+    await waitFor(() => expect(result.current.data).toHaveLength(2));
+
+    expect(consoleLinesAbout('queryFn')).toEqual([]);
+  });
+
   it("listens to the member's active cards, newest first, one step plus a look-ahead card", async () => {
     seedNotifications(3);
     store.seed('activeUserNotifications/other', { targetUserId: 'u2', updatedAt: 5_000 });

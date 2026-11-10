@@ -33,9 +33,6 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
 - **Firestore cache.** `persistentFirestoreCache` uses the multi-tab persistent local cache in the
   browser — never under the emulators — and reuses the existing instance if Firestore was already
   initialized (a hot reload).
-- **Firestore log level.** `firestoreLogLevel` (the SDK's own `LogLevel`) sets the Firestore SDK's
-  log level through its `setLogLevel` before Firestore is created; when the app passes none, the
-  SDK's level is left as it is. When to pass it is the app's.
 - **App Check.** `appCheck: { siteKey, debugToken }` initializes App Check with the reCAPTCHA
   Enterprise provider and token auto-refresh, in the browser only and once per page (a hot reload
   does not initialize it twice). The debug token is honoured only under the emulators, where App
