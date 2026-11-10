@@ -1,14 +1,55 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import path from 'path';
 import { performance } from 'perf_hooks';
+import { fileURLToPath } from 'url';
 
-const RED = '\x1b[31m';
-const GREEN = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const CYAN = '\x1b[36m';
-const DIM = '\x1b[2m';
-const BOLD = '\x1b[1m';
-const RESET = '\x1b[0m';
+const ANSI = {
+  RED: '\x1b[31m',
+  GREEN: '\x1b[32m',
+  YELLOW: '\x1b[33m',
+  CYAN: '\x1b[36m',
+  DIM: '\x1b[2m',
+  BOLD: '\x1b[1m',
+  RESET: '\x1b[0m',
+};
+const NO_COLOUR = Object.fromEntries(Object.keys(ANSI).map((k) => [k, '']));
+const paletteFor = (stream) => (stream.isTTY ? ANSI : NO_COLOUR);
+const { RED, GREEN, YELLOW, CYAN, DIM, BOLD, RESET } = paletteFor(process.stdout);
+
+const LOG_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '.logs',
+  'test-quiet',
+);
+
+function stageFiles(name) {
+  const stem = name
+    .toLowerCase()
+    .replace(/[^a-z0-9._]+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '');
+  const files = {
+    output: path.join(LOG_DIR, `${stem}.log`),
+    report: path.join(LOG_DIR, `${stem}.json`),
+  };
+  mkdirSync(LOG_DIR, { recursive: true });
+  rmSync(files.output, { force: true });
+  rmSync(files.report, { force: true });
+  return files;
+}
+
+const outputFileText = ({ stdout, stderr }, heading = '') =>
+  `--- ${heading}stdout ---\n${stdout}\n--- ${heading}stderr ---\n${stderr}`;
+
+function printWhere(files) {
+  process.stdout.write(`${DIM}Full output: ${files.output}${RESET}\n`);
+  if (existsSync(files.report)) {
+    process.stdout.write(`${DIM}JSON report: ${files.report}${RESET}\n`);
+  }
+  process.stdout.write('\n');
+}
 
 const argv = process.argv.slice(2);
 
@@ -32,6 +73,7 @@ Usage: node test-quiet.mjs [options]
 
 Quiet pre-commit / pre-publish gate. Runs the test:all stages, then a final schema check
 (auto-regenerating the generated schema docs if they are stale). Concise, one line per stage.
+Each stage's whole output is saved to .logs/test-quiet/, its latest run replacing its last.
 
 Options:
   --only <stages>   Comma-separated list of stages to run.
@@ -95,8 +137,9 @@ const only = onlyRaw
 if (only) {
   const unknown = [...only].filter((s) => !KNOWN_STAGES.has(s));
   if (unknown.length > 0) {
+    const err = paletteFor(process.stderr);
     process.stderr.write(
-      `${RED}Unknown stage(s): ${unknown.join(', ')}${RESET}\n` +
+      `${err.RED}Unknown stage(s): ${unknown.join(', ')}${err.RESET}\n` +
         `Valid stages: ${[...KNOWN_STAGES].join(', ')}\n`,
     );
     process.exit(2);
@@ -278,10 +321,12 @@ function collectVitestFailures(report) {
 }
 
 async function stagePlain(name, cmd, args, cwd) {
+  const files = stageFiles(name);
   printStart(name);
   const t0 = performance.now();
   const { code, stdout, stderr } = await runCmd(cmd, args, { cwd });
   const elapsed = performance.now() - t0;
+  writeFileSync(files.output, outputFileText({ stdout, stderr }));
   if (code === 0) {
     printOk(name, fmtTime(elapsed));
     record({ name, ok: true, elapsed });
@@ -289,12 +334,14 @@ async function stagePlain(name, cmd, args, cwd) {
   }
   printFail(name, fmtTime(elapsed));
   const blob = (stdout + '\n' + stderr).trim();
-  process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n\n`);
+  process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n`);
+  printWhere(files);
   record({ name, ok: false, elapsed, errorBlob: blob });
   return false;
 }
 
 async function stageVitest(name, extraArgs, cwd) {
+  const files = stageFiles(name);
   printStart(name);
   const t0 = performance.now();
   // Only through the root `test` script: it alone chooses the threads pool.
@@ -304,7 +351,9 @@ async function stageVitest(name, extraArgs, cwd) {
     { cwd },
   );
   const elapsed = performance.now() - t0;
+  writeFileSync(files.output, outputFileText({ stdout, stderr }));
   const parsed = parseVitestJson(stdout);
+  if (parsed) writeFileSync(files.report, JSON.stringify(parsed, null, 2));
   const { failures, totals } = collectVitestFailures(parsed);
 
   if (!totals) {
@@ -313,7 +362,8 @@ async function stageVitest(name, extraArgs, cwd) {
       `${DIM}Could not parse vitest JSON output (exit code ${code}${signal ? `, signal ${signal}` : ''}, ${stdout.length} bytes on stdout).${RESET}\n`,
     );
     const blob = (stdout + '\n' + stderr).trim();
-    process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n\n`);
+    process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n`);
+    printWhere(files);
     record({ name, ok: false, elapsed, errorBlob: blob, totals: null });
     return false;
   }
@@ -349,17 +399,20 @@ async function stageVitest(name, extraArgs, cwd) {
     }
     process.stdout.write('\n');
   }
+  printWhere(files);
   record({ name, ok: false, elapsed, totals, failures });
   return false;
 }
 
 // Needs ttt-core's dist, which the build stage produces.
 async function stageSchema(name, root) {
+  const files = stageFiles(name);
   printStart(name);
   const t0 = performance.now();
   const check = await runCmd('node', ['scripts/generate-schema-docs.mjs', '--check'], {
     cwd: root,
   });
+  writeFileSync(files.output, outputFileText(check, 'check: '));
   if (check.code === 0) {
     const elapsed = performance.now() - t0;
     printOk(name, `up to date · ${fmtTime(elapsed)}`);
@@ -368,6 +421,10 @@ async function stageSchema(name, root) {
   }
   const regen = await runCmd('node', ['scripts/generate-schema-docs.mjs'], { cwd: root });
   const elapsed = performance.now() - t0;
+  writeFileSync(
+    files.output,
+    `${outputFileText(check, 'check: ')}\n${outputFileText(regen, 'regenerate: ')}`,
+  );
   if (regen.code === 0) {
     stopHeartbeatAndPrint(
       `${YELLOW}✓${RESET} ${name} ${DIM}(check failed — regenerated docs; commit docs/generated/firestore-schema.{md,mmd}) · ${fmtTime(elapsed)}${RESET}`,
@@ -377,7 +434,8 @@ async function stageSchema(name, root) {
   }
   printFail(name, fmtTime(elapsed));
   const blob = (regen.stdout + '\n' + regen.stderr).trim();
-  process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n\n`);
+  process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n`);
+  printWhere(files);
   record({ name, ok: false, elapsed, errorBlob: blob });
   return false;
 }
@@ -462,6 +520,9 @@ function finish(overallStart) {
         : 'failed';
       process.stdout.write(`  ${RED}✖${RESET} ${r.name} ${DIM}(${t})${RESET}\n`);
     }
+  }
+  if (results.length > 0) {
+    process.stdout.write(`\n${DIM}Each stage's full output: ${LOG_DIR}${RESET}\n`);
   }
 
   if (results.length === 0) {

@@ -34,7 +34,8 @@ with the behavior it covered. The rules and E2E stages count only against a fres
 after the last app-code edit (RULE-STD-QUALITY-008); `test:quiet:live` fails with the stack down, and a
 run selecting no phase skips them (⊘), reported `NOT RUN`, never PASS. Record
 failures separately from retry-passes — a retry-pass is a real bug, logged where the app's flaky log
-lives (RULE-STD-QUALITY-003). Targeted reruns use the gate's `--only` stages.
+lives (RULE-STD-QUALITY-003). A red stage is read from the output file the gate names beside it and
+diagnosed with a targeted `--only <stage>` rerun, never a second full run (RULE-STD-QUALITY-002).
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 2. Map tests to launch-critical domains

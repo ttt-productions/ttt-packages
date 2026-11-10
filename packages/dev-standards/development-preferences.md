@@ -147,6 +147,11 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   diffs, commits, or history to discover what changed; "review my git changes" or "review this
   commit/branch" authorizes exactly that read-only inspection and nothing more.
 - Nothing is "done" before it is verified done; failing tests are reported with their output.
+- A test or gate run's output goes to a file, and the session reads the file. The gate saves each
+  step's full output itself and names the file beside a failure (RULE-STD-QUALITY-011); a raw
+  runner's output is sent to a file in the session's working folder. Never pipe a run through
+  `tail`, `head`, or any filter that drops lines, and never repeat a run only to see output it
+  already produced.
 - On a failing deploy, CI, or runtime: get the REAL error first and fix from facts — never
   guess-loop. When DJ says code is deployed, believe him; reproduce live and read logs rather than
   auditing his deploys.

@@ -33,12 +33,13 @@ A test proves the business rule, never the code's current output: its expected v
 ### RULE-STD-QUALITY-002 — Verify at the cost of the fix; one full gate
 **Scope.** both
 
-**Rule.** Verification is proportional to blast radius: run focused checks while editing — a single-file `npx vitest run <file>`, or a targeted `test:quiet --only <stage>` — then run exactly ONE full gate after the complete change set lands: `test:quiet` and then, in an app, `test:quiet:live` (RULE-STD-QUALITY-011). Never run multiple full gates concurrently, and never run a full gate against a build a later edit invalidated (RULE-STD-QUALITY-008).
+**Rule.** Verification is proportional to blast radius: run focused checks while editing — a single-file `npx vitest run <file>`, or a targeted `test:quiet --only <stage>` — then run exactly ONE full gate after the complete change set lands: `test:quiet` and then, in an app, `test:quiet:live` (RULE-STD-QUALITY-011). Never run multiple full gates concurrently, and never run a full gate against a build a later edit invalidated (RULE-STD-QUALITY-008). When a full gate run fails, the failure is diagnosed from the output that run saved (RULE-STD-QUALITY-011) and, where more is needed, a focused rerun of only what failed — the one test file, or `--only <stage>`; the full phase runs again once the fix is in, as the change set's verifying run.
 
-**Why.** A one-file fix does not need a repo-wide gate to prove it; concurrent full gates share ports, build output, and emulators and corrupt each other's results.
+**Why.** A one-file fix does not need a repo-wide gate to prove it; concurrent full gates share ports, build output, and emulators and corrupt each other's results. A whole phase run again to look at one stage's failure spends the full run's time to learn what the first run already recorded.
 
 **Prohibits.**
 - A broad gate as the first check on a single-file change.
+- Rerunning a whole phase to see, reproduce, or diagnose one stage's failure.
 - Two full gates, or a gate plus a `dev:e2e` build, racing on the same ports/emulators.
 - Calling work verified before the single final gate run is green — `test:quiet`, and in an app `test:quiet:live` after it.
 
@@ -161,11 +162,12 @@ A type is never switched off: no `as never`, no `as unknown as X`, and no cast o
 ### RULE-STD-QUALITY-011 — `test:quiet` is the canonical gate; a stage named by hand never skips
 **Scope.** both
 
-**Rule.** The gate script (`scripts/test-quiet.mjs`) is the one thing that verifies a change set, with targeted `--only <stage>` variants for focused runs. A hand-assembled npm sequence is not a substitute, and new verification is added as a stage of this gate rather than as a second command — structural guards run inside its test stage, an app's rules assertions in its `rules` stage. **Packages:** `test:quiet` runs every stage. **Apps:** each stage declares a phase. `test:quiet` (`--phase start`) runs the **start** phase — what a dev stack needs to start, run before the stack; `test:quiet:live` (`--phase live`) runs the **live** phase — every other stage, the `dev:e2e` stages among them, run against the stack. A change set is verified only by both green, in that order. A stage that needs the `dev:e2e` stack fails, naming the missing services, in any run that selects it with the stack down (`--phase live`, `--only rules`, `--only e2e`, or a script alias for them); only a run selecting no phase and no stage skips (⊘) it. The stage list and each stage's phase live in the script, not restated here (RULE-STD-QUALITY-202).
+**Rule.** The gate script (`scripts/test-quiet.mjs`) is the one thing that verifies a change set, with targeted `--only <stage>` variants for focused runs. A hand-assembled npm sequence is not a substitute, and new verification is added as a stage of this gate rather than as a second command — structural guards run inside its test stage, an app's rules assertions in its `rules` stage. **Packages:** `test:quiet` runs every stage. **Apps:** each stage declares a phase. `test:quiet` (`--phase start`) runs the **start** phase — what a dev stack needs to start, run before the stack; `test:quiet:live` (`--phase live`) runs the **live** phase — every other stage, the `dev:e2e` stages among them, run against the stack. A change set is verified only by both green, in that order. A stage that needs the `dev:e2e` stack fails, naming the missing services, in any run that selects it with the stack down (`--phase live`, `--only rules`, `--only e2e`, or a script alias for them); only a run selecting no phase and no stage skips (⊘) it. The gate keeps each step's full output on disk — that step's latest run, in the folder the script names — and names the file beside a failure, so a failure is read from its file. The stage list and each stage's phase live in the script, not restated here (RULE-STD-QUALITY-202).
 
-**Why.** One command run the same way by everyone is the only way a green result means the same thing twice; assembling stages by hand silently drops the ones that were inconvenient that day. A live stage asked for by name and skipped would read as verified while nothing ran.
+**Why.** One command run the same way by everyone is the only way a green result means the same thing twice; assembling stages by hand silently drops the ones that were inconvenient that day. A live stage asked for by name and skipped would read as verified while nothing ran. A failure whose output is gone when the run ends can only be read by running the stage again.
 
 **Prohibits.**
+- Rerunning a stage only to read output the gate already saved.
 - Declaring a change set verified from a hand-assembled sequence, from one phase alone, or the live stages verified from a run that skipped them.
 - A live stage named in `--only` reported as a skip.
 - A second parallel gate command instead of a new stage in this one.

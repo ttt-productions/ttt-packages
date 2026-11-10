@@ -25,6 +25,17 @@ the app and to hold no app vocabulary, taking the stronger of the two apps' vers
 primitive (Q-Sports `docs/work/projects/migration-2.0/paths/PATHS.md` § The shared E2E code is
 built into a movable folder). When it runs green on hosted dev, the package is that folder, moved.
 
+The folder holds three things, and all three move:
+- **hosted E2E** (`hosted/`): the engine launch, the click-and-verify primitives, the watchdog, the
+  render checks, the run harness core, the dev-environment readers;
+- **local E2E** (`local/`): the emulator client, the App Check debug-token setup and restore, the
+  auth-state setup;
+- **the Vitest suite that proves them** (`__tests__/`) with its own config
+  (`testing-foundations/vitest.config.ts`: Node environment, one file at a time) and its own gate
+  stage, because six of its files launch a real Chromium.
+
+`casting/` (the discover-or-create engine) moves with them.
+
 ## The gap
 
 For the launch, Q-Sports copies ttt-prod's hosted E2E harness (renamed and adapted) instead of
@@ -135,24 +146,51 @@ Every flow that names an app's control, route, role, or copy. Also:
 
 ## Order of work
 
-1. **Baseline:** a record run of every hosted path on chrome, firefox, msedge, and mobile in ttt-prod,
-   with no fixing during the run. A red here is dealt with before the extraction starts, never during
-   it. Without a green baseline, a red after the extraction cannot be attributed.
-2. **Create the package** with the moved tests and lessons. Packages gate green. DJ releases.
-3. **ttt-prod adopts it** in one change set under the Normal Dev Flow:
-   - install;
-   - the helper files import from the package and delete their local copies;
-   - the moved tests leave `src/__tests__/hosted-harness/`;
-   - CONVENTIONS loses the moved lessons and gains a pointer;
-   - full ttt-prod gate (`test:quiet`, including `typecheck:hosted`).
-   There is no separate "adapt in ttt-prod" step before the install.
-4. **Proof:** a full hosted pass on the same four engines, against a deploy that carries no app
-   changes, so steps 1 and 4 are a clean before and after.
-5. **Q-Sports adopts it** in its own session and scope:
-   - install the published package and delete its copied helpers;
-   - keep only its own journey file, casting catalogue, watchdog composition, and paths;
-   - a primitive Q-Sports needs that the package lacks is added to the package first, and reaches
-     ttt-prod on its next install.
+The package is proved in Q-Sports, where the folder was built, and ttt-prod adopts it after that.
+Each numbered step is its own conversation in one scope.
+
+1. **Q-Sports baseline (Q-Sports scope).** DJ's push is on hosted dev and every hosted path is green
+   there. That run is the "before": a red is dealt with before the extraction starts, never during
+   it.
+2. **Create the package (Q-Sports scope, package work).** The package is Q-Sports'
+   `testing-foundations/` folder, moved as it stands:
+   - `hosted/`, `local/`, `casting/` become the package source, behind entries that keep the three
+     apart (hosted, local, casting); `@playwright/test` is a peer; no React entry.
+   - `__tests__/` becomes the package's suite and `testing-foundations/vitest.config.ts` its
+     `vitest.config.ts` (Node environment, one file at a time).
+   - `CONVENTIONS.md` becomes the package's lessons doc; a `docs/packages/<name>.md` is written.
+   - **The gate stage.** The real-browser tests cannot share the parallel `test` stage: under a
+     full parallel run a browser launch or close passes its hook limit (Q-Sports measured it). The
+     package's suite stays out of the root `vitest.config.ts` project list and runs as its own
+     stage of `scripts/test-quiet.mjs`, after `test`, one file at a time. The release preflight runs
+     the same gate, so it runs the stage too.
+   - The package comes under the boundary suite and the repo-guards root-scoped guards it was
+     outside of as an app folder; what they flag is fixed in the package before the release.
+   - The Q-Sports guards that kept the folder generic (`business-testing-foundations.ts`: no app
+     import, no app vocabulary, no app configuration read) are replaced by the generic-package
+     rules (RULE-STD-ARCH-201); what a generic guard does not already cover moves into repo-guards.
+   - Packages gate green, DJ's first publish of the new package (the shared base's § First-time
+     publish), then the release command.
+3. **Q-Sports adopts it (Q-Sports scope)** — Q-Sports'
+   `docs/work/do-later/testing-and-guards/shared-e2e-foundation-moves-into-ttt-packages.md` holds
+   the steps. No behaviour changes: the same code, imported from the package.
+4. **Proof (Q-Sports scope).** The Normal Q-Sports Test Flow green, then a hosted run of every path
+   after DJ's push, against step 1's baseline.
+5. **ttt-prod adopts it (TTT scope).**
+   - **Baseline:** a record run of every hosted path on chrome, firefox, msedge, and mobile, with no
+     fixing during the run.
+   - **Diff first:** each generic primitive in ttt-prod's `e2e-hosted-dev/helpers/` and local E2E
+     helpers against the package's. Where ttt-prod's is stronger, the package takes it first
+     (package work, a release) and Q-Sports gets it on its next install.
+   - **Adopt, one change set under the Normal Dev Flow:** install; the helper files import from the
+     package and delete their local copies; the tests that proved the moved code leave
+     `src/__tests__/hosted-harness/`; CONVENTIONS loses the moved lessons and gains a pointer; the
+     app half of the watchdog composes the package's parsers; the full ttt-prod gate
+     (`test:quiet`, including `typecheck:hosted`, then `test:quiet:live`).
+   - **Proof:** a full hosted pass on the same four engines against a deploy that carries no other
+     app change.
+6. **After both adopt:** a primitive either app needs that the package lacks is added to the
+   package first and reaches the other app on its next install.
 
 ## Open calls for the extracting session
 

@@ -1,13 +1,12 @@
 import {
   appendFileSync,
   existsSync,
-  mkdtempSync,
+  mkdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import net from 'node:net';
-import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import {
@@ -65,16 +64,48 @@ export const READY_POLL_MS = 1_000;
 export interface QuietGateConfig {
   title: string;
   script: string;
+  logDir: string;
   stages: readonly GateStage[];
 }
 
-const RED = '\x1b[31m';
-const GREEN = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const CYAN = '\x1b[36m';
-const DIM = '\x1b[2m';
-const BOLD = '\x1b[1m';
-const RESET = '\x1b[0m';
+const ANSI = {
+  RED: '\x1b[31m',
+  GREEN: '\x1b[32m',
+  YELLOW: '\x1b[33m',
+  CYAN: '\x1b[36m',
+  DIM: '\x1b[2m',
+  BOLD: '\x1b[1m',
+  RESET: '\x1b[0m',
+} as const;
+
+type Palette = Record<keyof typeof ANSI, string>;
+
+const NO_COLOUR: Palette = {
+  RED: '',
+  GREEN: '',
+  YELLOW: '',
+  CYAN: '',
+  DIM: '',
+  BOLD: '',
+  RESET: '',
+};
+
+const paletteFor = (stream: { isTTY?: boolean }): Palette => (stream.isTTY ? ANSI : NO_COLOUR);
+
+interface StepFiles {
+  output: string;
+  report: string;
+}
+
+function stepFileStem(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9._]+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '');
+}
+
+const outputFileText = (stdout: string, stderr: string): string =>
+  `--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`;
 
 type Totals = { passed: number; failed: number; skipped: number; flaky?: number };
 type StepResult = { name: string; ok?: boolean; skipped?: boolean; totals?: Totals | null };
@@ -194,7 +225,11 @@ class Heartbeat {
   private start = 0;
   private name = '';
   private lineLen = 0;
-  private readonly interactive = Boolean(process.stdout.isTTY);
+
+  constructor(
+    private readonly c: Palette,
+    private readonly interactive: boolean,
+  ) {}
 
   begin(name: string): void {
     this.name = name;
@@ -204,7 +239,7 @@ class Heartbeat {
       this.paint();
       this.timer = setInterval(() => this.paint(), 1000);
     } else {
-      write(`${CYAN}▶${RESET} ${name}...\n`);
+      write(`${this.c.CYAN}▶${this.c.RESET} ${name}...\n`);
     }
   }
 
@@ -223,13 +258,15 @@ class Heartbeat {
   }
 
   private paint(): void {
+    const { CYAN, DIM, RESET } = this.c;
     const line = `${CYAN}▶${RESET} ${this.name}... ${DIM}(${fmtTime(performance.now() - this.start)} elapsed)${RESET}`;
     write(`\r${line}${' '.repeat(Math.max(0, this.lineLen - line.length))}`);
     this.lineLen = line.length;
   }
 }
 
-function printFailures(failures: readonly TestFailure[]): void {
+function printFailures(c: Palette, failures: readonly TestFailure[]): void {
+  const { YELLOW, DIM, RESET } = c;
   for (const f of failures) {
     write(`  ${YELLOW}${f.title}${RESET}\n  ${DIM}${f.file}${RESET}\n`);
     for (const msg of f.messages) {
@@ -244,7 +281,14 @@ function printFailures(failures: readonly TestFailure[]): void {
   }
 }
 
-function printRawTail(tool: string, code: number, stdout: string, stderr: string): void {
+function printRawTail(
+  c: Palette,
+  tool: string,
+  code: number,
+  stdout: string,
+  stderr: string,
+): void {
+  const { DIM, RESET } = c;
   write(
     `${DIM}${tool} exited with code ${code} but the JSON report contains no failures.${RESET}\n`,
   );
@@ -265,6 +309,16 @@ export async function runQuietGate(
   config: QuietGateConfig,
   argv: readonly string[] = process.argv.slice(2),
 ): Promise<never> {
+  if (typeof config.logDir !== 'string' || !path.isAbsolute(config.logDir)) {
+    const err = paletteFor(process.stderr);
+    process.stderr.write(
+      `${err.RED}The quiet gate config names no output folder${err.RESET}\n` +
+        `logDir must be the absolute path of the folder the gate writes each step's output into; it is ${JSON.stringify(config.logDir)}\n`,
+    );
+    process.exit(2);
+  }
+  const c = paletteFor(process.stdout);
+  const { RED, GREEN, YELLOW, DIM, BOLD, RESET } = c;
   const stageIds = config.stages.map((s) => s.id);
   const selection = selectStages(
     argv,
@@ -284,13 +338,15 @@ export async function runQuietGate(
     process.exit(0);
   }
   if (selection.kind === 'usage-error') {
+    const err = paletteFor(process.stderr);
     const [first, ...rest] = selection.message.split('\n');
-    process.stderr.write(`${RED}${first}${RESET}\n${rest.join('\n')}\n`);
+    process.stderr.write(`${err.RED}${first}${err.RESET}\n${rest.join('\n')}\n`);
     process.exit(2);
   }
   const { only } = selection;
 
-  const heartbeat = new Heartbeat();
+  mkdirSync(config.logDir, { recursive: true });
+  const heartbeat = new Heartbeat(c, Boolean(process.stdout.isTTY));
   process.on('SIGINT', () => {
     heartbeat.clear();
     process.exit(130);
@@ -307,23 +363,58 @@ export async function runQuietGate(
   const fail = (name: string, detail: string): void =>
     heartbeat.end(`${RED}✖${RESET} ${name} ${DIM}(${detail})${RESET}`);
 
-  async function commandStep(step: Extract<GateStep, { kind: 'command' }>): Promise<boolean> {
+  const claimedStems = new Map<string, string>();
+  function claimFiles(label: string): StepFiles | string {
+    const stem = stepFileStem(label);
+    if (!stem) return `its label ${JSON.stringify(label)} leaves no file name`;
+    const holder = claimedStems.get(stem);
+    if (holder !== undefined) {
+      return `its output file ${stem}.log is already step ${JSON.stringify(holder)}'s in this run`;
+    }
+    claimedStems.set(stem, label);
+    const files = {
+      output: path.join(config.logDir, `${stem}.log`),
+      report: path.join(config.logDir, `${stem}.json`),
+    };
+    rmSync(files.output, { force: true });
+    rmSync(files.report, { force: true });
+    return files;
+  }
+
+  const saveOutput = (files: StepFiles, stdout: string, stderr: string): void =>
+    writeFileSync(files.output, outputFileText(stdout, stderr));
+
+  function printWhere(files: StepFiles): void {
+    write(`${DIM}Full output: ${files.output}${RESET}\n`);
+    if (existsSync(files.report)) write(`${DIM}JSON report: ${files.report}${RESET}\n`);
+    write('\n');
+  }
+
+  async function commandStep(
+    step: Extract<GateStep, { kind: 'command' }>,
+    files: StepFiles,
+  ): Promise<boolean> {
     heartbeat.begin(step.label);
     const t0 = performance.now();
     const { code, stdout, stderr } = await runCommand(step.command, step.args, { cwd: step.cwd });
     const elapsed = performance.now() - t0;
+    saveOutput(files, stdout, stderr);
     if (code === 0) {
       ok(step.label, fmtTime(elapsed));
       results.push({ name: step.label, ok: true });
       return true;
     }
     fail(step.label, fmtTime(elapsed));
-    write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n\n`);
+    write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n`);
+    printWhere(files);
     results.push({ name: step.label, ok: false });
     return false;
   }
 
-  async function vitestStep(step: Extract<GateStep, { kind: 'vitest' }>): Promise<boolean> {
+  async function vitestStep(
+    step: Extract<GateStep, { kind: 'vitest' }>,
+    files: StepFiles,
+  ): Promise<boolean> {
     heartbeat.begin(step.label);
     const t0 = performance.now();
     const { code, stdout, stderr } = await runCommand(
@@ -332,13 +423,15 @@ export async function runQuietGate(
       { cwd: step.cwd },
     );
     const elapsed = performance.now() - t0;
-    const { failures, suiteFailures, totals, skippedTests } = collectVitestFailures(
-      parseVitestJson(stdout),
-    );
+    saveOutput(files, stdout, stderr);
+    const parsed = parseVitestJson(stdout);
+    if (parsed) writeFileSync(files.report, JSON.stringify(parsed, null, 2));
+    const { failures, suiteFailures, totals, skippedTests } = collectVitestFailures(parsed);
     if (!totals) {
       fail(step.label, fmtTime(elapsed));
       write(`${DIM}Could not parse vitest JSON output.${RESET}\n`);
-      write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n\n`);
+      write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n`);
+      printWhere(files);
       results.push({ name: step.label, ok: false, totals: null });
       return false;
     }
@@ -366,49 +459,54 @@ export async function runQuietGate(
       // The JSON reporter records an unhandled error against no test.
       const unhandled = formatUnhandledErrorReport(`${stderr}\n${stdout}`);
       if (unhandled) write(`${YELLOW}${unhandled}${RESET}\n\n`);
-      printRawTail('Vitest', code, stdout, stderr);
+      printRawTail(c, 'Vitest', code, stdout, stderr);
     }
-    printFailures(failures);
+    printFailures(c, failures);
+    printWhere(files);
     results.push({ name: step.label, ok: false, totals });
     return false;
   }
 
-  async function playwrightStep(step: Extract<GateStep, { kind: 'playwright' }>): Promise<boolean> {
+  async function playwrightStep(
+    step: Extract<GateStep, { kind: 'playwright' }>,
+    files: StepFiles,
+  ): Promise<boolean> {
     for (const target of step.clearBeforeRun ?? []) {
       rmSync(path.join(step.cwd, target), { recursive: true, force: true });
     }
     heartbeat.begin(step.label);
     const t0 = performance.now();
-    const reportDir = mkdtempSync(path.join(os.tmpdir(), 'pw-quiet-'));
-    const reportPath = path.join(reportDir, 'report.json');
     const { code, stdout, stderr } = await runCommand(
       'npx',
       ['playwright', 'test', '--reporter=json'],
       {
         cwd: step.cwd,
-        env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: reportPath },
+        env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: files.report },
       },
     );
     const elapsed = performance.now() - t0;
+    saveOutput(files, stdout, stderr);
+    const reportWritten = existsSync(files.report);
     const report = ((): PlaywrightJsonReport | null => {
       try {
         return JSON.parse(
-          existsSync(reportPath) ? readFileSync(reportPath, 'utf8') : stdout.trim(),
+          reportWritten ? readFileSync(files.report, 'utf8') : stdout.trim(),
         ) as PlaywrightJsonReport;
       } catch {
         return null;
       }
     })();
-    rmSync(reportDir, { recursive: true, force: true });
+    if (report && !reportWritten) writeFileSync(files.report, JSON.stringify(report, null, 2));
     if (!report) {
       fail(step.label, fmtTime(elapsed));
       write(`${DIM}Could not parse playwright JSON output.${RESET}\n`);
-      write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n\n`);
+      write(`${DIM}${`${stdout}\n${stderr}`.trim().slice(0, 4000)}${RESET}\n`);
+      printWhere(files);
       results.push({ name: step.label, ok: false });
       return false;
     }
     const { failures, flakyTests, totals } = collectPlaywrightFailures(report);
-    appendFlakyLog(path.join(step.cwd, step.flakyLogPath), flakyTests);
+    appendFlakyLog(c, path.join(step.cwd, step.flakyLogPath), flakyTests);
     const green = code === 0 && totals.failed === 0 && totals.flaky === 0 && totals.skipped === 0;
     const detail = detailOf(totals, elapsed);
     if (green) {
@@ -420,24 +518,32 @@ export async function runQuietGate(
     if (totals.skipped > 0) {
       write(`${DIM}${totals.skipped} skipped test(s) make this stage non-green.${RESET}\n`);
     }
-    if (failures.length === 0 && code !== 0) printRawTail('Playwright', code, stdout, stderr);
-    printFailures(failures);
+    if (failures.length === 0 && code !== 0) printRawTail(c, 'Playwright', code, stdout, stderr);
+    printFailures(c, failures);
     for (const flaky of flakyTests) {
       write(`  ${YELLOW}retry-pass: ${flaky.title}${RESET}\n  ${DIM}${flaky.file}${RESET}\n`);
       write(
         `  ${DIM}Passed only after retry; the zero-flake gate requires a fix before handoff.${RESET}\n\n`,
       );
     }
+    printWhere(files);
     results.push({ name: step.label, ok: false, totals: totals as PlaywrightTotals });
     return false;
   }
 
-  const runStep = (step: GateStep): Promise<boolean> =>
-    step.kind === 'command'
-      ? commandStep(step)
+  const runStep = async (step: GateStep): Promise<boolean> => {
+    const files = claimFiles(step.label);
+    if (typeof files === 'string') {
+      write(`${RED}✖${RESET} ${step.label} ${DIM}(not run: ${files})${RESET}\n`);
+      results.push({ name: step.label, ok: false });
+      return false;
+    }
+    return step.kind === 'command'
+      ? commandStep(step, files)
       : step.kind === 'vitest'
-        ? vitestStep(step)
-        : playwrightStep(step);
+        ? vitestStep(step, files)
+        : playwrightStep(step, files);
+  };
 
   const overallStart = performance.now();
   write(
@@ -493,10 +599,11 @@ export async function runQuietGate(
     }
   }
 
-  return finish(results, performance.now() - overallStart);
+  return finish(c, results, performance.now() - overallStart, config.logDir);
 }
 
-function appendFlakyLog(logPath: string, flakyTests: readonly FlakyTest[]): void {
+function appendFlakyLog(c: Palette, logPath: string, flakyTests: readonly FlakyTest[]): void {
+  const { YELLOW, DIM, RESET } = c;
   if (flakyTests.length === 0) return;
   try {
     if (!existsSync(logPath)) writeFileSync(logPath, FLAKY_LOG_HEADER);
@@ -509,7 +616,8 @@ function appendFlakyLog(logPath: string, flakyTests: readonly FlakyTest[]): void
   }
 }
 
-function finish(results: readonly StepResult[], total: number): never {
+function finish(c: Palette, results: readonly StepResult[], total: number, logDir: string): never {
+  const { RED, GREEN, YELLOW, DIM, BOLD, RESET } = c;
   const failed = results.filter((r) => r.ok === false);
   const skipped = results.filter((r) => r.skipped);
   write(`\n${BOLD}Summary${RESET} ${DIM}(${fmtTime(total)})${RESET}\n`);
@@ -526,6 +634,7 @@ function finish(results: readonly StepResult[], total: number): never {
         : 'failed';
     write(`  ${r.ok ? `${GREEN}✓` : `${RED}✖`}${RESET} ${r.name} ${DIM}(${counts})${RESET}\n`);
   }
+  if (results.length > 0) write(`\n${DIM}Each step's full output: ${logDir}${RESET}\n`);
   if (failed.length > 0) {
     write(
       `\n${RED}${BOLD}${failed.length} stage${failed.length === 1 ? '' : 's'} failed${RESET}\n`,

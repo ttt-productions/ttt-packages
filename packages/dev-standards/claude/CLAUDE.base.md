@@ -217,7 +217,9 @@ the Dev Flow's steps 1–4 are its whole share.
    is a stop-and-ask).
 3. `npm run test:quiet:live` green — the live phase, every stage the start phase leaves out — zero
    failures AND zero retry-passes (RULE-STD-QUALITY-003). `test:quiet:rules` / `test:quiet:e2e`
-   are focused reruns, never a substitute for it.
+   are focused reruns, never a substitute for it. A red stage is diagnosed from the output the gate
+   saved and a focused rerun of what failed; the phase runs again only to verify the fix
+   (RULE-STD-QUALITY-002).
 4. An app/Functions code change mid-flow invalidates the running build: `npm run dev:kill`,
    re-green `test:quiet`, then start a FRESH `dev:e2e` and rerun `test:quiet:live`
    (RULE-STD-QUALITY-008 — Claude operates the restart).

@@ -72,6 +72,17 @@ aliases, its owner files, its reviewed exceptions — never logic.
   run, when a service never answers ready. `functionsEmulatorReady` is that check for the Functions
   emulator: ready once its `/backends` lists every function the app names, so no stage starts while
   a codebase's triggers are still loading.
+- **The quiet gate keeps every step's output.** The gate config names `logDir`, the absolute path
+  of the folder it writes into (an app passes `<repo>/.logs/test-quiet`); a config without one is
+  refused before any stage runs. Every step that runs writes its whole stdout and stderr to
+  `<stem>.log`, its stem being its label in lower case with each run of characters other than
+  letters, digits, `.` and `_` turned into one `-` and leading or trailing `-` and `.` dropped
+  (`audit (prod deps, high)` → `audit-prod-deps-high.log`). A Vitest or Playwright step also writes
+  its JSON report to `<stem>.json`. A step deletes and rewrites only its own files, so the folder
+  holds each step's latest run and a focused rerun leaves the other steps' files in place. A step
+  whose label gives an empty stem, or the stem of a step already run in the same run, fails
+  without running. A failed step's printed block ends with
+  its file paths, and the summary names the folder. Colour codes are written only to a terminal.
 - **Functions deploys in passes.** `deployFunctionsInPasses` deploys an app's non-function targets
   once, then each targeted codebase on its own, checking after each pass that the codebase's live
   functions are exactly its manifest names and ACTIVE (up to `DEPLOY_PASS_ATTEMPTS` tries,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -107,6 +107,14 @@ describe('runQuietGate', () => {
       path.join(dir, 'fail.mjs'),
       "console.error('the reason it failed'); process.exit(1);",
     );
+    writeFileSync(
+      path.join(dir, 'say.mjs'),
+      'console.log(process.argv[2]); process.exit(Number(process.argv[3] ?? 0));',
+    );
+    writeFileSync(
+      path.join(dir, 'long-fail.mjs'),
+      "console.error('first line of a long failure'); console.error('x'.repeat(20000)); console.error('last line of a long failure'); process.exit(1);",
+    );
     freePort = await new Promise<number>((resolve) => {
       const server = net.createServer().listen(0, '127.0.0.1', () => {
         const { port } = server.address() as net.AddressInfo;
@@ -117,9 +125,22 @@ describe('runQuietGate', () => {
 
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  afterEach(() => vi.restoreAllMocks());
+  const ttyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
 
-  async function run(stages: GateStage[], argv: string[]): Promise<number> {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (ttyDescriptor) Object.defineProperty(process.stdout, 'isTTY', ttyDescriptor);
+    else Reflect.deleteProperty(process.stdout, 'isTTY');
+  });
+
+  const logDir = (): string => path.join(dir, 'logs');
+  const logFile = (name: string): string => path.join(logDir(), name);
+
+  async function run(
+    stages: GateStage[],
+    argv: string[],
+    folder: string = logDir(),
+  ): Promise<number> {
     output = '';
     vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
       output += String(chunk);
@@ -133,7 +154,7 @@ describe('runQuietGate', () => {
       throw new Exit(Number(code ?? 0));
     });
     try {
-      await runQuietGate({ title: 'test gate', script: 'gate.mjs', stages }, argv);
+      await runQuietGate({ title: 'test gate', script: 'gate.mjs', logDir: folder, stages }, argv);
     } catch (error) {
       if (error instanceof Exit) return error.code;
       throw error;
@@ -141,13 +162,17 @@ describe('runQuietGate', () => {
     throw new Error('the gate returned without exiting');
   }
 
-  const command = (id: string, script: string, stopOnFailure = true): GateStage => ({
+  const command = (
+    id: string,
+    script: string,
+    stopOnFailure = true,
+    args: readonly string[] = [],
+    label = `${id} step`,
+  ): GateStage => ({
     id,
     description: id,
     stopOnFailure,
-    steps: () => [
-      { kind: 'command', label: `${id} step`, command: 'node', args: [script], cwd: dir },
-    ],
+    steps: () => [{ kind: 'command', label, command: 'node', args: [script, ...args], cwd: dir }],
   });
 
   it(
@@ -242,6 +267,87 @@ describe('runQuietGate', () => {
       SLOW_TEST_TIMEOUT_MS,
     );
   });
+
+  it(
+    'a failed command step keeps its whole output in its file, past what the console prints',
+    async () => {
+      expect(await run([command('a', 'long-fail.mjs')], [])).toBe(1);
+      expect(output).toContain('first line of a long failure');
+      expect(output).not.toContain('last line of a long failure');
+      const saved = readFileSync(logFile('a-step.log'), 'utf8');
+      expect(saved).toContain('first line of a long failure');
+      expect(saved).toContain('x'.repeat(20000));
+      expect(saved).toContain('last line of a long failure');
+      expect(output).toContain(`Full output: ${logFile('a-step.log')}`);
+      expect(output.split(logDir()).length - 1).toBe(2);
+      expect(output).toContain(`Each step's full output: ${logDir()}`);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
+
+  it(
+    "a step's next run replaces its own file and leaves another step's file in place",
+    async () => {
+      const a = (word: string): GateStage => command('a', 'say.mjs', true, [word]);
+      expect(await run([a('first-a'), command('b', 'say.mjs', true, ['first-b'])], [])).toBe(0);
+      expect(readFileSync(logFile('a-step.log'), 'utf8')).toContain('first-a');
+      expect(
+        await run([a('second-a'), command('b', 'say.mjs', true, ['second-b'])], ['--only', 'a']),
+      ).toBe(0);
+      const aSaved = readFileSync(logFile('a-step.log'), 'utf8');
+      expect(aSaved).toContain('second-a');
+      expect(aSaved).not.toContain('first-a');
+      expect(readFileSync(logFile('b-step.log'), 'utf8')).toContain('first-b');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
+
+  it(
+    "names a step's file for its label: lower case, each run of other characters one dash",
+    async () => {
+      const label = 'Audit (prod deps, high)';
+      expect(await run([command('audit', 'say.mjs', true, ['audited'], label)], [])).toBe(0);
+      expect(readFileSync(logFile('audit-prod-deps-high.log'), 'utf8')).toContain('audited');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
+
+  it(
+    "refuses a step whose label names another step's file in the same run",
+    async () => {
+      const stages = [
+        command('a', 'say.mjs', false, ['from-a'], 'Lint'),
+        command('b', 'say.mjs', false, ['from-b'], 'lint'),
+      ];
+      expect(await run(stages, [])).toBe(1);
+      expect(output).toContain(`lint.log is already step "Lint"'s in this run`);
+      expect(readFileSync(logFile('lint.log'), 'utf8')).toContain('from-a');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
+
+  it(
+    'writes no escape sequence when stdout is not a terminal, and colours a terminal',
+    async () => {
+      Object.defineProperty(process.stdout, 'isTTY', { value: false, configurable: true });
+      expect(await run([command('a', 'pass.mjs', false), command('b', 'fail.mjs')], [])).toBe(1);
+      expect(output).toContain('the reason it failed');
+      expect(output).not.toContain('\x1b');
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+      expect(await run([command('a', 'pass.mjs', false), command('b', 'fail.mjs')], [])).toBe(1);
+      expect(output).toContain('\x1b[31m');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
+
+  it.each([[''], ['relative/logs']])(
+    'refuses a config whose output folder is %j before any stage runs',
+    async (folder) => {
+      expect(await run([command('a', 'pass.mjs')], [], folder)).toBe(2);
+      expect(output).toContain('The quiet gate config names no output folder');
+      expect(output).not.toContain('Running test gate');
+    },
+  );
 
   it('a usage error exits 2 before any stage runs', async () => {
     expect(await run([command('a', 'pass.mjs')], ['--only', 'nope'])).toBe(2);

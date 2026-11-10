@@ -4,6 +4,8 @@ node_modules/
 
 coverage/
 
+.logs/
+
 dist/
 packages/*/dist/
 build/
