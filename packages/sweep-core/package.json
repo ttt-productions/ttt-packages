@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/sweep-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Generic scheduled sweeps: the saved position, the Auth full scan, and the walks with and without a retry list",
   "repository": {
     "type": "git",
