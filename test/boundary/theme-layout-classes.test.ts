@@ -17,7 +17,14 @@ import { packageSource } from './workspace';
 const COMPOSES_WITH_EVERY_PART = ['stack-1', 'stack-2', 'stack-3', 'stack-4', 'stack-6'];
 
 /** For plain elements: not promised on a part, where the app guard judges each use. */
-const PLAIN_ELEMENT_ONLY = ['center-row', 'center-col', 'three-line-clamp', 'single-line-truncate'];
+const PLAIN_ELEMENT_ONLY = [
+  'center-row',
+  'center-col',
+  'two-line-clamp',
+  'three-line-clamp',
+  'single-line-truncate',
+  'name-piece',
+];
 
 const sources = packageSource(['code', 'stylesheet']);
 const sheet = sources.find((f) => f.path === 'packages/theme-core/src/styles/components.css');

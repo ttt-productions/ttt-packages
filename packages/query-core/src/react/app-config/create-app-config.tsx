@@ -12,45 +12,34 @@ import {
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useFirestoreDb } from '../firestore/context.js';
 
-export type AppConfigStatus = 'loading' | 'ready' | 'missing' | 'unavailable';
-
 export type StoredAppConfig = Readonly<Record<string, unknown>>;
 
 export type AppConfigLeverOf<TLevers extends object> = keyof TLevers & string;
 
-export type AppConfigSnapshotState<TLevers extends object, TExtra extends object> = {
-  status: AppConfigStatus;
-  levers: TLevers;
-} & TExtra;
+export type AppConfigSnapshotState<TLevers extends object> =
+  | { status: 'loading' }
+  | { status: 'ready'; levers: TLevers }
+  | { status: 'unavailable' }
+  | { status: 'invalid' };
 
-export type AppConfigState<TLevers extends object, TExtra extends object> = AppConfigSnapshotState<
-  TLevers,
-  TExtra
-> & {
+export type AppConfigStatus = AppConfigSnapshotState<object>['status'];
+
+export type AppConfigState<TLevers extends object> = AppConfigSnapshotState<TLevers> & {
   retry: () => void;
   retrying: boolean;
 };
 
-export interface AppConfigDefinition<TLevers extends object, TExtra extends object> {
+export interface AppConfigDefinition<TLevers extends object> {
   path: string;
-  defaults: TLevers;
-  readLevers: (stored: StoredAppConfig) => TLevers;
-  extra: {
-    read: (stored: StoredAppConfig | null) => TExtra;
-    whileUnknown: TExtra;
-  };
+  read: (stored: StoredAppConfig | null) => TLevers;
   onUnavailable?: (error: unknown, attempts: number) => void;
-  onUnreadable?: (error: unknown) => void;
+  onInvalid?: (error: unknown) => void;
 }
 
-export interface AppConfig<TLevers extends object, TExtra extends object> {
+export interface AppConfig<TLevers extends object> {
   AppConfigProvider: (props: { children: ReactNode }) => ReactNode;
-  useAppConfig: () => AppConfigState<TLevers, TExtra>;
-  readAppConfigSnapshot: (
-    stored: StoredAppConfig | null,
-  ) => AppConfigSnapshotState<TLevers, TExtra>;
-  LOADING_APP_CONFIG: AppConfigSnapshotState<TLevers, TExtra>;
-  UNAVAILABLE_APP_CONFIG: AppConfigSnapshotState<TLevers, TExtra>;
+  useAppConfig: () => AppConfigState<TLevers>;
+  readAppConfigSnapshot: (stored: StoredAppConfig | null) => AppConfigSnapshotState<TLevers>;
 }
 
 // A permission-denied error ends a Firestore listener for good, and the first listen can lose a race
@@ -63,39 +52,37 @@ function quickRetryDelayMs(attempt: number): number {
   return Math.min(1000 * 2 ** (attempt - 1), 10_000);
 }
 
-export function createAppConfig<TLevers extends object, TExtra extends object>(
-  definition: AppConfigDefinition<TLevers, TExtra>,
-): AppConfig<TLevers, TExtra> {
-  const LOADING_APP_CONFIG: AppConfigSnapshotState<TLevers, TExtra> = {
-    ...definition.extra.whileUnknown,
-    status: 'loading',
-    levers: definition.defaults,
-  };
-  const UNAVAILABLE_APP_CONFIG: AppConfigSnapshotState<TLevers, TExtra> = {
-    ...LOADING_APP_CONFIG,
-    status: 'unavailable',
-  };
+const LOADING = { status: 'loading' } as const;
+const UNAVAILABLE = { status: 'unavailable' } as const;
+const INVALID = { status: 'invalid' } as const;
 
-  function readAppConfigSnapshot(
-    stored: StoredAppConfig | null,
-  ): AppConfigSnapshotState<TLevers, TExtra> {
-    const extra = definition.extra.read(stored);
-    if (stored === null) {
-      return { ...extra, status: 'missing', levers: definition.defaults };
+export function createAppConfig<TLevers extends object>(
+  definition: AppConfigDefinition<TLevers>,
+): AppConfig<TLevers> {
+  function readStored(stored: StoredAppConfig | null): {
+    state: AppConfigSnapshotState<TLevers>;
+    invalidity?: { error: unknown };
+  } {
+    try {
+      return { state: { status: 'ready', levers: definition.read(stored) } };
+    } catch (error) {
+      return { state: INVALID, invalidity: { error } };
     }
-    return { ...extra, status: 'ready', levers: definition.readLevers(stored) };
   }
 
-  const AppConfigContext = createContext<AppConfigState<TLevers, TExtra>>({
-    ...LOADING_APP_CONFIG,
+  function readAppConfigSnapshot(stored: StoredAppConfig | null): AppConfigSnapshotState<TLevers> {
+    return readStored(stored).state;
+  }
+
+  const AppConfigContext = createContext<AppConfigState<TLevers>>({
+    ...LOADING,
     retry: () => {},
     retrying: false,
   });
 
   function AppConfigProvider({ children }: { children: ReactNode }) {
     const db = useFirestoreDb();
-    const [snapshot, setSnapshot] =
-      useState<AppConfigSnapshotState<TLevers, TExtra>>(LOADING_APP_CONFIG);
+    const [snapshot, setSnapshot] = useState<AppConfigSnapshotState<TLevers>>(LOADING);
     const [subscription, setSubscription] = useState(0);
     const [retrying, setRetrying] = useState(false);
 
@@ -112,15 +99,9 @@ export function createAppConfig<TLevers extends object, TExtra extends object>(
           ref,
           (snap) => {
             attempt = 0;
-            const stored: StoredAppConfig | null = snap.exists() ? snap.data() : null;
-            let next: AppConfigSnapshotState<TLevers, TExtra>;
-            try {
-              next = readAppConfigSnapshot(stored);
-            } catch (unreadable) {
-              definition.onUnreadable?.(unreadable);
-              next = UNAVAILABLE_APP_CONFIG;
-            }
-            setSnapshot(next);
+            const { state, invalidity } = readStored(snap.exists() ? snap.data() : null);
+            if (invalidity) definition.onInvalid?.(invalidity.error);
+            setSnapshot(state);
             setRetrying(false);
           },
           (error) => {
@@ -134,9 +115,7 @@ export function createAppConfig<TLevers extends object, TExtra extends object>(
             if (attempt === APP_CONFIG_MAX_QUICK_ATTEMPTS) {
               definition.onUnavailable?.(error, attempt);
               // A snapshot already read stays the best knowledge there is.
-              setSnapshot((current) =>
-                current.status === 'loading' ? UNAVAILABLE_APP_CONFIG : current,
-              );
+              setSnapshot((current) => (current.status === 'loading' ? UNAVAILABLE : current));
               setRetrying(false);
             }
             retryTimer = setTimeout(subscribe, APP_CONFIG_BACKGROUND_RETRY_MS);
@@ -157,7 +136,7 @@ export function createAppConfig<TLevers extends object, TExtra extends object>(
       setSubscription((count) => count + 1);
     }, []);
 
-    const value = useMemo<AppConfigState<TLevers, TExtra>>(
+    const value = useMemo<AppConfigState<TLevers>>(
       () => ({ ...snapshot, retry, retrying }),
       [snapshot, retry, retrying],
     );
@@ -165,15 +144,9 @@ export function createAppConfig<TLevers extends object, TExtra extends object>(
     return <AppConfigContext.Provider value={value}>{children}</AppConfigContext.Provider>;
   }
 
-  function useAppConfig(): AppConfigState<TLevers, TExtra> {
+  function useAppConfig(): AppConfigState<TLevers> {
     return useContext(AppConfigContext);
   }
 
-  return {
-    AppConfigProvider,
-    useAppConfig,
-    readAppConfigSnapshot,
-    LOADING_APP_CONFIG,
-    UNAVAILABLE_APP_CONFIG,
-  };
+  return { AppConfigProvider, useAppConfig, readAppConfigSnapshot };
 }

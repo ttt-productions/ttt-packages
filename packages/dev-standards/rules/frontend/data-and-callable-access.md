@@ -183,3 +183,20 @@ Classification predicates are generic and come from `@ttt-productions/firebase-h
 - A `catch` around an `onConfirm`'s action that swallows the rejection the dialog needs to stay open.
 
 **References.** RULE-STD-FRONTEND-103, RULE-STD-FRONTEND-105, RULE-STD-FRONTEND-108; RULE-STD-FRONTEND-201, RULE-STD-FRONTEND-202; repo-guards `mutationCallStyle`; ttt-packages `docs/packages/query-core.md`.
+
+### RULE-STD-FRONTEND-113 — Data is read only when what shows it is shown
+**Scope.** both
+
+**Rule.** A read starts only when something on screen needs its answer. A tab's data is read when the tab is selected, a collapsed section's when it is opened, and a dialog's, menu's or picker's when it opens, never when the page that holds them loads. What is not shown holds no read and no listener: its content is not mounted, or its read is off until it opens, and a live listener detaches when its tab, section or dialog closes. Coming back shows the saved copy where the read's kind allows it and reads again only where it does not. Two reads are made before their content is shown, and only these: a read that decides whether a tab, section, control or line exists, which joins the page's gate (RULE-STD-FRONTEND-208) and is the smallest read that answers it (a count or flag on a document the page already reads, never the list behind the tab); and a read whose answer something already on screen also uses, which is made once and shared. Nothing reads ahead of the person: no data is fetched on hover or prefetched for a tab, dialog or page not yet opened. A place where reading ahead is allowed is a reviewed entry in the app's guard config with its reason.
+
+**Why.** A page that reads every tab and dialog on load pays for data most visitors never open, on every visit, and a listener behind a hidden tab keeps paying on every change.
+
+**Prohibits.**
+- A page that reads its tabs', collapsed sections' or dialogs' data on load.
+- Hidden content kept mounted (`forceMount`, a CSS-hidden panel) so its reads and listeners run.
+- A hook for a dialog's or menu's data called by the page or row that holds it closed; a list whose every row reads for a dialog nobody opened.
+- A listener left attached after its tab, section or dialog closed.
+- A list read only to learn whether a tab exists or how many it holds.
+- A read made ahead of the person that is not a reviewed entry.
+
+**References.** RULE-STD-FRONTEND-101, RULE-STD-FRONTEND-206, RULE-STD-FRONTEND-208; RULE-STD-MEDIA-103; the repo-guards `readsOnlyWhenShown` guard; ttt-packages `docs/packages/query-core.md`.

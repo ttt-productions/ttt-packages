@@ -57,7 +57,7 @@ const FACTS: UiGuardFacts = {
   sharedTruncation: {
     entryStylesheet: 'src/app/globals.css',
     trees: ['src'],
-    sharedClass: 'kit-truncate',
+    clipClasses: ['kit-truncate'],
     clampOwners: [{ selector: '.kit-truncate', why: 'the shared truncation class' }],
     exceptions: [],
   },

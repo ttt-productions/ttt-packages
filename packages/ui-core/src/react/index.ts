@@ -236,6 +236,13 @@ export type {
   ActionRowLinkTargetProps,
 } from './components/action-row.js';
 
+export { ClippedText } from './components/clipped-text.js';
+export type {
+  ClippedTextProps,
+  ClippedTextClip,
+  ClippedTextLines,
+} from './components/clipped-text.js';
+
 export { ShowMoreToggle } from './components/show-more-toggle.js';
 export type { ShowMoreToggleProps } from './components/show-more-toggle.js';
 

@@ -296,7 +296,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   copyStep(A.copyAppConfig, {
     title: 'Copy the app configuration',
     summary:
-      'The version and the banner from `landing/base` become `_appConfig/app`, its switches at their open defaults.',
+      'The version and the banner from `landing/base` are set on the existing `_appConfig/app`; no other setting is written.',
     owningStep: 'q-core',
     dependsOn: [A.verifyV1TextFitsLimits],
     resumeKey: SINGLE_DOCUMENT,

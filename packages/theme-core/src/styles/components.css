@@ -304,11 +304,26 @@ button .spinner-xl {
   text-overflow: ellipsis;
 }
 
+.two-line-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .three-line-clamp {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* An inline block takes no underline from its link, so a piece inherits one. */
+.name-piece {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+  text-decoration: inherit;
 }
 
 /* =========================================================

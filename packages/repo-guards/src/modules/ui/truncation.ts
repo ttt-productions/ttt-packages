@@ -8,9 +8,9 @@ import { forEachNode } from '../../support/ast.js';
 import {
   allowlistProblems,
   isText,
+  namesProblem,
   pathProblem,
   reviewedProblems,
-  textProblem,
   isList,
 } from '../../support/facts.js';
 import { isUnder } from '../../support/text.js';
@@ -27,7 +27,7 @@ const APPLY = /@apply\s+([^;{}]+)/g;
 export interface SharedTruncationFacts {
   entryStylesheet: string;
   trees: readonly string[];
-  sharedClass: string;
+  clipClasses: readonly string[];
   clampOwners: ReadonlyArray<{ selector: string; why: string }>;
   exceptions: readonly AllowlistEntry[];
 }
@@ -93,11 +93,14 @@ export function stylesheetClamps(file: FileView): StylesheetClamp[] {
   return out.sort((a, b) => a.index - b.index);
 }
 
-export function codeTruncations(file: FileView): Hit[] {
+export function codeTruncations(file: FileView, clipClasses: readonly string[] = []): Hit[] {
+  const clips = new Set(clipClasses);
   const hits: Hit[] = [];
   for (const { text, index } of codeStrings(file))
     for (const token of tokensOf(text))
       if (isTruncationToken(token)) hits.push({ index, detail: token });
+      else if (clips.has(bareToken(token).replace(/^!/, '')))
+        hits.push({ index, detail: `${token} placed by hand` });
   forEachNode(file.sourceFile, (node) => {
     if (
       (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
@@ -111,10 +114,10 @@ export function codeTruncations(file: FileView): Hit[] {
 
 export function truncationHits(
   file: FileView,
-  facts: Pick<SharedTruncationFacts, 'trees' | 'clampOwners'>,
+  facts: Pick<SharedTruncationFacts, 'trees' | 'clampOwners' | 'clipClasses'>,
 ): Hit[] {
   if (!facts.trees.some((tree) => isUnder(file.path, tree))) return [];
-  if (file.kind === 'code') return codeTruncations(file);
+  if (file.kind === 'code') return codeTruncations(file, facts.clipClasses);
   if (file.kind !== 'stylesheet') return [];
   const owners = new Set(facts.clampOwners.map((o) => squash(o.selector)));
   return stylesheetClamps(file)
@@ -130,19 +133,15 @@ export const sharedTruncationGuard: GenericGuardDefinition<SharedTruncationFacts
     pathProblem(facts?.entryStylesheet, 'entryStylesheet', problems);
     if (!isList(facts?.trees) || !facts.trees.length) problems.push('trees is missing');
     else facts.trees.forEach((t, i) => pathProblem(t, `trees[${i}]`, problems));
-    textProblem(facts?.sharedClass, 'sharedClass', problems);
-    if (isText(facts?.sharedClass) && isTruncationToken(facts.sharedClass))
-      problems.push(`sharedClass ${facts.sharedClass} is itself a per-call-site utility`);
+    namesProblem(facts?.clipClasses, 'clipClasses', problems);
+    if (isList(facts?.clipClasses))
+      for (const clip of facts.clipClasses)
+        if (isText(clip) && isTruncationToken(clip))
+          problems.push(`clipClasses ${clip} is itself a per-call-site utility`);
     reviewedProblems(facts?.clampOwners, 'clampOwners', problems, {
       key: 'selector',
       nonEmpty: true,
     });
-    if (
-      isList(facts?.clampOwners) &&
-      isText(facts?.sharedClass) &&
-      !facts.clampOwners.some((o) => squash(String(o?.selector)) === `.${facts.sharedClass}`)
-    )
-      problems.push(`clampOwners does not hold the shared class's selector .${facts.sharedClass}`);
     allowlistProblems(facts?.exceptions, 'exceptions', problems);
     return problems;
   },
@@ -150,23 +149,29 @@ export const sharedTruncationGuard: GenericGuardDefinition<SharedTruncationFacts
     const tree = facts.trees[0];
     const owner = facts.clampOwners[0].selector;
     const guard = reviewedAllowlist({
-      title: 'titles and names truncate through the one shared class',
+      title: 'text is clipped only through the clip component, never by a class placed by hand',
       description:
-        `Under ${facts.trees.join(', ')}, text truncates only through the shared class \`${facts.sharedClass}\`. Code ` +
-        'never names a per-call-site truncation utility (`truncate`, `line-clamp-<n|none|[…]>`, `text-ellipsis`, with ' +
-        'or without a variant prefix) in a string, template, or className, and never sets an inline `textOverflow`, ' +
+        `Under ${facts.trees.join(', ')}, a title, a name, or a few-line text block is clipped only by rendering it ` +
+        "through ui-core's ClippedText, which places the clip classes and keeps the full text in the title and " +
+        `accessible name. Code never names a clip class (${facts.clipClasses.join(', ')}) or a per-call-site truncation ` +
+        'utility (`truncate`, `line-clamp-<n|none|[…]>`, `text-ellipsis`, with or without a variant prefix) in a ' +
+        'string, template, or className, and never sets an inline `textOverflow`, ' +
         '`WebkitLineClamp`, or `lineClamp` style. A stylesheet sets `text-overflow: ellipsis`, `-webkit-line-clamp`, or ' +
         '`line-clamp` (or applies one of ' +
         `those utilities) only in a rule whose every selector is a clamp owner (${facts.clampOwners.map((o) => o.selector).join(', ')}). ` +
         `A clamp owner is declared by a stylesheet ${facts.entryStylesheet} loads — the theme package's or the app's — ` +
-        'and one no loaded stylesheet declares as a clamp any more is stale. Use the shared class, or add a clamp owner ' +
-        'or a reviewed exception with its why.',
+        'and one no loaded stylesheet declares as a clamp any more is stale. Render the text through ClippedText, or ' +
+        'add a clamp owner or a reviewed exception with its why.',
       scope: APP_CODE_AND_STYLES,
       match: (file) => truncationHits(file, facts),
       allowlist: facts.exceptions,
       samples: {
         flags: [
           { path: `${tree}/sample.tsx`, text: '<h2 className="font-bold truncate">{title}</h2>' },
+          {
+            path: `${tree}/sample.tsx`,
+            text: `<h2 className="font-bold ${facts.clipClasses[0]}">{title}</h2>`,
+          },
           { path: `${tree}/sample.tsx`, text: 'const c = cn(`md:line-clamp-2 ${x}`);' },
           {
             path: `${tree}/sample.tsx`,
@@ -179,7 +184,7 @@ export const sharedTruncationGuard: GenericGuardDefinition<SharedTruncationFacts
         passes: [
           {
             path: `${tree}/sample.tsx`,
-            text: `<h2 className="font-bold ${facts.sharedClass}">{title}</h2>`,
+            text: '<h2 className="font-bold"><ClippedText text={title} /></h2>',
           },
           {
             path: `${tree}/sample.tsx`,

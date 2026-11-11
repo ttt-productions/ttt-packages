@@ -5,6 +5,7 @@ export { useViewportHeightVars } from './viewport/useViewportHeightVars.js';
 
 export { useKeyboard } from './keyboard/useKeyboard.js';
 export { useKeepFocusedInputVisible } from './keyboard/useKeepFocusedInputVisible.js';
+export { useKeyboardViewportFit } from './keyboard/useKeyboardViewportFit.js';
 export { useInputNavigation } from './keyboard/useInputNavigation.js';
 export { KeyboardAvoidingView } from './keyboard/KeyboardAvoidingView.js';
 

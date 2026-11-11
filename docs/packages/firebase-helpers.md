@@ -185,6 +185,17 @@ true }` — bounded safe metadata, never the payload. Whether the fallback suits
   server-safe root beside `isExpectedCallableAnswerCode`, as the ONE definition of that error
   class (`APP_CHECK_THROTTLE_CODES`); `callCallable` classifies with it rather than restating
   the codes.
+- **The never-sent App Check codes** — a callable asks App Check for its token before anything
+  goes on the wire, so an App Check code on a callable's rejection means the request was never
+  sent. `APP_CHECK_NEVER_SENT_CODES` (on the root, beside the throttle codes) is the ONE list of
+  them, in two kinds: `connectionFailed`, the token fetch's network failure
+  (`appCheck/fetch-network-error`), and `tokenFailed`, every other way the token fetch fails — the
+  throttle codes (taken from `APP_CHECK_THROTTLE_CODES`, not restated) and the SDK's other
+  token-fetch failures (a refused exchange, an unreadable answer, a reCAPTCHA failure, App Check
+  used before it was set up). `isAppCheckConnectionFailure(error)` and
+  `isAppCheckTokenFailure(error)` are its predicates; a new code is added to the list once. The
+  SDK's storage codes and its double-initialization code are not a token fetch failing and are
+  not in it. `callCallable`'s limited-use fallback still triggers on the throttle codes alone.
 - **The deadline predicate** — `isCallableDeadlineError(error)` is exported from the same root as
   the ONE definition of the unknown-outcome class (`CALLABLE_DEADLINE_EXCEEDED_CODE`). It matches
   both `callCallable`'s outer-deadline error and the SDK's own timeout, which carry the same code,
@@ -192,8 +203,9 @@ true }` — bounded safe metadata, never the payload. Whether the fallback suits
 
 ## Callable factories live in query-core
 
-The callable factories every app declares its callables through (`createCallables`) are query-core
-`./react`'s, built on `callCallable` and on query-core's session-aware mutation owner. This package
+The callable factories every app declares its callables through (`createCallables`), and the one
+callable failure policy they run (`createCallablePolicy`), are query-core `./react`'s, built on
+`callCallable`, on this package's error predicates, and on query-core's session-aware mutation owner. This package
 supplies the primitive and `isRecoveredFallbackReport(context)` (`./client`), the one check of the
 marker `callCallable` sets on its recovered limited-use fallback report.
 
@@ -207,7 +219,7 @@ module scope.
 
 The root is pure/server-safe — pure path, timestamp, and chunking helpers that never load a browser Firebase runtime. Client-only and Admin-only runtimes live behind explicit subpaths.
 
-- `.` — pure helpers (paths, timestamps, `chunk` and `FIRESTORE_IN_FILTER_LIMIT`, `getFileNameFromUrl`, the expected-answer and App Check throttle classifiers, the designed-refusal readers); server-safe. Pagination is NOT on root — it lives on `./firestore-client` (client SDK), since it needs a runtime `firebase/firestore` import. The names typed on `firebase/firestore` (`DocSnap`, `QueryDocSnap`, `withId`, `TimestampLike`, `formatDateDisplay`) live on `./firestore-client` too, so the root's declaration files reach no Firebase type.
+- `.` — pure helpers (paths, timestamps, `chunk` and `FIRESTORE_IN_FILTER_LIMIT`, `getFileNameFromUrl`, the expected-answer, App Check throttle, and never-sent App Check classifiers, the designed-refusal readers); server-safe. Pagination is NOT on root — it lives on `./firestore-client` (client SDK), since it needs a runtime `firebase/firestore` import. The names typed on `firebase/firestore` (`DocSnap`, `QueryDocSnap`, `withId`, `TimestampLike`, `formatDateDisplay`) live on `./firestore-client` too, so the root's declaration files reach no Firebase type.
 - `./server/testing` — the Admin SDK test kit (above); Node and Vitest only.
 - `./server` — Admin SDK init helper, server-only handles, the create-only writer contract and the Timestamp helpers, and the server Firestore contract (types only). The universal helpers (`chunk`, the Firestore types, `toMillis` / `toDate`, `getFileNameFromUrl`) are root-only; backend code imports them from `.`.
 - `./react` — generic callable hook/client primitives (`useCallableMutation`, `createCallableClient`), the Firebase Analytics React pieces, and `AuthBootPurgeSentinel`; no react-query.

@@ -111,6 +111,16 @@ export type {
   Callables,
   SlowCallNotice,
 } from './callables/create-callables.js';
+export { createCallablePolicy } from './callables/create-callable-policy.js';
+export type {
+  CallableBusinessAnswer,
+  CallablePolicyDefinition,
+  CallablePolicyKit,
+  CallablePolicyPlumbing,
+  CallableRefusalRecognisers,
+  CallableToastConfig,
+  CallableWording,
+} from './callables/create-callable-policy.js';
 
 export {
   usePendingMutationVariables,

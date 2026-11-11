@@ -71,9 +71,9 @@ from step 1. **Method (manual review on the local dev server).**
 **Expected:** no horizontal overflow, tap targets of about 44px, sticky elements that never cover
 content, usable dialogs and popovers, reachable media controls. Every page composes the one page
 column (no page-level `max-w-*` caps), every branch of a page — loading, empty, error — renders inside
-it, and long user content (titles, names) renders through the shared truncation class so it never
-breaks layout; where the truncated text is the record's only identification, the full value stays
-reachable through its accessible name or title.
+it, and long user content (titles, names, few-line text blocks) renders through ui-core's
+`ClippedText` so it never breaks layout, with its full text in the element's title and accessible
+name.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 4. Accessibility

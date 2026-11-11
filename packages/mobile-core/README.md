@@ -4,7 +4,7 @@ Mobile UX helpers (esp. iOS Safari). No UI primitives, no Firebase, no routing.
 
 Core exports:
 - useKeyboard, KeyboardAvoidingView
-- useKeepFocusedInputVisible
+- useKeepFocusedInputVisible, useKeyboardViewportFit
 - useInputNavigation
 - useViewportHeightVars
 - SafeArea, useSafeAreaInsets

@@ -126,7 +126,7 @@ never counted as PASS.
 | `media-pipeline-playbook.md` | uploads, processing, moderation, final paths, rendering |
 | `migration-playbook.md` | schema, data, and rules migrations, and the scripts that run them |
 | `observability-playbook.md` | capture, traceability, durable failure state, telemetry hygiene |
-| `performance-audit-playbook.md` | bounded reads, indexes, cache keys, cold starts, N+1 access |
+| `performance-audit-playbook.md` | bounded reads, reads only when shown, indexes, cache keys, cold starts, N+1 access |
 | `testing-coverage-playbook.md` | the gate, coverage of launch-critical domains, test quality |
 | `ux-audit-playbook.md` | page states, mobile, accessibility, feedback, copy |
 | `package-boundaries-playbook.md` | the generic packages against the package rules |

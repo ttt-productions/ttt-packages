@@ -25,10 +25,9 @@ import { textFieldSchema } from '../schemas/text-field.js';
 export const AppConfigSchema = z.object({
   // `''` is valid here — no version published yet; only the update input requires a value.
   appVersion: z.string().max(MAX_APP_VERSION_LENGTH),
-  maintenanceMode: z.boolean(),
-  maintenanceMessage: textFieldSchema(MAINTENANCE_MESSAGE_INPUT).optional(),
+  maintenanceMessage: textFieldSchema(MAINTENANCE_MESSAGE_INPUT),
   registrationEnabled: z.boolean(),
-  announcementMessage: textFieldSchema(ANNOUNCEMENT_MESSAGE_INPUT).optional(),
+  announcementMessage: textFieldSchema(ANNOUNCEMENT_MESSAGE_INPUT),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 

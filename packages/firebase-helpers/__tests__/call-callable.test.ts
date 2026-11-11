@@ -392,6 +392,10 @@ describe('callCallable limited-use App Check throttle fallback', () => {
         code: 'appCheck/fetch-status-error',
         arrange: () => appCheckFailures.push(throttleError('appCheck/fetch-status-error')),
       },
+      {
+        code: 'appCheck/fetch-network-error',
+        arrange: () => appCheckFailures.push(throttleError('appCheck/fetch-network-error')),
+      },
     ];
     for (const { code, arrange } of failures) {
       calls.invoked.length = 0;

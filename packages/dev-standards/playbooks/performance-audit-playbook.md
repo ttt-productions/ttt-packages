@@ -17,8 +17,8 @@ project" are outside the local boundary and `BLOCKED` unless DJ authorizes them.
 
 ## When to run
 
-Before launch; after adding a feed, list, admin view, query, scheduled job, or heavy function; after a
-latency or memory incident.
+Before launch; after adding a feed, list, admin view, query, tab, dialog, scheduled job, or heavy
+function; after a latency or memory incident.
 
 ## Audit Steps
 
@@ -161,6 +161,23 @@ and `onSizeWanted`, and starts its download only from `onSizeWanted` (a priority
 size is chosen from a fixed display name, and no app code observes or measures a picture's spot. A
 downloaded file leaves memory once nothing shows it. The renderer's tests prove an off-screen picture
 downloads nothing until it scrolls into view and that the size follows the drawn width.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 12. Data is read only when what shows it is shown
+**Rules:** RULE-STD-FRONTEND-113. **Scope:** `src` — every page with tabs, collapsed sections,
+dialogs, menus, or pickers. **Method (guard + semantic review).**
+```bash
+<GUARD_SUITE> -t "nothing reads ahead of the person outside a reviewed entry|content that is not shown is never kept mounted"
+rg -n "TabsContent|CollapsibleContent|AccordionContent|DialogContent|SheetContent|PopoverContent|DropdownMenuContent" src -g '*.tsx' -g '!**/__tests__/**' -g '!*.test.tsx'
+```
+**Expected:** both guards are green: no prefetch outside the reviewed entries in the app's guard
+config (`readsOnlyWhenShown.readsAhead`, each with its why), and no `forceMount`. For each hit of the
+second command, the content's read starts only when it is shown: its hook is called inside the
+content, never by the page or row that holds it closed, and a live listener detaches when it closes.
+A read made before its content is shown either decides whether the tab, section, control, or line
+exists — then it is in the page's gate and is a count or flag, never the list behind the tab — or
+is one read something already on screen also uses. A panel hidden by CSS while its reads run is a
+FAIL.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ## Pass / Fail

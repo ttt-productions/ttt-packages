@@ -10,7 +10,7 @@ const lines = (...l: string[]) => l.join('\n');
 const facts = (overrides: Partial<SharedTruncationFacts> = {}): SharedTruncationFacts => ({
   entryStylesheet: 'src/styles/globals.css',
   trees: ['src/ui', 'src/styles'],
-  sharedClass: 'kit-truncate',
+  clipClasses: ['kit-truncate', 'kit-clamp-3'],
   clampOwners: [
     { selector: '.kit-truncate', why: 'the shared one-line truncation class' },
     { selector: '.kit-clamp-3', why: 'the shared three-line clamp' },
@@ -29,13 +29,13 @@ const clean = {
   'src/styles/components.css': sheet,
   'src/ui/title.tsx': lines(
     '// a truncate or line-clamp-2 class would break the recipe',
-    'export const T = ({ t }) => <h2 className="font-bold kit-truncate" title={t}>{t}</h2>;',
+    'export const T = ({ t }) => <h2 className="font-bold"><ClippedText text={t} /></h2>;',
     'export const mode = "truncated";',
   ),
 };
 
-describe('titles and names truncate through the one shared class', () => {
-  it('passes the shared class, the clamp owners, comments, and lookalike words', async () => {
+describe('text is clipped only through the clip component, never by a class placed by hand', () => {
+  it('passes ClippedText, the clamp owners, comments, and lookalike words', async () => {
     expect(await allFindings(sharedTruncationGuard, facts(), clean)).toEqual([]);
   });
 
@@ -104,7 +104,7 @@ describe('titles and names truncate through the one shared class', () => {
     expect(
       await allFindings(sharedTruncationGuard, reviewed, {
         ...clean,
-        'src/ui/code-block.tsx': 'export const C = () => <pre className="kit-truncate" />;',
+        'src/ui/code-block.tsx': 'export const C = () => <pre className="font-mono" />;',
       }),
     ).toEqual([
       'src/ui/code-block.tsx stale entry: the file no longer holds the pattern (or is gone, or is outside the scope)',
@@ -167,10 +167,28 @@ describe('titles and names truncate through the one shared class', () => {
     ).toEqual(['src/styles/missing.css the entry stylesheet does not exist']);
   });
 
-  it('refuses a shared class that is a utility or that no clamp owner holds', () => {
-    expect(sharedTruncationGuard.factProblems(facts({ sharedClass: 'truncate' }))).toEqual([
-      'sharedClass truncate is itself a per-call-site utility',
-      "clampOwners does not hold the shared class's selector .truncate",
+  it('flags a clip class placed by hand in a className, a template, and a class helper', async () => {
+    const findings = await allFindings(sharedTruncationGuard, facts(), {
+      ...clean,
+      'src/ui/hand.tsx': lines(
+        'export const a = <h2 className="font-bold kit-truncate">{t}</h2>;',
+        'export const b = <p className={`md:kit-clamp-3 ${x}`} />;',
+        "export const c = cn('p-2', open && 'kit-truncate');",
+      ),
+    });
+    expect(findings).toEqual([
+      'src/ui/hand.tsx:1 not on the reviewed list: kit-truncate placed by hand',
+      'src/ui/hand.tsx:2 not on the reviewed list: md:kit-clamp-3 placed by hand',
+      'src/ui/hand.tsx:3 not on the reviewed list: kit-truncate placed by hand',
+    ]);
+  });
+
+  it('refuses clip classes that are missing, empty, or a per-call-site utility', () => {
+    expect(sharedTruncationGuard.factProblems(facts({ clipClasses: ['truncate'] }))).toEqual([
+      'clipClasses truncate is itself a per-call-site utility',
+    ]);
+    expect(sharedTruncationGuard.factProblems(facts({ clipClasses: [] }))).toEqual([
+      'clipClasses is empty',
     ]);
   });
 });

@@ -10,6 +10,7 @@ import {
   type TsconfigAliasFacts,
 } from './cross-root.js';
 import { blanketCastGuard, type BlanketCastFacts } from './blanket-casts.js';
+import { browserBarGuard, type BrowserBarFacts } from './browser-bar.js';
 import { ciParityGuard, type CiParityFacts } from './ci-parity.js';
 import { dependencyOverrideGuard, type DependencyOverrideFacts } from './dependency-overrides.js';
 import { documentDriftGuard, type DocumentDriftFacts } from './document-drift.js';
@@ -63,6 +64,7 @@ export type RepoGuardFacts = {
   installedPackagesAgnostic: InstalledPackagesAgnosticFacts;
   ciParity: CiParityFacts | Absent;
   dependencyOverrides: DependencyOverrideFacts | Absent;
+  browserBarAlwaysShown: BrowserBarFacts;
 };
 
 export const REPO_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -93,4 +95,5 @@ export const REPO_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.
   installedPackagesAgnosticGuard,
   ciParityGuard,
   dependencyOverrideGuard,
+  browserBarGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

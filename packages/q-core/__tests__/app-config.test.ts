@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   APP_CONFIG_LEVER_KEYS,
-  DEFAULT_APP_CONFIG,
-  DEFAULT_MAINTENANCE_MESSAGE,
+  AppConfigInvalidError,
+  STANDARD_MAINTENANCE_MESSAGE,
+  isMaintenanceOn,
   mergeAppConfigUpdate,
   readAppConfigLever,
   readAppConfigLevers,
@@ -30,11 +31,20 @@ import {
 
 const COMPLETE = {
   appVersion: '2.0.1',
-  maintenanceMode: false,
   maintenanceMessage: '',
   registrationEnabled: true,
   announcementMessage: 'Playoffs start Friday.',
 };
+
+function invalidity(read: () => unknown): AppConfigInvalidError {
+  try {
+    read();
+  } catch (error) {
+    if (error instanceof AppConfigInvalidError) return error;
+    throw error;
+  }
+  throw new Error('the read did not refuse the document');
+}
 
 describe('the _appConfig documents', () => {
   it('live in the public bucket under their fixed ids, each bound to its schema', () => {
@@ -47,104 +57,185 @@ describe('the _appConfig documents', () => {
   });
 });
 
-describe('the app config levers at rest', () => {
-  it('are the open posture: maintenance off, registration open, no banner, no version published', () => {
-    expect(DEFAULT_APP_CONFIG).toEqual({
-      appVersion: '',
-      maintenanceMode: false,
-      maintenanceMessage: '',
-      registrationEnabled: true,
-      announcementMessage: '',
-    });
+describe('the app config document schema', () => {
+  it('requires every setting: a document missing any one of them is refused', () => {
+    for (const lever of APP_CONFIG_LEVER_KEYS) {
+      const missingOne: Record<string, unknown> = { ...COMPLETE };
+      delete missingOne[lever];
+      expect(AppConfigSchema.safeParse(missingOne).success).toBe(false);
+    }
   });
 
-  it('parse under the document schema, so a fresh environment behaves as a valid document', () => {
-    expect(AppConfigSchema.safeParse(DEFAULT_APP_CONFIG).success).toBe(true);
+  it('holds the version, the maintenance message, registration, and the announcement, with no maintenance switch', () => {
+    expect([...APP_CONFIG_LEVER_KEYS].sort()).toEqual([
+      'announcementMessage',
+      'appVersion',
+      'maintenanceMessage',
+      'registrationEnabled',
+    ]);
   });
 
-  it('name every field the document schema declares, and nothing else', () => {
-    expect([...APP_CONFIG_LEVER_KEYS].sort()).toEqual(Object.keys(DEFAULT_APP_CONFIG).sort());
-    expect([...APP_CONFIG_LEVER_KEYS].sort()).toEqual(Object.keys(AppConfigSchema.shape).sort());
+  it('accepts empty messages, which are how maintenance and the banner are off', () => {
+    expect(
+      AppConfigSchema.safeParse({ ...COMPLETE, maintenanceMessage: '', announcementMessage: '' })
+        .success,
+    ).toBe(true);
   });
 });
 
-describe('readAppConfigLever — the one read rule', () => {
-  it('reads a stored value its schema field accepts', () => {
+describe('readAppConfigLevers — the one read rule', () => {
+  it('hands out exactly the stored settings of a complete, valid document', () => {
+    expect(readAppConfigLevers(COMPLETE)).toEqual(COMPLETE);
+  });
+
+  it('refuses a missing document as missing, never as a set of defaults', () => {
+    for (const stored of [null, undefined]) {
+      const error = invalidity(() => readAppConfigLevers(stored));
+      expect(error.problem).toBe('missing-document');
+      expect(error.message).toMatch(/_appConfig\/app does not exist/);
+    }
+  });
+
+  it('refuses a document missing one setting as an invalid setting, naming it', () => {
+    const stored: Record<string, unknown> = { ...COMPLETE };
+    delete stored.registrationEnabled;
+    const error = invalidity(() => readAppConfigLevers(stored));
+    expect(error.problem).toBe('invalid-setting');
+    expect(error.setting).toBe('registrationEnabled');
+  });
+
+  it('refuses a setting with a bad value as an invalid setting, naming it', () => {
+    const error = invalidity(() =>
+      readAppConfigLevers({ ...COMPLETE, registrationEnabled: 'yes' }),
+    );
+    expect(error.problem).toBe('invalid-setting');
+    expect(error.setting).toBe('registrationEnabled');
+    expect(
+      invalidity(() =>
+        readAppConfigLevers({
+          ...COMPLETE,
+          maintenanceMessage: 'x'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1),
+        }),
+      ).setting,
+    ).toBe('maintenanceMessage');
+  });
+
+  it('refuses an empty document, which holds none of the settings', () => {
+    expect(invalidity(() => readAppConfigLevers({})).problem).toBe('invalid-setting');
+  });
+});
+
+describe('readAppConfigLever — one setting, read only from a complete, valid document', () => {
+  it('hands out the stored value', () => {
     expect(readAppConfigLever(COMPLETE, 'announcementMessage')).toBe('Playoffs start Friday.');
-    expect(readAppConfigLever({ maintenanceMode: true }, 'maintenanceMode')).toBe(true);
-    expect(readAppConfigLever({ registrationEnabled: false }, 'registrationEnabled')).toBe(false);
+    expect(
+      readAppConfigLever({ ...COMPLETE, registrationEnabled: false }, 'registrationEnabled'),
+    ).toBe(false);
   });
 
-  it('falls back to the default for a missing document or a missing field', () => {
-    expect(readAppConfigLever(undefined, 'maintenanceMode')).toBe(false);
-    expect(readAppConfigLever(null, 'registrationEnabled')).toBe(true);
-    expect(readAppConfigLever({}, 'appVersion')).toBe('');
-  });
-
-  it('throws for a stored value the schema refuses, naming the lever, and never reads it as a default', () => {
-    expect(() => readAppConfigLever({ maintenanceMode: 'true' }, 'maintenanceMode')).toThrow(
-      /_appConfig\/app\.maintenanceMode does not match its schema/,
+  it('has no value to give for a missing document or a missing setting', () => {
+    expect(invalidity(() => readAppConfigLever(null, 'registrationEnabled')).problem).toBe(
+      'missing-document',
     );
-    expect(() => readAppConfigLever({ registrationEnabled: 0 }, 'registrationEnabled')).toThrow(
-      /registrationEnabled/,
-    );
-    expect(() =>
-      readAppConfigLever(
-        { maintenanceMessage: 'x'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1) },
-        'maintenanceMessage',
-      ),
-    ).toThrow(/maintenanceMessage/);
-  });
-
-  it('throws for a whole document holding one bad field', () => {
-    expect(() => readAppConfigLevers({ ...COMPLETE, maintenanceMode: 'yes' })).toThrow(
-      /maintenanceMode/,
+    expect(invalidity(() => readAppConfigLever({ appVersion: '2' }, 'appVersion')).problem).toBe(
+      'invalid-setting',
     );
   });
 
-  it('reads a missing document as the open posture', () => {
-    expect(readAppConfigLevers(undefined)).toEqual(DEFAULT_APP_CONFIG);
+  it('refuses the read when another setting of the document has a bad value', () => {
+    expect(
+      invalidity(() =>
+        readAppConfigLever({ ...COMPLETE, announcementMessage: 7 }, 'registrationEnabled'),
+      ).setting,
+    ).toBe('announcementMessage');
+  });
+});
+
+describe('maintenance — the maintenance message alone decides it', () => {
+  it('is off while the message is empty and on while it holds text', () => {
+    expect(isMaintenanceOn(readAppConfigLevers(COMPLETE))).toBe(false);
+    expect(
+      isMaintenanceOn(readAppConfigLevers({ ...COMPLETE, maintenanceMessage: 'Back at nine.' })),
+    ).toBe(true);
+  });
+
+  it('is off for a stored message of blanks, which reads as empty', () => {
+    const blanks = readAppConfigLevers({ ...COMPLETE, maintenanceMessage: '   ' });
+    expect(blanks.maintenanceMessage).toBe('');
+    expect(isMaintenanceOn(blanks)).toBe(false);
+  });
+
+  it('has a standard sentence that fits the message and names no other product (RULE-STD-ARCH-006)', () => {
+    expect(STANDARD_MAINTENANCE_MESSAGE.trim().length).toBeGreaterThan(0);
+    expect(
+      AdminUpdateAppConfigInputSchema.safeParse({
+        maintenanceMessage: STANDARD_MAINTENANCE_MESSAGE,
+      }).success,
+    ).toBe(true);
+    expect(STANDARD_MAINTENANCE_MESSAGE).not.toMatch(/ttt/i);
+  });
+
+  it('is never filled in: a stored empty message reads as empty, not as the standard sentence', () => {
+    expect(readAppConfigLever(COMPLETE, 'maintenanceMessage')).toBe('');
   });
 });
 
 describe('mergeAppConfigUpdate — the one write rule', () => {
-  it('writes a missing document whole, from the defaults', () => {
-    expect(mergeAppConfigUpdate(undefined, { maintenanceMode: true })).toEqual({
-      ...DEFAULT_APP_CONFIG,
-      maintenanceMode: true,
+  it('writes only the settings the update changes, onto a complete document', () => {
+    expect(mergeAppConfigUpdate(COMPLETE, { registrationEnabled: false })).toEqual({
+      before: COMPLETE,
+      after: { ...COMPLETE, registrationEnabled: false },
+      changes: { registrationEnabled: false },
     });
   });
 
-  it('heals a partial document: its missing fields come from the defaults and its own values stay', () => {
-    expect(mergeAppConfigUpdate({ appVersion: '1.4.0' }, { registrationEnabled: false })).toEqual({
-      ...DEFAULT_APP_CONFIG,
-      appVersion: '1.4.0',
-      registrationEnabled: false,
-    });
+  it('turns maintenance on by setting the message, and off by clearing it', () => {
+    const on = mergeAppConfigUpdate(COMPLETE, { maintenanceMessage: 'Back at nine.' });
+    expect(on.changes).toEqual({ maintenanceMessage: 'Back at nine.' });
+    expect(isMaintenanceOn(on.after)).toBe(true);
+    const off = mergeAppConfigUpdate(on.after, { maintenanceMessage: '' });
+    expect(off.changes).toEqual({ maintenanceMessage: '' });
+    expect(isMaintenanceOn(off.after)).toBe(false);
   });
 
-  it('changes nothing for a field the update leaves undefined', () => {
+  it('writes nothing for a setting the update leaves undefined', () => {
     expect(
-      mergeAppConfigUpdate(COMPLETE, { appVersion: '2.0.2', maintenanceMode: undefined }),
-    ).toEqual({
-      ...COMPLETE,
-      appVersion: '2.0.2',
-    });
+      mergeAppConfigUpdate(COMPLETE, { appVersion: '2.0.2', announcementMessage: undefined })
+        .changes,
+    ).toEqual({ appVersion: '2.0.2' });
   });
 
-  it('writes the value an update sends over a stored value the schema refuses', () => {
+  it('never creates the document: a missing document refuses the update', () => {
     expect(
-      mergeAppConfigUpdate({ ...COMPLETE, maintenanceMode: 'yes' }, { maintenanceMode: true }),
-    ).toEqual({ ...COMPLETE, maintenanceMode: true });
+      invalidity(() => mergeAppConfigUpdate(null, { registrationEnabled: false })).problem,
+    ).toBe('missing-document');
   });
 
-  it('never replaces a stored value the schema refuses with a default: an update that leaves it is refused', () => {
-    expect(() =>
-      mergeAppConfigUpdate(
-        { ...COMPLETE, appVersion: 'v'.repeat(MAX_APP_VERSION_LENGTH + 1) },
-        { maintenanceMode: true },
-      ),
-    ).toThrow(/appVersion/);
+  it('never fills in a missing setting: a document missing one refuses the update', () => {
+    const stored: Record<string, unknown> = { ...COMPLETE };
+    delete stored.announcementMessage;
+    expect(
+      invalidity(() => mergeAppConfigUpdate(stored, { registrationEnabled: false })).setting,
+    ).toBe('announcementMessage');
+  });
+
+  it('never repairs a bad value, even when the update sends that setting', () => {
+    expect(
+      invalidity(() =>
+        mergeAppConfigUpdate(
+          { ...COMPLETE, registrationEnabled: 'yes' },
+          { registrationEnabled: true },
+        ),
+      ).setting,
+    ).toBe('registrationEnabled');
+    expect(
+      invalidity(() =>
+        mergeAppConfigUpdate(
+          { ...COMPLETE, appVersion: 'v'.repeat(MAX_APP_VERSION_LENGTH + 1) },
+          { registrationEnabled: false },
+        ),
+      ).setting,
+    ).toBe('appVersion');
   });
 
   it('refuses an update that would not parse, so an invalid document is never written', () => {
@@ -156,19 +247,12 @@ describe('mergeAppConfigUpdate — the one write rule', () => {
   });
 });
 
-describe('the maintenance message', () => {
-  it('has a default line for when the operator leaves the message blank, with no ttt name (RULE-STD-ARCH-006)', () => {
-    expect(DEFAULT_MAINTENANCE_MESSAGE.trim().length).toBeGreaterThan(0);
-    expect(DEFAULT_MAINTENANCE_MESSAGE).not.toMatch(/ttt/i);
-  });
-});
-
 describe('AdminUpdateAppConfigInputSchema', () => {
   it('accepts one lever or several, as named fields', () => {
     expect(AdminUpdateAppConfigInputSchema.safeParse({ appVersion: '2.1.0' }).success).toBe(true);
     expect(
       AdminUpdateAppConfigInputSchema.safeParse({
-        maintenanceMode: true,
+        registrationEnabled: false,
         maintenanceMessage: 'Back at nine.',
       }).success,
     ).toBe(true);
@@ -226,19 +310,31 @@ describe('AdminUpdateAppConfigInputSchema', () => {
   });
 
   it('refuses a lever of the wrong type', () => {
-    expect(AdminUpdateAppConfigInputSchema.safeParse({ maintenanceMode: 'true' }).success).toBe(
+    expect(AdminUpdateAppConfigInputSchema.safeParse({ registrationEnabled: 'true' }).success).toBe(
       false,
+    );
+  });
+
+  it('has no maintenance switch: maintenance is turned on and off through its message', () => {
+    expect(AdminUpdateAppConfigInputSchema.safeParse({ maintenanceMode: true }).success).toBe(
+      false,
+    );
+    expect(AdminUpdateAppConfigInputSchema.safeParse({ maintenanceMessage: '' }).success).toBe(
+      true,
     );
   });
 
   it('answers with the names of the levers it changed', () => {
     expect(
       AdminUpdateAppConfigResultSchema.safeParse({
-        updatedFields: ['appVersion', 'maintenanceMode'],
+        updatedFields: ['appVersion', 'maintenanceMessage'],
       }).success,
     ).toBe(true);
     expect(
       AdminUpdateAppConfigResultSchema.safeParse({ updatedFields: ['notALever'] }).success,
+    ).toBe(false);
+    expect(
+      AdminUpdateAppConfigResultSchema.safeParse({ updatedFields: ['maintenanceMode'] }).success,
     ).toBe(false);
   });
 });

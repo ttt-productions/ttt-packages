@@ -24,7 +24,9 @@ package may consume either.
   `input-format-core` (every input format — the named text formats and money in
   whole cents — a field's declaration, the one check every input and server bound
   runs, and the one money formatter; no dependencies at all), `module-core` (`lazyModule`, the one memoized dynamic
-  import every lazy load goes through; no dependencies at all), `firebase-helpers`, `chat-core`, `media-schemas`,
+  import every lazy load goes through; no dependencies at all), `site-core` (a site's page
+  metadata, viewport, manifest, robots rules and sitemap built from one site definition; no
+  dependencies and no framework import at all), `firebase-helpers`, `chat-core`, `media-schemas`,
   `mobile-core`, `monitoring-core`, `theme-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
   (runtime-neutral signed-edge-call primitives plus the factories a consumer
@@ -36,8 +38,8 @@ package may consume either.
   playbooks, and config bases every product reads; its docs ship as plain files, and its
   `./node/*` config bases run under Node).
 - **Tier 1 — depend on Tier 0 only:**
-  `ui-core` (→ `input-format-core`; its free-text inputs take a field
-  declaration), `chat-schemas` (→ `input-format-core`; the chat message text's
+  `ui-core` (→ `input-format-core`, `mobile-core`; its free-text inputs take a field
+  declaration, and its dialog reads the on-screen keyboard through `mobile-core`), `chat-schemas` (→ `input-format-core`; the chat message text's
   declaration and judgement), `report-core` (→ `firebase-helpers`, `input-format-core`;
   its queue handlers take the `firebase-helpers/server` Firestore contract, and the report
   comment's check — its UI/query needs are optional peers), `media-processing-core`
@@ -74,7 +76,7 @@ package may consume either.
 The internal runtime-dependency edges (peer and dev edges are left out here; the
 build and release order still honors them):
 
-    ui-core                -> input-format-core
+    ui-core                -> input-format-core, mobile-core
     chat-schemas           -> input-format-core
     report-core            -> firebase-helpers, input-format-core
     realtime-core          -> edge-protocol-core

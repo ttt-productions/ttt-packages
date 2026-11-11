@@ -32,12 +32,21 @@ export function useKeyboard(): KeyboardState {
     const onFocusIn = () => {
       setBaseline((b) => Math.max(b, window.innerHeight));
     };
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    // Focus moving from one field to the next blurs the first while the keyboard stays up, so a
+    // browser with a visual viewport measures again rather than assuming the keyboard went away.
     const onFocusOut = () => {
-      setTimeout(setBaseIfNeeded, 50);
-      setTimeout(() => {
-        setOpen(false);
-        setHeight(0);
-      }, 250);
+      timers.push(setTimeout(setBaseIfNeeded, 50));
+      timers.push(
+        setTimeout(() => {
+          if (hasVisualViewport) {
+            onVV();
+            return;
+          }
+          setOpen(false);
+          setHeight(0);
+        }, 250),
+      );
     };
 
     if (hasVisualViewport) {
@@ -53,6 +62,7 @@ export function useKeyboard(): KeyboardState {
     setBaseIfNeeded();
 
     return () => {
+      timers.forEach(clearTimeout);
       if (hasVisualViewport) {
         window.visualViewport!.removeEventListener('resize', onVV);
         window.visualViewport!.removeEventListener('scroll', onVV);

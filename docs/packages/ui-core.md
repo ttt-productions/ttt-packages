@@ -10,11 +10,12 @@ Generic UI primitive package.
 - The reload-recovery notice for failures only a reload repairs (below)
 - The list-pagination BUTTONS control and its page-state hooks (see below)
 - The item actions menu, `ActionsMenu` (below)
+- Clipped text, `ClippedText` (below)
 - Generic formatting helpers such as `formatLargeNumber`
 
 ## Boundary
 
-Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`, and browser runtime with no React behind `./browser`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. Its one internal runtime dependency is `input-format-core` (Tier 1): input formats — text, money, and phone numbers — and their checks live there, never here, so the server can run the same check without installing React.
+Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`, and browser runtime with no React behind `./browser`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. ui-core is Tier 1; its internal runtime dependencies are `input-format-core` and `mobile-core`. Input formats — text, money, and phone numbers — and their checks live in `input-format-core`, never here, so the server can run the same check without installing React. The dialogs read the on-screen keyboard through `mobile-core` (below).
 
 ## Reload recovery — `ReloadRecoveryNotice`
 
@@ -214,6 +215,17 @@ trigger) would leave focus on the page. The three contents share one owner of cl
 - **A removed opener.** When the opener has left the page, Radix's own return to the trigger runs.
   A surface whose action removes its opener says where focus goes through `onCloseAutoFocus`.
 
+## Dialogs and the phone keyboard — `DialogContent`, `AlertDialogContent`
+
+While the on-screen keyboard is open, `DialogContent` and `AlertDialogContent` — and so
+`ConsequenceDialog`, which renders through `AlertDialogContent` — take mobile-core's
+`useKeyboardViewportFit`: each centres on the visible viewport above the keyboard, its height is
+capped at that area less an 8px margin at each edge, its content scrolls, and the focused field
+inside it is kept in view without a smooth scroll. With no keyboard each keeps its centred layout
+(`DialogContent`'s `max-h-[90vh]` included). One internal panel applies the fit to both contents,
+and it is mounted only while its dialog is open, so a closed dialog holds no listeners. No app
+dialog calls a keyboard hook itself. `SheetContent` is anchored to an edge and does not fit.
+
 ## Sortable column header — `SortableTableHead`
 
 The one column header that sorts its table (`./react`, beside `TableHead`). Durable contract:
@@ -239,6 +251,35 @@ The one whole-row action whose row can still hold controls of its own (a Retry i
 - **A sibling target.** The row's target is laid over the row and named by the row's content (`aria-labelledby`). The content sits above it and passes pointer events through to it everywhere except on its own links, buttons and form controls. The target comes first in tab order, then any control inside the row.
 - **Button or link.** The button form takes `onClick`, `disabled` and `busy` (`aria-busy`); a disabled row runs nothing and its content dims. The link form takes `renderLink(target)`: the app renders its own guarded in-app link and spreads `target` (`className`, `aria-labelledby`) onto it, with no children.
 - **Look.** The row paints `bg-accent` on hover through the target, timed by the motion tokens; `className` lays out the content. `ui-action-row` is the row's hook class.
+
+## Clipped text — `ClippedText`
+
+The one way a title, name, or block of user text is cut short (RULE-STD-FRONTEND-007). Call sites
+never place theme-core's clip classes by hand.
+
+- **Lines.** `lines` is 1 (the default), 2 or 3; each ends in an ellipsis. The clip is theme-core's
+  class — `.single-line-truncate`, `.two-line-clamp`, `.three-line-clamp` — so its values live in one
+  place ([theme-core.md](theme-core.md#recipes-and-components-read-tokens-not-literals)).
+- **A name in two pieces.** `namePieces` splits `text` at its first space (surrounding spaces
+  dropped) into the first word and the rest: the line breaks only between them, and each piece
+  clips on its own through `.name-piece` + `.single-line-truncate`. The outer element carries no
+  clip of its own.
+- **The full text stays reachable.** `text` is always the element's `title`, and is the element's
+  content, so a heading, link, or cell rendered through it is named by the full text. The clip is
+  visual only.
+- **The element is the caller's.** It renders a `span`; with `asChild` it renders the caller's one
+  child element instead (`<ClippedText asChild text={name}><a href={…} /></ClippedText>`), keeping
+  the child's own props and replacing its content with the clipped text. A `title` on the child is
+  replaced by `text`.
+- **One way to clip at a time.** `lines` and `namePieces` are exclusive members of one props union
+  (`ClippedTextClip`), so another way of clipping is a further member, not a change to these.
+
+## Accordion row — `AccordionTrigger`
+
+The trigger and its header may shrink below their content, and the trigger's content sits in one
+box that takes the row's width beside the chevron and may shrink too. A one-line title inside it
+(`ClippedText`) therefore clips with its ellipsis instead of widening the row and the page; the
+chevron never shrinks and is the trigger's last child.
 
 ## Show more — `ShowMoreToggle`
 

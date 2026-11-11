@@ -16,7 +16,8 @@ Generic TanStack Query package.
   and the `useFirestoreSet/Update/Delete/Batch` mutations
 - The app-config mechanism, `createAppConfig` (below)
 - The one session-aware mutation owner, `useSessionMutation` with `MutationSessionProvider` and
-  `MutationSessionEndedError` (below), and the callable factories built on it (`createCallables`)
+  `MutationSessionEndedError` (below), the callable factories built on it (`createCallables`), and
+  the one callable failure policy they run (`createCallablePolicy`, below)
 - A metadata-derived **subscription source state** on the realtime `useFirestoreDoc` /
   `useFirestoreCollection` hooks (`subscribe: true`): the result carries
   `sourceState: 'connecting' | 'live' | 'offline' | 'error'` (`FirestoreSourceState`),
@@ -211,6 +212,66 @@ imports no toast or monitoring module (RULE-STD-QUALITY-102):
   its mutation; a reader or invoker takes the session current when its function
   is called.
 
+## `createCallablePolicy` — the one callable failure policy
+
+An app does not write its `CallablePolicy` by hand. `createCallablePolicy(definition)` (`./react`)
+takes the app's values and returns `{ policy, describeCallableError, captureCallableFault,
+isCallableRejection, isExpectedCallableAnswer, isAnswerSurfacedElsewhere, callableRejectionMessage,
+callableRefusalMessage }`: the `CallablePolicy` `createCallables` binds, and the classification
+helpers the app's own surfaces use. How a failure is classified, the order the checks run in, what
+is reported at what level, and which case gets which toast are written here once.
+
+**What the app hands in** (`CallablePolicyDefinition<TToast>`, every field required):
+
+- `deadlineMs` and `slowCallAfterMs` — the policy's `timeoutMs` and `onSlowCall.afterMs`.
+- `wording` (`CallableWording<TToast>`) — one toast config (`{ title, description }` plus whatever
+  the app's toast takes) per named slot: `notSent`, `connectionDropped`, `tokenRefused`,
+  `outcomeUnknown`, `maintenance`, `genericError`, `stillWorking`. Every slot is required, so a
+  definition that leaves one out does not type-check. `maintenance` and `genericError` are shown
+  with their `description` replaced by the refusal's own message when it carries one.
+- `businessAnswers` — the app's own answers, each `{ recognise(error), respond(error) }`: how to
+  recognise it and what to do instead of a toast. An app with none passes `[]`.
+- `refusals` — `isPlatformTokenRefusal(error)` and `isMaintenanceRefusal(error)`, which the app
+  takes from its auth or application-data package; query-core depends on neither.
+- `plumbing` — `getFunctions`, `showToast(toast)` (returning `{ dismiss }`), `captureException`,
+  `captureMessage(message, 'warning', context)`, and `limitedUseAppCheck()` (whether this build
+  requests limited-use App Check, read on every call). query-core imports no toast and no
+  monitoring module.
+
+**The one order of checks** for a failed call (`policy.onActionError`), first match wins:
+
+1. The caller said it surfaces this answer itself (`isAnswerSurfacedByCaller`): nothing.
+2. One of the app's business answers: its `respond`, no toast — also when the call is declared with
+   no toast or its refusal code as answered.
+3. The call is declared with no toast: nothing.
+4. A refusal the caller declared answered (`answeredRefusals`): nothing.
+5. Never sent, the token fetch's connection failed (firebase-helpers
+   `isAppCheckConnectionFailure`): the `connectionDropped` toast.
+6. Never sent, App Check throttled or the token failed (`isAppCheckTokenFailure`): `notSent`.
+7. The platform refused the ID or App Check token: `tokenRefused`.
+8. The deadline passed (`isCallableDeadlineError`): `outcomeUnknown`.
+9. Maintenance: `maintenance`, with the operator's message.
+10. Anything else: `genericError`, described by `describeCallableError`.
+
+A failure routed there also counts as a callable rejection (`isCallableRejection`), whatever its
+code.
+
+**Reporting** (`captureCallableFault`, the policy's `captureFault`): a recovered limited-use
+fallback (`isRecoveredFallbackReport`) reports its warning; an expected answer — a designed refusal
+code, the maintenance refusal, or a business answer, never a platform token refusal — reports
+nothing; a never-sent connection failure reports nothing; a never-sent token failure or throttle
+reports a warning carrying its `appCheckCode`; a platform token refusal reports a warning; anything
+else, a deadline included, is one exception. The policy's `captureRecoveredFallback` reports only the
+fallback.
+
+**Describing** (`describeCallableError(error, fallback?)`), for a caller-owned surface
+(RULE-STD-FRONTEND-109): the same classification — the matching slot's description for steps 5–8,
+the operator's message for maintenance, and otherwise — for a callable rejection only (a
+`functions/` code) — the server's own message without the SDK's status suffix, then `fallback`, then
+the `genericError` slot's description. Any other failure (a client-side `TypeError`, an error with no
+callable code) gets `fallback` or the slot, never its own message, and `callableRejectionMessage` /
+`callableRefusalMessage` likewise read a message only from a callable rejection.
+
 ## `useFirestorePaginated` — one cache entry per page
 
 Previous / Next paging, one page at a time. Each page is ONE cache entry at
@@ -370,39 +431,42 @@ Together they give three guarantees a control's own `isPending` cannot: an in-fl
 ## `createAppConfig` — the one live app-config document
 
 An app's operational config (maintenance, registration, an announcement, the deployed version) is
-one Firestore document every visitor's shell reads. `createAppConfig(definition)` returns the app's
+one Firestore document every visitor's shell reads, and it must exist and hold every setting with a
+valid value: no setting has a default anywhere. `createAppConfig(definition)` returns the app's
 `AppConfigProvider` (mounted inside the `FirestoreProvider`, it holds the app's one live
-subscription to the document), `useAppConfig()`, the pure `readAppConfigSnapshot(stored)`, and the
-`LOADING_APP_CONFIG` / `UNAVAILABLE_APP_CONFIG` states. The app supplies everything it owns: the
-document `path`, the lever `defaults`, `readLevers(stored)` (each lever as stored, its default only
-when the field is absent, and a throw when a stored value does not match the app's schema), its
-`extra` reading (`read(stored | null)` and the value `whileUnknown`, spread into the state beside
-the levers), and the reporting callbacks.
+subscription to the document), `useAppConfig()`, and the pure `readAppConfigSnapshot(stored)`. The
+app supplies the document `path`, its validator `read(stored | null)`, and the reporting callbacks:
+`read` comes from the app's application-data package, returns the settings exactly as stored, and
+throws when the document is missing, a setting is missing, or a value does not match the app's
+schema. query-core holds no setting name.
 
-- **The stored document is read as it is.** A stored value is never replaced by a default: when
-  `readLevers` throws, the config is `unavailable` and the error goes to `onUnreadable(error)`; the
-  next snapshot that reads cleanly is `ready` again.
-- **Status.** `loading` (no snapshot yet, the defaults), `ready`, `missing` (the document does not
-  exist, the defaults), `unavailable` (no snapshot could be read, or the stored document does not
-  match the app's schema). A config read never closes the product by itself.
+- **Status.** `loading` (no snapshot yet), `ready` (the validator accepted the stored document),
+  `unavailable` (no snapshot could be read), `invalid` (a snapshot was read and the validator
+  refused it — the document is missing or incomplete or holds a bad value; the error goes to
+  `onInvalid(error)`). The levers exist only on `ready`: the state type carries them nowhere else,
+  so nothing can read a setting while the config is loading, unreadable, or invalid. The app shows
+  `unavailable` and `invalid` on two different screens.
+- **The listener keeps listening.** An `invalid` document leaves the listener running, so a fixed
+  document moves the page to `ready` without a reload.
 - **The listener heals itself.** A permission-denied error ends a Firestore listener for good, and
   the first listen can lose a race with the first App Check token, so a failed listener
   re-subscribes on a short backoff (`APP_CONFIG_MAX_QUICK_ATTEMPTS`); when that ladder fails it
   reports once through `onUnavailable(error, attempts)`, moves a never-answered config to
-  `unavailable` (a snapshot already read stays), and keeps trying every
+  `unavailable` (a snapshot already read — `ready` or `invalid` — stays), and keeps trying every
   `APP_CONFIG_BACKGROUND_RETRY_MS` for as long as the page is open, quietly.
 - **Try again.** `retry()` restarts the listener; `retrying` is on until it answers or its ladder
-  fails again, and what the state held stays on screen meanwhile.
+  fails again, and the status stays as it was meanwhile.
 
 ## Entry points
 
 - `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`), the search config types, and the `STALE_TIMES` presets. No React, react-query, or Firebase in its runtime graph or its types.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
-- `./react` — React/TanStack runtime: provider, the app-config mechanism (`createAppConfig`), the session-aware mutation owner, the callable factories (`createCallables` and their types), Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, the `createQueryClient` factory, the cache helpers (including the paginated-entry updaters and `paginatedPageKey`), the infinite-data helpers, the domain-event invalidator mechanism, and every name typed on react-query or `firebase/firestore`: the Firestore hook option types, `PaginatedPage`, `InfinitePage`, `MutationOperation`, `FirestoreSearchOptions`, and `docWithId`.
+- `./react` — React/TanStack runtime: provider, the app-config mechanism (`createAppConfig`), the session-aware mutation owner, the callable factories (`createCallables` and their types) and the callable failure policy (`createCallablePolicy` and its types), Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, the `createQueryClient` factory, the cache helpers (including the paginated-entry updaters and `paginatedPageKey`), the infinite-data helpers, the domain-event invalidator mechanism, and every name typed on react-query or `firebase/firestore`: the Firestore hook option types, `PaginatedPage`, `InfinitePage`, `MutationOperation`, `FirestoreSearchOptions`, and `docWithId`.
 - `./react/testing` — the test builders every app's read and mutation doubles are built from (needs `@tanstack/react-query`; no test runner): each read state as a real `QueryObserver` result carrying the `retryState` the read retry state would derive — `answeredRead`, `idleRead` (a disabled read that never fetched), `loadingRead`, `failedRead`, `retryingRead` (a never-answered read retrying: `pending`, its error cleared, the failure held in `retryState`), `fetchingRead` (a background fetch over an answer), `answeredThenFailedRead`, `retryingAnsweredRead`; the infinite reads as real `InfiniteQueryObserver` results — `infiniteRead`, `idleInfiniteRead` (a disabled infinite read that never fetched), `loadingInfiniteRead`, `failedInfiniteRead`, `retryingInfiniteRead` (a never-answered list retrying), `fetchingInfiniteRead` (a refresh over the kept pages), `answeredThenFailedInfiniteRead`, `retryingAnsweredInfiniteRead`, `pausedRetryingAnsweredInfiniteRead` (that refresh retry waiting for the network: `paused`, the failure kept, counted as retrying as the read retry state counts it), `fetchingNextPageRead`, `nextPageFailedRead`, `retryingNextPageRead` (the case's own `select` applied, page params derived from its `getNextPageParam`, which receives TanStack's full arguments — the last page, every page, the previous page param, and every param so far — so a case passes its hook's own function); the paginated reads `useFirestorePaginated` returns — `answeredPaginatedRead`, `loadingPaginatedRead`, `failedPaginatedRead`, `retryingPaginatedRead`, `fetchingPaginatedRead` (a refresh of the page shown, its rows kept), `answeredThenFailedPaginatedRead`, `retryingAnsweredPaginatedRead` (the page's items as `data`, the page and next-page flags the case names, page moves through the case's own `setPage`); and real `MutationObserver` mutations — `idleMutation`, `pendingMutation`, `failedMutation` (awaited: it runs a real mutation that rejects with the case's error), and their session forms `idleSessionMutation`, `pendingSessionMutation`, `failedSessionMutation`, each typed `<TData, TVariables, TOnMutateResult, TError>` so it stands in for a hook whose `onMutate` returns a result or whose error is not an `Error`; `sessionMutationContext(uid)` is the context of a current session that a case's `mutate` handler hands the component's `onSuccess` / `onError` callbacks. The set is every state the real read hooks reach that a page renders apart (RULE-STD-QUALITY-012). Its tests drive a real query, a real infinite query, a real mutation and `useSessionMutation`, and a real paginated read over the in-memory client Firestore, through each state and hold every builder to it. Beside them, `firestoreTestWrapper(db, { queryClient? })` is the one wrapper a hook test renders under: a `QueryClientProvider` around a `FirestoreProvider` for `db`, returning `{ queryClient, Wrapper }`; its default client (`testQueryClient()`) never retries a read and never collects a cached one during a case.
 - `./types` — the Firestore types that carry no Firebase type (`WithId`, `FirestoreBaseOptions`, the mutation and batch option types, the source-state and batch-outcome types); the one entry that exports them.
 
-Client peers (`react`, `react-dom`, `@tanstack/react-query` from `5.90.0`, `firebase`) are optional; they are needed only when importing `./react`. Its one internal runtime dependency is `firebase-helpers`: its server-safe root (`chunk`, `FIRESTORE_IN_FILTER_LIMIT`, the expected-answer code type) and, from `./react` only, its `./client` (`callCallable`, `isRecoveredFallbackReport`) — so a server-only install pulls no client runtime through it.
+Client peers (`react`, `react-dom`, `@tanstack/react-query` from `5.90.0`, `firebase`) are optional; they are needed only when importing `./react`. Its one internal runtime dependency is `firebase-helpers`: its server-safe root (`chunk`, `FIRESTORE_IN_FILTER_LIMIT`, the expected-answer code type, and — for `./react`'s callable policy — the expected-answer, deadline, and never-sent App Check
+classifiers) and, from `./react` only, its `./client` (`callCallable`, `isRecoveredFallbackReport`) — so a server-only install pulls no client runtime through it.
 
 ## `useBatchFirestoreDocs` — id-list lookups
 

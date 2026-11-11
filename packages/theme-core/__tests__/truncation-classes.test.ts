@@ -34,12 +34,30 @@ describe('the shared truncation classes', () => {
     });
   });
 
+  it('clamps a block of text to two lines', () => {
+    expect(declarationsOf('.two-line-clamp')).toEqual({
+      display: '-webkit-box',
+      '-webkit-line-clamp': '2',
+      '-webkit-box-orient': 'vertical',
+      overflow: 'hidden',
+    });
+  });
+
   it('clamps a block of text to three lines', () => {
     expect(declarationsOf('.three-line-clamp')).toEqual({
       display: '-webkit-box',
       '-webkit-line-clamp': '3',
       '-webkit-box-orient': 'vertical',
       overflow: 'hidden',
+    });
+  });
+
+  it('makes a name piece an inline block no wider than its line that keeps its link underline', () => {
+    expect(declarationsOf('.name-piece')).toEqual({
+      display: 'inline-block',
+      'max-width': '100%',
+      'vertical-align': 'top',
+      'text-decoration': 'inherit',
     });
   });
 });

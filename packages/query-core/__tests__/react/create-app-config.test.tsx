@@ -22,42 +22,32 @@ import {
   type StoredAppConfig,
 } from '../../src/react/app-config/create-app-config.js';
 
-type Levers = { appVersion: string; maintenanceMode: boolean };
-type Extra = { noticeRead: string | null };
+type Levers = { appVersion: string; message: string };
 
 const PATH = 'config/app';
-const DEFAULTS: Levers = { appVersion: '', maintenanceMode: false };
-const VALID: Levers = { appVersion: '3.1.0', maintenanceMode: true };
+const VALID: Levers = { appVersion: '3.1.0', message: 'Back at nine.' };
 
 const reports = {
   unavailable: vi.fn<(error: unknown, attempts: number) => void>(),
-  unreadable: vi.fn<(error: unknown) => void>(),
+  invalid: vi.fn<(error: unknown) => void>(),
 };
 
-function readLever<K extends keyof Levers>(
-  stored: StoredAppConfig,
-  lever: K,
-  kind: 'string' | 'boolean',
-): Levers[K] {
-  const value = stored[lever];
-  if (value === undefined) return DEFAULTS[lever];
-  if (typeof value !== kind) throw new Error(`${lever} does not match its schema`);
-  return value as Levers[K];
+function readSetting(stored: StoredAppConfig, setting: keyof Levers): string {
+  const value = stored[setting];
+  if (typeof value !== 'string') throw new Error(`${setting} is missing or does not match`);
+  return value;
 }
 
-const config = createAppConfig<Levers, Extra>({
+function readLevers(stored: StoredAppConfig | null): Levers {
+  if (stored === null) throw new Error('the document does not exist');
+  return { appVersion: readSetting(stored, 'appVersion'), message: readSetting(stored, 'message') };
+}
+
+const config = createAppConfig<Levers>({
   path: PATH,
-  defaults: DEFAULTS,
-  readLevers: (stored) => ({
-    appVersion: readLever(stored, 'appVersion', 'string'),
-    maintenanceMode: readLever(stored, 'maintenanceMode', 'boolean'),
-  }),
-  extra: {
-    read: (stored) => ({ noticeRead: typeof stored?.notice === 'string' ? stored.notice : 'none' }),
-    whileUnknown: { noticeRead: null },
-  },
+  read: readLevers,
   onUnavailable: reports.unavailable,
-  onUnreadable: reports.unreadable,
+  onInvalid: reports.invalid,
 });
 
 function Wrapper({ children }: { children: ReactNode }) {
@@ -83,51 +73,84 @@ const unavailable = () => firestoreError('unavailable', 'gone');
 beforeEach(() => {
   store.reset();
   reports.unavailable.mockReset();
-  reports.unreadable.mockReset();
+  reports.invalid.mockReset();
 });
 
 describe('createAppConfig — what the listener says', () => {
-  it('is loading, on the defaults and the unknown extra, until the first snapshot', () => {
+  it('is loading, with no levers, until the first snapshot', () => {
     const { result } = renderConfig();
-    expect(result.current).toMatchObject({
-      status: 'loading',
-      levers: DEFAULTS,
-      noticeRead: null,
-      retrying: false,
-    });
+    expect(result.current.status).toBe('loading');
+    expect(result.current.retrying).toBe(false);
+    expect(result.current).not.toHaveProperty('levers');
   });
 
-  it('a valid document is ready, as stored, with its extra read from it', async () => {
+  it('a complete, valid document is ready and hands out exactly the stored values', async () => {
     const { result } = renderConfig();
-    await emit({ ...VALID, notice: 'hello' });
-    expect(result.current).toMatchObject({
-      status: 'ready',
-      levers: VALID,
-      noticeRead: 'hello',
-    });
-  });
-
-  it('a missing document is missing, on the defaults, with its extra read from nothing', async () => {
-    const { result } = renderConfig();
-    await emit(null);
-    expect(result.current).toMatchObject({
-      status: 'missing',
-      levers: DEFAULTS,
-      noticeRead: 'none',
-    });
+    await emit(VALID);
+    expect(result.current).toMatchObject({ status: 'ready', levers: VALID });
   });
 
   it('reads the snapshot outside a provider the same way', () => {
-    expect(config.readAppConfigSnapshot(null)).toEqual({
-      status: 'missing',
-      levers: DEFAULTS,
-      noticeRead: 'none',
-    });
-    expect(config.LOADING_APP_CONFIG.status).toBe('loading');
-    expect(config.UNAVAILABLE_APP_CONFIG).toMatchObject({
-      status: 'unavailable',
-      noticeRead: null,
-    });
+    expect(config.readAppConfigSnapshot(VALID)).toEqual({ status: 'ready', levers: VALID });
+    expect(config.readAppConfigSnapshot(null)).toEqual({ status: 'invalid' });
+  });
+});
+
+describe('createAppConfig — a document that was read and is not complete and valid', () => {
+  it('a missing document is invalid, with no levers, and is reported', async () => {
+    const { result } = renderConfig();
+    await emit(null);
+    expect(result.current.status).toBe('invalid');
+    expect(result.current).not.toHaveProperty('levers');
+    expect(reports.invalid).toHaveBeenCalledTimes(1);
+    expect(reports.invalid).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'the document does not exist' }),
+    );
+    expect(reports.unavailable).not.toHaveBeenCalled();
+  });
+
+  it('a document missing a setting is invalid, with no levers, and is reported', async () => {
+    const { result } = renderConfig();
+    await emit({ appVersion: '3.1.0' });
+    expect(result.current.status).toBe('invalid');
+    expect(result.current).not.toHaveProperty('levers');
+    expect(reports.invalid).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'message is missing or does not match' }),
+    );
+  });
+
+  it('a setting with a bad value is invalid, with no levers, and is reported', async () => {
+    const { result } = renderConfig();
+    await emit({ ...VALID, appVersion: 42 });
+    expect(result.current.status).toBe('invalid');
+    expect(result.current).not.toHaveProperty('levers');
+    expect(reports.invalid).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'appVersion is missing or does not match' }),
+    );
+  });
+
+  it('a document fixed while the page listens becomes ready without a new subscription', async () => {
+    const { result } = renderConfig();
+    await emit(null);
+    expect(result.current.status).toBe('invalid');
+    const before = listenerStarts();
+    await emit(VALID);
+    expect(result.current).toMatchObject({ status: 'ready', levers: VALID });
+    expect(listenerStarts()).toBe(before);
+  });
+
+  it('a ready document that turns invalid takes its levers away', async () => {
+    const { result } = renderConfig();
+    await emit(VALID);
+    await emit({ ...VALID, message: false });
+    expect(result.current.status).toBe('invalid');
+    expect(result.current).not.toHaveProperty('levers');
+  });
+
+  it('a valid document reports nothing', async () => {
+    renderConfig();
+    await emit(VALID);
+    expect(reports.invalid).not.toHaveBeenCalled();
   });
 });
 
@@ -149,18 +172,21 @@ describe('createAppConfig — a listener that keeps failing', () => {
     await act(async () => {});
   }
 
-  it('is unavailable after its quick retries, reported once, and Try again restarts it', async () => {
+  it('a failed read is unavailable after its quick retries, with no levers, reported once and never as invalid', async () => {
     store.failReads(() => true, firestoreError('permission-denied', 'Missing permissions.'));
     const { result } = renderConfig();
     await failLadder();
-    expect(result.current).toMatchObject({
-      status: 'unavailable',
-      levers: DEFAULTS,
-      noticeRead: null,
-      retrying: false,
-    });
+    expect(result.current).toMatchObject({ status: 'unavailable', retrying: false });
+    expect(result.current).not.toHaveProperty('levers');
     expect(reports.unavailable).toHaveBeenCalledTimes(1);
     expect(reports.unavailable.mock.calls[0]![1]).toBe(APP_CONFIG_MAX_QUICK_ATTEMPTS);
+    expect(reports.invalid).not.toHaveBeenCalled();
+  });
+
+  it('Try again restarts the listener and stays unavailable until it answers', async () => {
+    store.failReads(() => true, unavailable());
+    const { result } = renderConfig();
+    await failLadder();
 
     store.reset();
     store.seed(PATH, VALID);
@@ -181,6 +207,23 @@ describe('createAppConfig — a listener that keeps failing', () => {
     expect(result.current.retrying).toBe(true);
     await failLadder();
     expect(result.current).toMatchObject({ status: 'unavailable', retrying: false });
+  });
+
+  it('an invalid document whose listener then fails stays invalid, never unavailable', async () => {
+    const { result } = renderConfig();
+    await emit(null);
+    store.failReads(() => true, unavailable());
+    await act(async () => {
+      store.failListeners(() => true, unavailable());
+    });
+    for (let attempt = 1; attempt < APP_CONFIG_MAX_QUICK_ATTEMPTS; attempt += 1) {
+      act(() => {
+        vi.runOnlyPendingTimers();
+      });
+      await act(async () => {});
+    }
+    expect(reports.unavailable).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe('invalid');
   });
 
   it('keeps trying about once a minute, quietly, until a changed config arrives, and stops on unmount', async () => {
@@ -219,45 +262,15 @@ describe('createAppConfig — a listener that keeps failing', () => {
       vi.advanceTimersByTime(APP_CONFIG_BACKGROUND_RETRY_MS);
     });
     await act(async () => {});
-    expect(result.current.levers.appVersion).toBe('9.9.9');
+    expect(result.current).toMatchObject({
+      status: 'ready',
+      levers: { ...VALID, appVersion: '9.9.9' },
+    });
 
     await act(async () => {
       store.failListeners(() => true, unavailable());
     });
     unmount();
     expect(vi.getTimerCount()).toBe(0);
-  });
-});
-
-describe('createAppConfig — a stored document is read as it is', () => {
-  it('a lever that is absent reads as its default', async () => {
-    const { result } = renderConfig();
-    await emit({ appVersion: '1.0.0' });
-    expect(result.current.levers).toEqual({ appVersion: '1.0.0', maintenanceMode: false });
-  });
-
-  it('a lever its reader refuses makes the config unavailable and is reported, never read as a default', async () => {
-    const { result } = renderConfig();
-    await emit({ ...VALID, maintenanceMode: 'true' });
-    expect(result.current.status).toBe('unavailable');
-    expect(reports.unreadable).toHaveBeenCalledTimes(1);
-    expect(reports.unreadable).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'maintenanceMode does not match its schema' }),
-    );
-  });
-
-  it('reads again once the document is corrected', async () => {
-    const { result } = renderConfig();
-    await emit({ ...VALID, appVersion: 42 });
-    expect(result.current.status).toBe('unavailable');
-    await emit(VALID);
-    expect(result.current).toMatchObject({ status: 'ready', levers: VALID });
-  });
-
-  it('a valid document reports nothing', async () => {
-    renderConfig();
-    await emit(VALID);
-    await emit(null);
-    expect(reports.unreadable).not.toHaveBeenCalled();
   });
 });

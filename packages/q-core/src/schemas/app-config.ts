@@ -13,7 +13,6 @@ import { AppConfigSchema } from '../doc-schemas/system.js';
 export const AdminUpdateAppConfigInputSchema = z
   .object({
     appVersion: textFieldSchema(APP_VERSION_INPUT).optional(),
-    maintenanceMode: z.boolean().optional(),
     maintenanceMessage: textFieldSchema(MAINTENANCE_MESSAGE_INPUT).optional(),
     registrationEnabled: z.boolean().optional(),
     announcementMessage: textFieldSchema(ANNOUNCEMENT_MESSAGE_INPUT).optional(),

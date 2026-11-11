@@ -210,7 +210,14 @@ this section says what the facts mean, area by area, and never lists them guard 
   project ids, the product names no installed generic package may carry, the reviewed files
   that discard a promise rejection with no reason, the anchored casts that may switch type
   checking off, and, for the end-to-end suites, the app's own action helpers and the anchored
-  retry loops and caught actions that are exceptions.
+  retry loops and caught actions that are exceptions. The browser-bar guard takes the app's public
+  folder: it reads every metadata object and manifest route in the app's source, and every web
+  manifest in that folder the app links or that has a conventional name, and a static `manifest.json`
+  or `manifest.webmanifest` in the app router's folder (`app/` under the layout's app root, which
+  Next serves as the manifest). A manifest route that
+  returns a builder's manifest and writes no `display` of its own passes, so site-core's manifest
+  builder, which always emits `display: 'browser'` and takes no display, passes by construction;
+  a `display` written anywhere in a manifest route, a builder's argument included, is read.
 - **Firestore and Storage** — the app's data package and import aliases, the constants and
   builders that own path assembly, retired segments with their replacements and the app page roots
   whose route strings their check skips (it also skips module specifiers and source-file paths), the
@@ -230,7 +237,11 @@ this section says what the facts mean, area by area, and never lists them guard 
 - **Frontend reads** — the read-state module and its failure seat, the hooks tree, the query-key
   module (with a loader for its builders), the domain-event registry, the session-retirement
   owner, and the read fields a render surface branches on (data, failure, failure carriers, and
-  loading) with the reviewed failure branches and loading-only surfaces.
+  loading) with the reviewed failure branches and loading-only surfaces. The reads-only-when-shown
+  guard takes only its reviewed reads ahead of the person: each a file, the whitespace-collapsed
+  call (`prefetchQuery`, `prefetchInfiniteQuery`, `ensureQueryData`, `ensureInfiniteQueryData`,
+  `usePrefetchQuery`, `usePrefetchInfiniteQuery`), and its why; `fetchQuery` is a read a click
+  makes and is never one. The same guard fails every `forceMount`, which takes no exception.
 - **Frontend actions** — the callable declaration modules and the factory for each callable kind,
   the callable transports, the client auth accessor and boundary modules, and each client owner
   (the app-config provider, the browser-storage helper, the media renderers, the upload listener)
@@ -238,10 +249,11 @@ this section says what the facts mean, area by area, and never lists them guard 
   name).
 - **UI** — the entry stylesheet, token sheet, and pinned stylesheet order, the root layout module
   and what it mounts in which order, the navigation, motion, and loading helpers, the accessible
-  control and display components, the trees the shared truncation class governs with that class and
-  the clamp-owner selectors (an owner may be declared by any stylesheet the entry stylesheet loads, an
-  installed theme package's included), and the reviewed colour, label, text-entry, bound, and truncation
-  exceptions.
+  control and display components, the trees where text is clipped only through ui-core's
+  `ClippedText`, with the clip classes that component places (in those trees, any of them in code is
+  a class placed by hand) and the clamp-owner selectors (an owner may be declared by any stylesheet the
+  entry stylesheet loads, an installed theme package's included), and the reviewed colour, label,
+  text-entry, bound, and truncation exceptions.
 - **Core definitions** — the app's data package, its schema and wire folders, the wire-input name
   suffixes, loaders for its wire modules, field declarations, and field schema builder, and the
   reviewed exceptions (guarded literals, length literals, non-segment ids, verbatim fields). The
