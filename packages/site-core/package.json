@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/site-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A site's page metadata from one site definition: the site metadata, viewport, manifest, robots rules and sitemap an app's Next.js metadata files return. Tier 0 — no dependencies, no framework import, server-safe.",
   "repository": {
     "type": "git",
