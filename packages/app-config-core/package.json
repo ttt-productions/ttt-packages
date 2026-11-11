@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/app-config-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Generic app config document: the strict read of its settings, the merge that finds what really changed, and the one writer",
   "repository": {
     "type": "git",
