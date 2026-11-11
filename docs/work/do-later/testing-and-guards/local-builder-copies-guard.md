@@ -2,7 +2,6 @@
 
 **What:** A repo-guards check that fails a test-local function or constant building a document type that the app's shared test builders already build.
 **Severity:** low
-**Came from:** the shared-standards Phase 3 repair session (ttt-prod scope), while converting ttt-prod's upload-surface tests
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

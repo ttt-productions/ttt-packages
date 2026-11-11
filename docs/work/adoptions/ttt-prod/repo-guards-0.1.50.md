@@ -3,7 +3,6 @@
 **What:** The app-route guard's home-link check also catches `assign`, redirect-style names, and a
 home link built as a template.
 **Severity:** low
-**Came from:** the Q-Sports paths-step setup-review ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.50.
 - **Release:** `./scripts/release-multiple.sh repo-guards patch`.

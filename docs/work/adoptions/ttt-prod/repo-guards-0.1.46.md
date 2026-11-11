@@ -2,7 +2,6 @@
 
 **What:** The "one callable rejection surfaces exactly once" guard sees the answer predicate an app hook hands its declared hook.
 **Severity:** low
-**Came from:** the Q-Sports teams-and-roles ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.46.
 - **Release:** `./scripts/release-multiple.sh q-core repo-guards patch`.

@@ -2,7 +2,8 @@
 
 **What:** Every live `useFirestoreDoc` and `useFirestoreCollection` read is shared per query key: one listener and one source state for every mount of the key, so a second mount is live at once.
 **Severity:** medium
-**Came from:** the Q-Sports live admin notification list ttt-packages session
+
+**Outdated design.** This release leaves the handling of a copy kept on the device unchanged. The agreed design changes it: a live read shows loading until the server has answered, and a device copy is never handed to the page as the answer. A later query-core release changes it. Take the install from this file.
 
 - **Package and version:** `@ttt-productions/query-core` 0.14.37.
 - **Release:** `./scripts/release-multiple.sh beacon-core firebase-helpers monitoring-core notification-core query-core repo-guards q-core patch`.

@@ -2,7 +2,6 @@
 
 **What:** `initFirebaseClient` no longer takes the `firestoreLogLevel` option added in 0.12.27.
 **Severity:** low
-**Came from:** the Q-Sports Firestore-diagnostics ttt-packages session
 
 - **Package and version:** `@ttt-productions/firebase-helpers` 0.12.28.
 - **Release:** `./scripts/release-multiple.sh firebase-helpers monitoring-core notification-core patch`

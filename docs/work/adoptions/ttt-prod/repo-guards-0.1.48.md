@@ -2,7 +2,6 @@
 
 **What:** A new guard fails a stylesheet class that restyles what a ui-core part already sets.
 **Severity:** medium
-**Came from:** the Q-Sports UI-area ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.48.
 - **Release:** `./scripts/release-multiple.sh dev-standards theme-core ui-core repo-guards patch`.

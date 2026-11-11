@@ -2,7 +2,6 @@
 
 **What:** The callable guards know three factory kinds; `resumable` is gone.
 **Severity:** low
-**Came from:** the Q-Sports stats-area ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.45.
 - **Release:** `./scripts/release-multiple.sh q-core query-core repo-guards dev-standards patch`.

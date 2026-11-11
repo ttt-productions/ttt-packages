@@ -2,7 +2,6 @@
 
 **What:** the browser init no longer sends Firestore's multi-tab "update time in the future" console line to Sentry when the two tab clocks read 1 ms apart.
 **Severity:** low
-**Came from:** the Q-Sports browser-monitoring ttt-packages session
 
 - **Package and version:** `@ttt-productions/monitoring-core` 0.13.21.
 - **Release:** `./scripts/release-multiple.sh beacon-core firebase-helpers monitoring-core notification-core query-core repo-guards q-core patch`.

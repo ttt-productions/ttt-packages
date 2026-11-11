@@ -2,7 +2,6 @@
 
 **What:** the rules and the Normal Test Flow now say a gate failure is read from the gate's saved output and diagnosed by a focused rerun, never by a second full run.
 **Severity:** low
-**Came from:** the Q-Sports harness-gate-stage ttt-packages session
 
 - **Package and version:** `@ttt-productions/dev-standards` 0.0.36.
 - **Release:** `./scripts/release-multiple.sh dev-standards repo-guards patch`

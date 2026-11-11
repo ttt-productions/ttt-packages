@@ -2,7 +2,8 @@
 
 **What:** A new shared change-beacon package: the stamp and its schema, the stamp writer, the pure change decision, and the observer hook.
 **Severity:** medium
-**Came from:** the change-beacon ttt-packages session
+
+**Outdated design.** The beacon this release ships is one stamp on a document of its own, replaced whole on every write. The agreed design replaces it: markers are a map keyed by section on a document the browser already listens to (the site config, the thing's own document, the person's own private document), and the server sets one section's marker in the same write as the change. A later beacon-core release changes the package to that. Take the install from this file, and build no page onto the single stamp.
 
 - **Package and version:** `@ttt-productions/beacon-core` 0.0.2 (new).
 - **Release:** `./scripts/release-multiple.sh beacon-core firebase-helpers monitoring-core notification-core query-core repo-guards q-core patch`.

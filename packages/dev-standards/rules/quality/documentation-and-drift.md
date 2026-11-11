@@ -59,3 +59,17 @@ Topic file routed with `quality/`. Read when a task touches design docs, package
 - A findings list kept in a playbook (playbooks are methodology only).
 
 **References.** [../README.md](../README.md); [../../playbooks/README.md](../../playbooks/README.md); [../../development-preferences.md](../../development-preferences.md); RULE-STD-ENG-001, RULE-STD-ENG-002.
+
+### RULE-STD-QUALITY-206 — Nothing points at a temporary document
+**Scope.** both
+
+**Rule.** A temporary document is one that is deleted when its work is done: a work item in any `docs/work/` folder, an adoption file, a raw finding, a project's plan and step docs, a run or evidence folder, a scratch file. No document of any kind names one: not a rule, a design doc, a runbook, a playbook, a workflow, a package doc, an `AGENTS.md`/`CLAUDE.md` entry file, a work item, or an adoption file. No code or code comment names one either. Whatever needs a fact from a temporary document states the fact itself. Where one piece of work depends on another, it says what must be true — the package version installed, the thing that must exist — and never the file that tracks it.
+
+**Why.** A temporary document is deleted on purpose, so every pointer at one goes dead, and whatever leaned on it loses part of its meaning with it. A work item must carry everything needed to build it; a permanent doc must stay true after the work it mentions is finished.
+
+**Prohibits.**
+- A work item, adoption file, or permanent doc naming another work item, an adoption file, a raw finding, a project plan or step doc, a run or evidence folder, or a scratch file, by path or by file name.
+- "The same design as that item", "that item removes it", "waits on that item", "adopt together with that item": the design, the removal, or the condition is stated in the document itself.
+- A code comment or test title that names a work item or a run.
+
+**References.** RULE-STD-QUALITY-201, RULE-STD-QUALITY-205; RULE-STD-ENG-007; [../../work/README.md](../../work/README.md).

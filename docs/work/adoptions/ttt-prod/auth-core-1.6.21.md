@@ -2,7 +2,6 @@
 
 **What:** auth-core holds no password policy or engine settings of its own, owns the account email and password schemas, and owns the maintenance refusal and check.
 **Severity:** high
-**Came from:** the Q-Sports triage-fixes ttt-packages session
 
 - **Package and version:** `@ttt-productions/auth-core` 1.6.21.
 - **Release:** `./scripts/release-multiple.sh auth-core q-core media-viewer repo-guards dev-standards patch`.

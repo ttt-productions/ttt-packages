@@ -2,7 +2,6 @@
 
 **What:** The quiet gate's live stages can wait until a service is ready, not just listening, with a ready check for the Functions emulator.
 **Severity:** medium
-**Came from:** the Q-Sports orchestrator session's repo-guards batch
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.51.
 - **Release:** `./scripts/release-multiple.sh repo-guards patch`.

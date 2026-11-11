@@ -2,7 +2,6 @@
 
 **What:** A repo-guards check that fails a `vi.mock` override that fakes a hook's pending or result state with `useState` / `useReducer` instead of running the real hook over a typed spy.
 **Severity:** low
-**Came from:** the shared-standards Phase 3 repair session (ttt-prod scope), while converting ttt-prod's guided-resolution test
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

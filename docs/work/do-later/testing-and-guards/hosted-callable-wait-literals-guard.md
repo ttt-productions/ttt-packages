@@ -2,7 +2,6 @@
 
 **What:** A check that fails when a hosted E2E spec or helper waits on a callable's response with a hard-coded timeout below the suite's callable commit budget.
 **Severity:** medium
-**Came from:** the ttt-prod hosted E2E TRIAGE session (chrome, mobile, msedge), after the second red of this class
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

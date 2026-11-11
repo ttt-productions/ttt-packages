@@ -153,7 +153,7 @@ Every release of an `@ttt-productions/*` package hands its adoption to each app 
 - **The version it names** is the version the release will publish: one patch above the package's
   `package.json` version before the release.
 - **The file** is one item in the `docs/work/` item format (`<DEV_STANDARDS>/work/README.md`) —
-  **What:** a very high-level line on what changed; **Came from:** the package session — and its
+  **What:** a very high-level line on what changed — and its
   body names the package and version, the release it ships in (the release command's folder list),
   what the app must change (often only the install), and how to know it is done.
 - **The app session adopts them.** At the start of any app session, and after every install, the

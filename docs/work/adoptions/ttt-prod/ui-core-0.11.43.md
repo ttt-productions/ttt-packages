@@ -2,7 +2,6 @@
 
 **What:** `ui-core` gains `PhoneInput`, a box for a phone number declared with `input-format-core`'s phone format.
 **Severity:** low
-**Came from:** the Q-Sports package session that built Q-Sports' contact phone on it
 
 - **Package and version:** `@ttt-productions/ui-core` 0.11.43.
 - **Release:** `./scripts/release-multiple.sh input-format-core ui-core q-core patch`.

@@ -2,7 +2,6 @@
 
 **What:** A new generic guard, `pagesNeverMove`, enforces RULE-STD-FRONTEND-208; every app declares its facts.
 **Severity:** medium
-**Came from:** the Q-Sports triage-fixes ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.52.
 - **Release:** `./scripts/release-multiple.sh auth-core q-core media-viewer repo-guards dev-standards patch`.

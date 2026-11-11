@@ -2,7 +2,6 @@
 
 **What:** Every pending-media shape is plain, the client claim and client context included; a callable input takes their strict copy.
 **Severity:** medium
-**Came from:** the Q-Sports stored-document-schemas-are-plain ttt-packages session
 
 - **Package and version:** `@ttt-productions/media-schemas` 0.14.16 (0.14.15 made the factory's
   shapes plain; 0.14.16 makes the two client shapes plain too).

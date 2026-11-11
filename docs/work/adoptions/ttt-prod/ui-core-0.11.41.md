@@ -2,7 +2,6 @@
 
 **What:** ui-core gains variants for the shared looks theme-core classes restyled, and the shared "…" item actions menu.
 **Severity:** medium
-**Came from:** the Q-Sports UI-area ttt-packages session
 
 - **Package and version:** `@ttt-productions/ui-core` 0.11.41.
 - **Release:** `./scripts/release-multiple.sh dev-standards theme-core ui-core repo-guards patch`.

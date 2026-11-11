@@ -2,7 +2,6 @@
 
 **What:** A check that fails when an E2E spec or helper presses Escape twice with no wait for the first layer to close in between.
 **Severity:** low
-**Came from:** the Q-Sports harness-stage session (Q-Sports scope), 2026-11-10, after the second site of this class, on DJ's yes
 **Trigger:** when DJ has time for the nice-to-have guards
 
 This is a write-up of the item as it is known now, not a finished design.

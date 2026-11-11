@@ -2,7 +2,6 @@
 
 **What:** `input-format-core` gains a phone number format: a US number held as its 10 digits and shown as `814-823-1858`.
 **Severity:** low
-**Came from:** the Q-Sports package session that built Q-Sports' contact phone on it
 
 - **Package and version:** `@ttt-productions/input-format-core` 0.1.5.
 - **Release:** `./scripts/release-multiple.sh input-format-core ui-core q-core patch`.

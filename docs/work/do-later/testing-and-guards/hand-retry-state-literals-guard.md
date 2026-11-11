@@ -2,7 +2,6 @@
 
 **What:** A repo-guards check that fails a test which writes a read's `retryState` as an object literal instead of taking it from query-core's read builders or the real hook.
 **Severity:** low
-**Came from:** the shared-standards Phase 3 repair session (ttt-prod scope), after the last callers of ttt-prod's `withRetryState` test helper moved onto the query-core builders
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

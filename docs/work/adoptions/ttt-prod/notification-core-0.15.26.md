@@ -2,7 +2,6 @@
 
 **What:** The active notification list no longer makes TanStack Query log "No queryFn was passed" on every render.
 **Severity:** low
-**Came from:** the Q-Sports live admin notification list ttt-packages session
 
 - **Package and version:** `@ttt-productions/notification-core` 0.15.26.
 - **Release:** `./scripts/release-multiple.sh firebase-helpers monitoring-core notification-core patch`

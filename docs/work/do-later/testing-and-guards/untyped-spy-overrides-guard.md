@@ -2,7 +2,6 @@
 
 **What:** A repo-guards check that fails a module mock whose override is a bare `vi.fn()` — typed `any`, so the type checker compares nothing.
 **Severity:** low
-**Came from:** the ttt-packages shared-standards Phase 3 repair session (ttt-prod scope), while converting ttt-packages' tests for the `typedMocks` guard
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now — not a full design and not a finished one. The

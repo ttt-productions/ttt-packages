@@ -2,7 +2,6 @@
 
 **What:** The stored-schema guard is renamed `storedDocumentSchemas`.
 **Severity:** low
-**Came from:** the Q-Sports stored-schemas finish and rulebook ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.44. Adopt `repo-guards-0.1.42.md`
   and `repo-guards-0.1.43.md` first, or together.

@@ -2,7 +2,6 @@
 
 **What:** A repo-guards check that fails a code file holding the literal U+F8FF character (or any Unicode private-use character) instead of its escape.
 **Severity:** low
-**Came from:** the Q-Sports 2.0 migration's paths step (Q-Sports scope), 2026-11-04, on DJ's yes
 **Trigger:** when DJ has time for the nice-to-have guards
 
 This is a write-up of the item as it is known now, not a finished design.

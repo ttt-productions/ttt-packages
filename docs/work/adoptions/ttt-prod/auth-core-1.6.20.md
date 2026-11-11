@@ -2,7 +2,6 @@
 
 **What:** auth-core owns the password policy and a registration that finishes or fails: a server engine, a registration hold, and the register-then-sign-in client flow.
 **Severity:** high
-**Came from:** the Q-Sports registration-finishes-or-fails ttt-packages session
 
 - **Package and version:** `@ttt-productions/auth-core` 1.6.20.
 - **Release:** `./scripts/release-multiple.sh auth-core ttt-core q-core media-viewer patch`.

@@ -2,7 +2,6 @@
 
 **What:** A new shared short-link package: the link document and its id, the create and lookup cores, and the redirect page.
 **Severity:** medium
-**Came from:** the Q-Sports QR invite build ttt-packages session
 
 - **Package and version:** `@ttt-productions/short-link-core` 0.0.2 (new).
 - **Release:** `./scripts/release-multiple.sh short-link-core ui-core q-core patch`.

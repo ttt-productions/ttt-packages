@@ -180,6 +180,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-QUALITY-202 | No drift-prone inventories in permanent docs | codebase-hygiene 27; observability 7; react-leak-audit 8 | — |
 | RULE-STD-QUALITY-203 | New or changed patterns update the owning playbook step | codebase-hygiene 69, 75 | — |
 | RULE-STD-QUALITY-205 | Doc taxonomy: each home keeps its distinct purpose | codebase-hygiene 30, 69 | — |
+| RULE-STD-QUALITY-206 | Nothing points at a temporary document | codebase-hygiene 27 | — |
 
 ## COMMENT
 

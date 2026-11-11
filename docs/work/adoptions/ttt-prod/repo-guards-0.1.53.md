@@ -2,7 +2,6 @@
 
 **What:** The Firestore write guard resolves the documents a helper reads from a query it was given at each call site.
 **Severity:** low
-**Came from:** the Q-Sports triage-fixes ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.53.
 - **Release:** `./scripts/release-multiple.sh repo-guards patch`.

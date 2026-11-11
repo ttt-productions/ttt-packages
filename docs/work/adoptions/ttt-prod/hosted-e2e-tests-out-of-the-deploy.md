@@ -2,7 +2,6 @@
 
 **What:** ttt-prod's release workflow stops running the tests of the hosted E2E tool; they run only in the local gate.
 **Severity:** medium
-**Came from:** the Q-Sports 2.0 push step, where the first V2 deploy of `develop` failed on three hosted E2E tool tests that open a browser the deploy machine does not have
 **Trigger:** ttt-prod's adoption of the shared hosted-dev E2E package. Q-Sports' shared hosted-dev
 E2E code moves into ttt-packages once DJ has verified Q-Sports' hosted paths green
 (`docs/work/do-later/testing-and-guards/shared-e2e-primitives-package.md`); ttt-prod then adopts

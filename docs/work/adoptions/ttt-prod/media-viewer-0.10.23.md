@@ -2,7 +2,6 @@
 
 **What:** MediaPreview draws its own recovery screens from a download state the app hands it, and its Retry is ui-core's Button.
 **Severity:** low
-**Came from:** the Q-Sports registration-finishes-or-fails ttt-packages session
 
 - **Package and version:** `@ttt-productions/media-viewer` 0.10.23.
 - **Release:** `./scripts/release-multiple.sh auth-core ttt-core q-core media-viewer patch`.

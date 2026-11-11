@@ -2,7 +2,6 @@
 
 **What:** The Admin in-memory Firestore test kit answers `listDocuments()` and `listCollections()`.
 **Severity:** low
-**Came from:** the Q-Sports 5c test-tree session
 
 - **Package and version:** `@ttt-productions/firebase-helpers` 0.12.25.
 - **Release:** `./scripts/release-multiple.sh firebase-helpers patch`.

@@ -2,7 +2,6 @@
 
 **What:** A repo-guards check that fails a `vi.mock` override of a module that nothing the test renders or calls can reach.
 **Severity:** low
-**Came from:** the shared-standards Phase 3 repair session (ttt-prod scope), while removing `useUploadProcessing` overrides from thirteen ttt-prod tests
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

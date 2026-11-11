@@ -2,7 +2,6 @@
 
 **What:** One generic mechanism for claiming a unique display name inside a transaction — the key rule, plan and apply halves, release on rename, retiring a name — so both products use one owner.
 **Severity:** low
-**Came from:** the Q-Sports 2.0 migration orchestrator, 2026-11-01, on DJ's instruction to write up what moving the shared name logic into packages would need.
 **Trigger:** DJ decides the name-reservation logic is shared between the products; at the latest, when ttt-prod consolidates its own copies (ttt-prod `docs/work/waiting-to-be-implemented/display-name-reservation-has-one-owner.md`).
 
 ## Why

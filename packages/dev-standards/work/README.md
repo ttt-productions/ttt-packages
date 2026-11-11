@@ -51,7 +51,6 @@ Every item starts with the same header, so moving it between folders never means
 
 **What:** <one line>
 **Severity:** high | medium | low
-**Came from:** <the review, investigation, or session that found it>
 **Trigger:** <the event that makes it real work — do-later/, blocked/, and maybe-ideas/ only>
 ```
 
@@ -65,6 +64,11 @@ what is out of scope, whether it is app-side, packages-side, or both, and how to
 that describe what it changes (RULE-STD-ENG-007), and finds them as they are on that day. A list
 written into the item earlier names docs that have since been renamed, merged, or deleted, so no
 item carries a "docs that change" section or a line saying which docs to edit.
+
+**An item never points at a temporary document** (RULE-STD-QUALITY-206): not another item, an
+adoption file, a raw finding, a project doc, a run folder or a scratch file. It carries everything
+needed to build it, and where it depends on other work it says what must be true. It names no
+session, review or run it came from.
 
 ## Who reads and writes here
 

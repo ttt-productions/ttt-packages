@@ -2,7 +2,6 @@
 
 **What:** The upload tray's adapter can name the origins it follows; rows of any other origin are ignored.
 **Severity:** low
-**Came from:** the Q-Sports one-upload-path ttt-packages session
 
 - **Package and version:** `@ttt-productions/upload-ui` 0.7.22.
 - **Release:** `./scripts/release-multiple.sh media-schemas upload-ui q-core patch`.

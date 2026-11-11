@@ -2,7 +2,6 @@
 
 **What:** A new guard fails any use of a mutation's `mutate` in app code.
 **Severity:** medium
-**Came from:** the Q-Sports one-mutation-call-style ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.47.
 - **Release:** `./scripts/release-multiple.sh dev-standards repo-guards patch`.

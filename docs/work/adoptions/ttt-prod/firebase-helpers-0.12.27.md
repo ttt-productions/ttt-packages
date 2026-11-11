@@ -2,7 +2,6 @@
 
 **What:** `initFirebaseClient` gains an opt-in `firestoreLogLevel` option that sets the Firestore SDK's log level.
 **Severity:** low
-**Came from:** the Q-Sports Firestore-diagnostics ttt-packages session
 
 - **Package and version:** `@ttt-productions/firebase-helpers` 0.12.27.
 - **Release:** `./scripts/release-multiple.sh beacon-core firebase-helpers monitoring-core notification-core query-core repo-guards q-core patch`.

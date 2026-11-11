@@ -2,7 +2,6 @@
 
 **What:** A repo-guards check that fails a transaction read written as "read up to N+1, throw if over N" by hand instead of through the app's one bounded-read owner.
 **Severity:** low
-**Came from:** the triage-fixes session (Q-Sports scope), which moved twelve hand-written copies onto Q-Sports' owner, `readBoundedInTransaction` (`functions/src/shared/bounded-read.ts`)
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

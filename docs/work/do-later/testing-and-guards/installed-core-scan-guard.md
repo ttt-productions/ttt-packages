@@ -2,7 +2,6 @@
 
 **What:** A repo-guards option that runs the source checks an app already runs over its own code over its installed application-data package too (q-core in Q-Sports, ttt-core in ttt-prod), so the core's code is held to the same rules.
 **Severity:** low
-**Came from:** Q-Sports' `docs/work/do-later/scan-installed-core.md` (the `ttt-parity` move of q-core into ttt-packages), moved here and rewritten as one repo-guards mechanism on DJ's call, 2026-11-01
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

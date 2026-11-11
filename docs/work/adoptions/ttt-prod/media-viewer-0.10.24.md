@@ -2,7 +2,6 @@
 
 **What:** MediaPreview tells the app when a picture's spot is in view and which stored size its drawn width needs; the unavailable screen has no Retry.
 **Severity:** medium
-**Came from:** the Q-Sports triage-fixes ttt-packages session
 
 - **Package and version:** `@ttt-productions/media-viewer` 0.10.24.
 - **Release:** `./scripts/release-multiple.sh auth-core q-core media-viewer repo-guards dev-standards patch`.

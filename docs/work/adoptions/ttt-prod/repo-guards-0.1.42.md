@@ -2,7 +2,6 @@
 
 **What:** A new guard fails any strict, passthrough, or catchall object in a stored-document schema; ttt-core's stored schemas become plain to pass it.
 **Severity:** medium
-**Came from:** the Q-Sports stored-document-schemas-are-plain ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.42 (0.1.41 first shipped the guard;
   0.1.42 makes it read the installed core build, so the suite counts it as checking something).

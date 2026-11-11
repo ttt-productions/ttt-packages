@@ -2,7 +2,6 @@
 
 **What:** theme-core drops its `!important` patches and the unused `.form-select-trigger`.
 **Severity:** low
-**Came from:** the Q-Sports UI-area ttt-packages session
 
 - **Package and version:** `@ttt-productions/theme-core` 0.12.17.
 - **Release:** `./scripts/release-multiple.sh dev-standards theme-core ui-core repo-guards patch`.

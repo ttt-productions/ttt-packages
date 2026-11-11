@@ -2,7 +2,6 @@
 
 **What:** Move Q-Sports' drawn-signature mechanism into a generic ttt-packages package, so ttt-prod imports it instead of building a second copy.
 **Severity:** medium
-**Came from:** DJ, 2026-10-30, in the orchestration conversation (ttt-prod item `typed-name-and-signature-at-binding-moments.md`)
 **Trigger:** Q-Sports' 2.0 migration passes its hosted dev E2E tests with the signature mechanism still in the app. Then this package is built, Q-Sports adopts it and passes the same hosted dev E2E tests again, and only then does ttt-prod import it.
 
 ## Why

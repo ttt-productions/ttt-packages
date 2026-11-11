@@ -2,7 +2,6 @@
 
 **What:** The in-memory client store's `store.seed(path, data)` accepts any shape, so a test can seed a document its collection's schema rejects; a seed typed by the path builder's document type would stop it.
 **Severity:** low
-**Came from:** the shared-standards Phase 3 repair session (ttt-prod scope), while moving ttt-prod's `use-guild-invite-finalization` test onto the shared Firestore fake
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

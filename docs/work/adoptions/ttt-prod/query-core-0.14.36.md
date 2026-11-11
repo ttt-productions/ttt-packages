@@ -2,7 +2,8 @@
 
 **What:** `createAppConfig` no longer has refused levers: a stored app-config value that does not match the app's schema makes the config unavailable and is reported, never read as a default.
 **Severity:** medium
-**Came from:** the Q-Sports app-config guard removal ttt-packages session
+
+**Outdated design.** This release still reads a missing setting as its default, and reports a failed read and an unreadable document as one `unavailable` state. The agreed design replaces both: no setting has a default anywhere, and `createAppConfig` hands out no settings before the document is read and reports a failed read and a missing or invalid document apart. A later query-core release changes it. Take the install from this file, and build nothing on a default.
 
 - **Package and version:** `@ttt-productions/query-core` 0.14.36.
 - **Release:** `./scripts/release-multiple.sh query-core q-core patch`.

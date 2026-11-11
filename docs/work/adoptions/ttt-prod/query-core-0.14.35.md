@@ -2,7 +2,6 @@
 
 **What:** The resumable callable factory is deleted.
 **Severity:** low
-**Came from:** the Q-Sports stats-area ttt-packages session
 
 - **Package and version:** `@ttt-productions/query-core` 0.14.35.
 - **Release:** `./scripts/release-multiple.sh q-core query-core repo-guards dev-standards patch`.

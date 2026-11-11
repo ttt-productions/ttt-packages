@@ -2,7 +2,6 @@
 
 **What:** Move monitoring-core and both apps from Sentry 10 to Sentry 11, keeping every telemetry guarantee.
 **Severity:** low
-**Came from:** the Q-Sports orchestrator session (audit stage), on DJ's word
 **Trigger:** when DJ has time to work it through and test it
 
 This is a write-up of the item as it is known now, not a finished design.

@@ -2,7 +2,6 @@
 
 **What:** Move ttt-prod's Stripe pipeline out of the app into a generic package, and grow it to cover subscriptions and, if ever needed, paying out to third parties.
 **Severity:** low
-**Came from:** DJ, 2026-10-31, in the Q-Sports multi-organization end-state conversation
 **Trigger:** A second product needs to take money — Q-Sports charging an organization for league access, or upgraded player accounts — or ttt-prod adds a second checkout product (Bouquets).
 
 ## Why

@@ -380,17 +380,22 @@ public surface needs it. `ts-prune` is not a dependency; `npx`-fetching it leave
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 27. Documentation drift
-**Rules:** RULE-STD-QUALITY-201, RULE-STD-QUALITY-202, RULE-STD-ENG-008. **Scope:** the app's design
-docs (`<DESIGN_DOCS>`). **Method (semantic review + one locator).**
+**Rules:** RULE-STD-QUALITY-201, RULE-STD-QUALITY-202, RULE-STD-QUALITY-206, RULE-STD-ENG-008. **Scope:** the app's design
+docs (`<DESIGN_DOCS>`), and every doc and code tree for a pointer at a temporary document. **Method (semantic review + two locators).**
 ```bash
 rg -n -i "not yet built|approved but not yet|status:\s*(proposed|in-progress)|\(planned\)|eventual implementation|will be built" docs/design -g '*.md'
+# A pointer at a temporary document: a work item, adoption file, raw finding, project doc, run folder, or scratch file.
+rg -n "docs/work/[a-z-]+/[^ )\`]+|adoptions/[a-z-]+/|raw-findings/|\.run-logs/|claude-scratchpad" . -g '!node_modules' -g '!.next' -g '!build' -g '!dist'
 ```
 **Expected:** for each design doc, spot-check signatures, field names, flows, and callable names against
 the code — the code is the truth. Every status marker the command prints is checked: a feature it calls
 unbuilt that the code has built (or the reverse) is drift. Where two sections or two docs state one
 behavior, they agree — a contradiction is drift even when one side matches the code. Fix only small,
 unambiguous mechanical drift, and only when doc editing is authorized; surface substantive
-disagreement with a recommended resolution, never silently picking one.
+disagreement with a recommended resolution, never silently picking one. The second command prints
+nothing: a doc, a work item, an adoption file, or code that names a temporary document states the fact
+itself, or says what must be true, instead (a line that names a work folder as a place, with no
+document in it, is not a hit).
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 28. E2E hygiene

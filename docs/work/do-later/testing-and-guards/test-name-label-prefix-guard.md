@@ -2,7 +2,6 @@
 
 **What:** A repo-guards check that fails a test name (`describe` / `it` / `test`) that opens with an all-caps label and a colon (`CONCURRENT EDIT: …`, `FAIL-CLOSED: …`).
 **Severity:** low
-**Came from:** the shared-standards Phase 3 repair session (ttt-prod scope), while working the HIGH review's test-name findings
 **Trigger:** after launch, when DJ turns to improving the test code
 
 This is a write-up of the item as it is known now, not a finished design.

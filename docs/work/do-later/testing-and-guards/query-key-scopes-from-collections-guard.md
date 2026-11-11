@@ -4,7 +4,6 @@
 collection constant names that thing, and a non-collection scope whose name is not compound
 camelCase.
 **Severity:** low
-**Came from:** the Q-Sports 2.0 orchestrator, talked through with DJ (the naming grammar)
 **Trigger:** after launch, when DJ turns to improving the guards
 
 This is a write-up of the item as it is known now, not a finished design.

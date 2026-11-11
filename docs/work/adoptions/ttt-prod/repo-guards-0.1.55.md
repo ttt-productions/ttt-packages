@@ -2,7 +2,6 @@
 
 **What:** the quiet gate now saves every step's full output to a folder the app's gate config must name.
 **Severity:** medium
-**Came from:** the Q-Sports harness-gate-stage ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.55.
 - **Release:** `./scripts/release-multiple.sh dev-standards repo-guards patch`

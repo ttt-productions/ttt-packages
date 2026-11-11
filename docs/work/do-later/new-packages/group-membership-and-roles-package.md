@@ -2,7 +2,6 @@
 
 **What:** A generic package for "a group with members, each holding roles that grant actions inside that group" — the mechanism both products have each built on their own.
 **Severity:** low
-**Came from:** DJ, 2026-10-31, in the Q-Sports multi-organization end-state conversation
 **Trigger:** A product needs a third group-with-roles concept — the first one being Q-Sports' organization layer (a bowling alley, a game group, or a club that owns its own leagues and admins) — or a new product needs groups at all.
 
 ## Why

@@ -2,7 +2,8 @@
 
 **What:** The active notification list is a live window with Show more up to an app-set ceiling, replacing the 30-second poll and the Previous / Next pager.
 **Severity:** medium
-**Came from:** the Q-Sports live admin notification list ttt-packages session
+
+**Outdated design.** In this release the archive hooks refresh their keys by calling TanStack themselves. The agreed design has one owner for every refresh, in query-core, and a later notification-core release moves these hooks onto it. Take the install and the live list from this file as written.
 
 - **Package and version:** `@ttt-productions/notification-core` 0.15.25.
 - **Release:** `./scripts/release-multiple.sh beacon-core firebase-helpers monitoring-core notification-core query-core repo-guards q-core patch`. Adopt it with

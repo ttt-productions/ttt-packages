@@ -2,7 +2,6 @@
 
 **What:** the browser init no longer attaches the page's ordinary console output to error events as breadcrumbs.
 **Severity:** low
-**Came from:** the Q-Sports browser-monitoring ttt-packages session
 
 - **Package and version:** `@ttt-productions/monitoring-core` 0.13.22.
 - **Release:** `./scripts/release-multiple.sh firebase-helpers monitoring-core notification-core patch`

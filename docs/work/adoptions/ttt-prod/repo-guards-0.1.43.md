@@ -2,7 +2,6 @@
 
 **What:** The stored-schema guard also fails a union of object shapes with no discriminator; ttt-core has two to discriminate.
 **Severity:** medium
-**Came from:** the Q-Sports stored-document-schemas-are-plain ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.43. Adopt `repo-guards-0.1.42.md`
   first, or together.

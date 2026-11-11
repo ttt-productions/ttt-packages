@@ -2,7 +2,6 @@
 
 **What:** the quiet gate prints the end of a failed step's output, and names a file whose hook failed truthfully.
 **Severity:** low
-**Came from:** the Q-Sports harness-gate-stage ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.56.
 - **Release:** `./scripts/release-multiple.sh repo-guards patch`

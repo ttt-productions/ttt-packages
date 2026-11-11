@@ -2,7 +2,6 @@
 
 **What:** The app-route guard also fails a hand-typed home link (`/`).
 **Severity:** low
-**Came from:** the Q-Sports paths-setup ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.49.
 - **Release:** `./scripts/release-multiple.sh repo-guards patch`.

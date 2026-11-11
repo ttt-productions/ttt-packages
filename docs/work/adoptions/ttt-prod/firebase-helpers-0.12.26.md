@@ -2,7 +2,6 @@
 
 **What:** The unused batched-write helpers `commitInBatches` and `batchSet` are deleted.
 **Severity:** low
-**Came from:** the Q-Sports data-rules ttt-packages session
 
 - **Package and version:** `@ttt-productions/firebase-helpers` 0.12.26.
 - **Release:** `./scripts/release-multiple.sh notification-core firebase-helpers q-core dev-standards patch`.

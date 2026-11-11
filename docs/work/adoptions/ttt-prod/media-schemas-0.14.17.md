@@ -2,7 +2,6 @@
 
 **What:** An origin's spec carries a second upload setting, `allowSignedOut`, beside `preserveOriginal`.
 **Severity:** medium
-**Came from:** the Q-Sports one-upload-path ttt-packages session
 
 - **Package and version:** `@ttt-productions/media-schemas` 0.14.17.
 - **Release:** `./scripts/release-multiple.sh media-schemas upload-ui q-core patch`.

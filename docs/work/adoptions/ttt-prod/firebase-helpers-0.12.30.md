@@ -2,7 +2,6 @@
 
 **What:** `./client` exports the Auth boot guard's request fragments, retry delays and attempt count.
 **Severity:** low
-**Came from:** the Q-Sports auth-boot ttt-packages session
 
 - **Package and version:** `@ttt-productions/firebase-helpers` 0.12.30.
 - **Release:** `./scripts/release-multiple.sh firebase-helpers patch`.

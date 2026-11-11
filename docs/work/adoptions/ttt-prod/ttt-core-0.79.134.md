@@ -2,7 +2,6 @@
 
 **What:** ttt-core's password length constants and validator are removed; the password policy is auth-core's.
 **Severity:** high
-**Came from:** the Q-Sports registration-finishes-or-fails ttt-packages session
 
 - **Package and version:** `@ttt-productions/ttt-core` 0.79.134.
 - **Release:** `./scripts/release-multiple.sh auth-core ttt-core q-core media-viewer patch`.

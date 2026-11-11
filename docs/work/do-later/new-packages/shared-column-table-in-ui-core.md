@@ -2,7 +2,6 @@
 
 **What:** The sortable column table with presets, a view menu and a saved view moves from Q-Sports into `ui-core` as a generic table over any row type; an app supplies only its column catalog, its rows and its saved-view key.
 **Severity:** medium
-**Came from:** the Q-Sports 2.0 migration orchestrator, 2026-11-03, on DJ's instruction during area 6a (the guard suite), where the stats table's cast was fixed by keeping each sport's own row type through to the table.
 **Trigger:** DJ pulls it in when he has the time.
 
 ## Why

@@ -2,7 +2,6 @@
 
 **What:** ui-core gains a themed `QrCode` component.
 **Severity:** low
-**Came from:** the Q-Sports QR invite build ttt-packages session
 
 - **Package and version:** `@ttt-productions/ui-core` 0.11.42.
 - **Release:** `./scripts/release-multiple.sh short-link-core ui-core q-core patch`.

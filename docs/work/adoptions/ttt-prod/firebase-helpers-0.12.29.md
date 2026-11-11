@@ -2,7 +2,6 @@
 
 **What:** The Auth boot lookup guard also guards the boot token refresh: a session the server ended reads as identity, and an outage no longer drops the session.
 **Severity:** medium
-**Came from:** the Q-Sports auth-boot ttt-packages session
 
 - **Package and version:** `@ttt-productions/firebase-helpers` 0.12.29.
 - **Release:** `./scripts/release-multiple.sh firebase-helpers patch`.

@@ -2,7 +2,6 @@
 
 **What:** Move the Firebase Functions codebase builder — the manifest-driven esbuild bundler and the CI codebase selector — out of each app and into one shared package both products call with their own facts.
 **Severity:** low
-**Came from:** DJ, 2026-10-31, in the Q-Sports ttt-parity section 5a conversation
 **Trigger:** Either app needs a change to how its Functions codebases are built or selected, or a third product needs Functions codebases at all.
 
 ## Why

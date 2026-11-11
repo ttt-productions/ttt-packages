@@ -2,7 +2,6 @@
 
 **What:** The `appCheck` guard takes consuming gates: another auth call whose callables also consume their App Check token.
 **Severity:** low
-**Came from:** the Q-Sports 5b ttt-packages-batch session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.40.
 - **Release:** `./scripts/release-multiple.sh repo-guards q-core patch`.

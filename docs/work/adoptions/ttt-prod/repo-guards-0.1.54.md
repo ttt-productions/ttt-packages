@@ -2,7 +2,6 @@
 
 **What:** The guard reader walks only authored files, an unreadable path is a named finding, a failing git command carries git's own reason, and the live-subscription guard counts package exports that always subscribe.
 **Severity:** medium
-**Came from:** the Q-Sports repo-guards walk ttt-packages session
 
 - **Package and version:** `@ttt-productions/repo-guards` 0.1.54.
 - **Release:** `./scripts/release-multiple.sh beacon-core firebase-helpers monitoring-core notification-core query-core repo-guards q-core patch`.

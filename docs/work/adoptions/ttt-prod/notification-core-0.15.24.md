@@ -2,7 +2,6 @@
 
 **What:** notification-core exports `activityGenerationSchema`, the one schema for the activity generation it mints.
 **Severity:** low
-**Came from:** the Q-Sports data-rules ttt-packages session
 
 - **Package and version:** `@ttt-productions/notification-core` 0.15.24.
 - **Release:** `./scripts/release-multiple.sh notification-core firebase-helpers q-core dev-standards patch`.
