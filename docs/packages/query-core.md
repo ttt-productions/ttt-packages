@@ -215,9 +215,10 @@ imports no toast or monitoring module (RULE-STD-QUALITY-102):
 ## `createCallablePolicy` — the one callable failure policy
 
 An app does not write its `CallablePolicy` by hand. `createCallablePolicy(definition)` (`./react`)
-takes the app's values and returns `{ policy, describeCallableError, captureCallableFault,
-isCallableRejection, isExpectedCallableAnswer, isAnswerSurfacedElsewhere, callableRejectionMessage,
-callableRefusalMessage }`: the `CallablePolicy` `createCallables` binds, and the classification
+takes the app's values and returns `{ policy, callableFailureKind, callableFailureToast,
+describeCallableError, captureCallableFault, isCallableRejection, isExpectedCallableAnswer,
+isAnswerSurfacedElsewhere, callableRejectionMessage, callableRefusalMessage }`
+(`CallablePolicyKit<TToast>`): the `CallablePolicy` `createCallables` binds, and the classification
 helpers the app's own surfaces use. How a failure is classified, the order the checks run in, what
 is reported at what level, and which case gets which toast are written here once.
 
@@ -255,6 +256,18 @@ is reported at what level, and which case gets which toast are written here once
 
 A failure routed there also counts as a callable rejection (`isCallableRejection`), whatever its
 code.
+
+**The kind of a failure** (`callableFailureKind(error)`, a `CallableFailureKind`): steps 5–10 as one
+decision — `'connection-dropped'`, `'not-sent'`, `'token-refused'`, `'outcome-unknown'`,
+`'maintenance'`, or `'other'`. The routing, the reporting, and the describing all read this one
+function, so a caller that handles its own failures (a call declared with no toast) takes the kind
+from it instead of deciding it again.
+
+**The toast for a failure** (`callableFailureToast(error)`), for a caller that shows its own
+failures: the app's toast (`TToast`) that steps 5–10 would show, its description resolved — the
+matching slot, `maintenance` with the operator's message, or `genericError` described by
+`describeCallableError`. The routing shows exactly this toast; `callableFailureToast` shows nothing
+itself. It does not look at steps 1–4: the caller that asks has already decided to show one.
 
 **Reporting** (`captureCallableFault`, the policy's `captureFault`): a recovered limited-use
 fallback (`isRecoveredFallbackReport`) reports its warning; an expected answer — a designed refusal

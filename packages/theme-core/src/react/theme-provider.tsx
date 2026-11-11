@@ -1,14 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from 'next-themes';
+import {
+  ThemeProvider as NextThemesProvider,
+  type ThemeProviderProps as NextThemesProviderProps,
+} from 'next-themes';
 import { REQUIRED_TOKENS } from '../required-tokens.js';
 import { THEME_NAMES } from '../themes.js';
 
 const THEME_LIST: string[] = [...THEME_NAMES];
-
-// next-themes' own default, the key it stores the theme under when no storageKey is passed.
-const NEXT_THEMES_DEFAULT_STORAGE_KEY = 'theme';
 
 const ThemeStorageKeyContext = React.createContext<string | null>(null);
 
@@ -40,19 +40,22 @@ function warnMissingTokens() {
   }
 }
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+type ThemeProviderProps = Omit<NextThemesProviderProps, 'storageKey'> & { storageKey: string };
+
+export function ThemeProvider({ children, storageKey, ...props }: ThemeProviderProps) {
   React.useEffect(() => {
     if (process.env.NODE_ENV !== 'production') warnMissingTokens();
   }, []);
 
   return (
-    <ThemeStorageKeyContext.Provider value={props.storageKey ?? NEXT_THEMES_DEFAULT_STORAGE_KEY}>
+    <ThemeStorageKeyContext.Provider value={storageKey}>
       <NextThemesProvider
         attribute="class"
         defaultTheme="system"
         enableSystem
         themes={THEME_LIST}
         {...props}
+        storageKey={storageKey}
       >
         {children}
       </NextThemesProvider>

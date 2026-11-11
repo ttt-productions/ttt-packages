@@ -1,6 +1,6 @@
 'use client';
 
-import { createDevicePreferenceStore } from '@ttt-productions/theme-core/react';
+import { createDevicePreferenceStore } from '@ttt-productions/storage-core/react';
 import { parseStoredConsent, type ConsentState } from '../consent-state.js';
 
 export interface ConsentStoreConfig {

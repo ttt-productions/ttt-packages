@@ -14,7 +14,14 @@ import { packageSource } from './workspace';
 // sets nothing the part's built-in utilities set to another value.
 
 /** Promised on every ui-core part: each composes with every part, in every variant, on every property. */
-const COMPOSES_WITH_EVERY_PART = ['stack-1', 'stack-2', 'stack-3', 'stack-4', 'stack-6'];
+const COMPOSES_WITH_EVERY_PART = [
+  'stack-1',
+  'stack-2',
+  'stack-3',
+  'stack-4',
+  'stack-6',
+  'machine-text',
+];
 
 /** For plain elements: not promised on a part, where the app guard judges each use. */
 const PLAIN_ELEMENT_ONLY = [
@@ -24,6 +31,7 @@ const PLAIN_ELEMENT_ONLY = [
   'three-line-clamp',
   'single-line-truncate',
   'name-piece',
+  'inline-name',
 ];
 
 const sources = packageSource(['code', 'stylesheet']);

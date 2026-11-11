@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { createDevicePreferenceStore } from '../src/react/device-preference-store.js';
+import { readStoredValue, writeStoredValue } from '../src/device-storage.js';
 
 // Values held for a blocked page live for the module's life, so every test takes its own keys.
 let nextPrefix = 0;
@@ -138,6 +139,21 @@ describe('createDevicePreferenceStore with blocked storage', () => {
     expect(screen.getByTestId('value')).toHaveTextContent('large');
     act(() => store.clear());
     expect(screen.getByTestId('value')).toHaveTextContent('standard');
+  });
+
+  it('shares the page-life value with every other reader and writer of its key', () => {
+    for (const method of ['getItem', 'setItem', 'removeItem'] as const) {
+      vi.spyOn(Storage.prototype, method).mockImplementation(() => {
+        throw blocked();
+      });
+    }
+    const { store, storageKey } = newSizeStore();
+    store.set('large');
+    expect(readStoredValue(storageKey)).toBe('large');
+    writeStoredValue(storageKey, null);
+    expect(store.get()).toBe('standard');
+    writeStoredValue(storageKey, 'large');
+    expect(store.get()).toBe('large');
   });
 
   it('renders the fallback when reading window.localStorage throws, and a save still applies', () => {

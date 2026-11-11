@@ -20,7 +20,7 @@ Where code lives, who owns it, and how domains compose. Read this file in full w
 async function runX(input: XInput, callerUid?: string, transaction?: Transaction): Promise<XResult>
 ```
 
-Create `runX(...)` before a domain's second entry point lands — not after the drift starts. Reads follow the same single-owner principle: components never import `firebase/firestore` directly — every read goes through a React Query hook in `src/hooks/` (exceptions: inside a `queryFn`, root-provider hydration). Storage included: final paths are backend-owned; clients upload only to `uploads/{origin}/{uid}/{fileId}`.
+Create `runX(...)` before a domain's second entry point lands — not after the drift starts. Reads follow the same single-owner principle: components never import `firebase/firestore` directly — every read goes through a React Query hook in `src/hooks/` (the one exception: inside a `queryFn`; RULE-STD-FRONTEND-104). Storage included: final paths are backend-owned; clients upload only to `uploads/{origin}/{uid}/{fileId}`.
 
 **Why.** Permission checks, caps, validation, audit, and writes live in one place — no drift between entry points' or callers' versions of the same logic.
 

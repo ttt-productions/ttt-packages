@@ -22,18 +22,9 @@
     the chevron, so a one-line child clips instead of widening the page. Accordions look as before.
 - **What the app must change:**
   - The install.
-  - Every hand-placed `.single-line-truncate` and `.three-line-clamp` in ttt-prod's `src` moves onto
-    `ClippedText`, a mechanical swap: `<h2 className="x single-line-truncate" title={t}>{t}</h2>`
-    becomes `<ClippedText asChild text={t} className="x"><h2 /></ClippedText>`; a plain `span`
-    becomes `<ClippedText text={t} />`; a three-line block takes `lines={3}`. The element, its other
-    classes and props stay as they were; a hand-written `title` holding the same text goes, since
-    the component sets it. A use whose content is not one plain string fits no swap and is left and
-    reported, never improvised.
-  - Nothing to change for the accordion.
+  - Nothing to change for `ClippedText` or the accordion.
   - Install mobile-core 0.9.8 or later beside ui-core. Remove any keyboard handling a dialog does
     itself: a `useKeyboard`, `useKeepFocusedInputVisible` (or the app's motion adapter for it) or
     `KeyboardAvoidingView` call placed in dialog content, and any private keyboard-height or
     visual-viewport hook written for dialogs. The app's page-level `ViewportHeightSetter` stays.
-- **Done when:** ttt-prod's lockfile names `@ttt-productions/ui-core` 0.11.44 or later, and no
-  `.tsx` in ttt-prod's `src` names `single-line-truncate` or `three-line-clamp` outside a reported
-  leftover, and no dialog content calls a keyboard or visual-viewport hook itself.
+- **Done when:** ttt-prod's lockfile names `@ttt-productions/ui-core` 0.11.44 or later, and no dialog content calls a keyboard or visual-viewport hook itself.

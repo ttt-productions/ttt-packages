@@ -22,6 +22,29 @@ function renderTrigger(pending?: boolean, onOpenChange = vi.fn(), disabled?: boo
   );
 }
 
+describe('Select — a long option clips through ClippedText', () => {
+  const LONG = 'An option label long enough that it never fits inside a narrow trigger';
+
+  it('the chosen value in the trigger is clipped text whose title is the whole label', () => {
+    render(
+      <Select value="long">
+        <SelectTrigger aria-label="League">
+          <SelectValue placeholder="Pick one" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="long">{LONG}</SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+    const trigger = screen.getByRole('combobox', { name: 'League' });
+    const clipped = [...trigger.querySelectorAll(`[title="${LONG}"]`)];
+    expect(clipped).toHaveLength(1);
+    expect(clipped[0]).toHaveClass('single-line-truncate');
+    expect(clipped[0]).toHaveTextContent(LONG);
+    expect(trigger.className).not.toMatch(/line-clamp|truncate/);
+  });
+});
+
 describe('SelectTrigger', () => {
   it('pending: marks the trigger unavailable and busy, and swaps the chevron for the spinner', () => {
     const { container } = renderTrigger(true);

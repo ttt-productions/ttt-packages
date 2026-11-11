@@ -2799,7 +2799,7 @@ describe('MUST PASS — ordinary dispatch whose own members supply the method', 
     expect(result.notFirestore.length).toBe(3);
   });
 
-  it("a theme-core device-preference store's .set(value) is browser storage, not a Firestore write", () => {
+  it("a storage-core device-preference store's .set(value) is browser storage, not a Firestore write", () => {
     const result = analyze(`
       import { createDevicePreferenceStore } from '@fixture/theme/react';
       const sizeStore = createDevicePreferenceStore<string>({ storageKey: 'k', changeEvent: 'e', parse: (s) => s, serialize: (v) => v, fallback: 'm' });

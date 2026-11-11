@@ -1,0 +1,44 @@
+{
+  "name": "@ttt-productions/sweep-core",
+  "version": "0.0.1",
+  "description": "Generic scheduled sweeps: the saved position, the Auth full scan, and the walks with and without a retry list",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+    "directory": "packages/sweep-core"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@ttt-productions/firebase-helpers": "*",
+    "zod": "^4.6.7"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  },
+  "author": "DJ (TTT Productions)",
+  "license": "MIT"
+}

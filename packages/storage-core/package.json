@@ -1,0 +1,56 @@
+{
+    "name": "@ttt-productions/storage-core",
+    "version": "0.0.1",
+    "description": "Guarded browser storage: the one read and write of local and session storage, which holds a value in memory when the browser blocks site data, and the device-preference store built on it. Tier 0 — no dependencies; React is an optional peer of ./react.",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/storage-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./react": {
+            "types": "./dist/react/index.d.ts",
+            "default": "./dist/react/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "peerDependencies": {
+        "react": ">=19.0.0"
+    },
+    "peerDependenciesMeta": {
+        "react": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0"
+    },
+    "keywords": [
+        "storage",
+        "localStorage",
+        "sessionStorage",
+        "preferences"
+    ],
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}

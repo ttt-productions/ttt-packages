@@ -33,6 +33,7 @@ function makeMockDb() {
     collection,
     doc: notInFake('doc'),
     batch: notInFake('batch'),
+    getAll: notInFake('getAll'),
     runTransaction: notInFake('runTransaction'),
   };
   return { db, collection, doc, set };

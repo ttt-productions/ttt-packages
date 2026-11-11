@@ -200,6 +200,9 @@ function createMockDb(opts: MockDbOptions = {}) {
     batch: () => {
       throw new Error('batch writes are not part of this fake');
     },
+    getAll: () => {
+      throw new Error('batched reads are not part of this fake');
+    },
     runTransaction: async (fn) => {
       hasWritten = false;
       return fn(transaction);

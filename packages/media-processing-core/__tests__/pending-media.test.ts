@@ -78,6 +78,7 @@ function dbRunning(transaction: ServerTransaction) {
     collection: notInFake('collection'),
     doc: notInFake('doc'),
     batch: notInFake('batch'),
+    getAll: notInFake('getAll'),
     runTransaction: (fn) => {
       runs.count += 1;
       return fn(transaction);

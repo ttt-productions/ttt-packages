@@ -96,6 +96,118 @@ describe('every color resolves through a theme token', () => {
   });
 });
 
+describe("the site definition's two colours are the one concrete colour app code writes", () => {
+  const SITE = 'src/lib/site.ts';
+  const site = (...body: string[]) =>
+    [
+      "import type { SiteDefinition } from '@ttt-productions/site-core';",
+      ...body,
+      'export const site: SiteDefinition = {',
+      "  name: 'Site',",
+      "  themeColor: '#1a2b3c',",
+      "  backgroundColor: '#ffffff',",
+      '};',
+    ].join('\n');
+  const declared = { exceptions: [], siteDefinitionModule: SITE };
+
+  it('passes themeColor and backgroundColor of the one site definition in the declared module', async () => {
+    expect(await allFindings(colorLiteralsGuard, declared, { [SITE]: site() })).toEqual([]);
+  });
+
+  it('passes the site definition written with satisfies and an aliased import', async () => {
+    expect(
+      await allFindings(colorLiteralsGuard, declared, {
+        [SITE]: [
+          "import type { SiteDefinition as Site } from '@ttt-productions/site-core';",
+          "export const site = { themeColor: '#000', backgroundColor: 'rgb(255 255 255)' } satisfies Site;",
+        ].join('\n'),
+      }),
+    ).toEqual([]);
+  });
+
+  it('fails any other colour in the declared module, a third field included', async () => {
+    expect(
+      await allFindings(colorLiteralsGuard, declared, {
+        [SITE]: site(
+          "export const accent = '#abcdef';",
+          "export const card = { themeColor: '#123123' };",
+        ),
+      }),
+    ).toEqual([
+      'src/lib/site.ts:2 not on the reviewed list: #abcdef',
+      'src/lib/site.ts:3 not on the reviewed list: #123123',
+    ]);
+  });
+
+  it('fails a colour field whose value is not a single string literal', async () => {
+    expect(
+      await allFindings(colorLiteralsGuard, declared, {
+        [SITE]: [
+          "import type { SiteDefinition } from '@ttt-productions/site-core';",
+          'export const site: SiteDefinition = {',
+          "  themeColor: dark ? '#000000' : '#ffffff',",
+          "  backgroundColor: '#ffffff',",
+          '};',
+        ].join('\n'),
+      }),
+    ).toEqual([
+      'src/lib/site.ts:3 not on the reviewed list: #000000',
+      'src/lib/site.ts:3 not on the reviewed list: #ffffff',
+    ]);
+  });
+
+  it('fails the same two fields in any module other than the declared one', async () => {
+    expect(
+      await allFindings(colorLiteralsGuard, declared, {
+        [SITE]: site(),
+        'src/lib/other-site.ts': site(),
+      }),
+    ).toEqual([
+      'src/lib/other-site.ts:4 not on the reviewed list: #1a2b3c',
+      'src/lib/other-site.ts:5 not on the reviewed list: #ffffff',
+    ]);
+  });
+
+  it('allows nothing when no site definition module is declared', async () => {
+    expect(await allFindings(colorLiteralsGuard, { exceptions: [] }, { [SITE]: site() })).toEqual([
+      'src/lib/site.ts:4 not on the reviewed list: #1a2b3c',
+      'src/lib/site.ts:5 not on the reviewed list: #ffffff',
+    ]);
+  });
+
+  it('allows nothing in a module that holds two site definitions, and says so', async () => {
+    expect(
+      await allFindings(colorLiteralsGuard, declared, {
+        [SITE]: site("export const spare: SiteDefinition = { themeColor: '#010101' };"),
+      }),
+    ).toEqual([
+      'src/lib/site.ts:2 not on the reviewed list: #010101',
+      'src/lib/site.ts:5 not on the reviewed list: #1a2b3c',
+      'src/lib/site.ts:6 not on the reviewed list: #ffffff',
+      'src/lib/site.ts holds 2 objects typed SiteDefinition; the app declares its one site definition once',
+    ]);
+  });
+
+  it('fails a declared module that is missing or holds no site definition', async () => {
+    expect(await allFindings(colorLiteralsGuard, declared, {})).toEqual([
+      'src/lib/site.ts the declared site definition module is not app source the guard reads: it is missing, a test file, or outside the app root',
+    ]);
+    expect(
+      await allFindings(colorLiteralsGuard, declared, {
+        [SITE]: "export const site = { themeColor: 'hsl(var(--primary))' };",
+      }),
+    ).toEqual([
+      'src/lib/site.ts holds no object typed SiteDefinition from @ttt-productions/site-core, so the allowance for its two colours matches nothing',
+    ]);
+  });
+
+  it('refuses a site definition module that is not a repo-relative path', () => {
+    expect(
+      factProblemsOf(colorLiteralsGuard, { exceptions: [], siteDefinitionModule: '/src/site.ts' }),
+    ).toEqual(['siteDefinitionModule (/src/site.ts) must be repo-relative and forward-slashed']);
+  });
+});
+
 describe('every scale class app code uses is declared by a loaded stylesheet', () => {
   const theme = installed(
     '@kit/theme',

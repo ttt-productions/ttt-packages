@@ -1,21 +1,33 @@
 import { z } from 'zod';
-import { SWEEP_STATE_MAX_DEFERRED } from '../constants/scheduled-jobs.js';
-import { epochMsSchema } from './atoms.js';
 
-// The query orders by the field and then by the key and resumes after both, never
-// `field > value`, which skips every row tied with it.
+export const SWEEP_STATE_MAX_DEFERRED = 50;
+
+// The most Firebase Auth `listUsers()` returns in one call.
+export const AUTH_LIST_USERS_PAGE_SIZE = 1000;
+
+export const AUTH_FULL_SCAN_EXAMINED_PER_RUN = 2 * AUTH_LIST_USERS_PAGE_SIZE;
+
+const sweepTimeSchema = z.number().int().nonnegative();
+
+export interface SweepPosition {
+  readonly key: string;
+  readonly value?: number | null;
+}
+
+// Resume with startAfter(afterValue, afterKey), never `field > afterValue`: rows can share a value.
+// A null value is a position too: Firestore orders null before every number.
 export const SweepRollingCursorSchema = z
   .discriminatedUnion('state', [
     z.object({
       state: z.literal('inLap'),
       afterKey: z.string().min(1),
-      afterValue: z.number().optional(),
-      lapStartedAt: epochMsSchema,
+      afterValue: z.number().nullable().optional(),
+      lapStartedAt: sweepTimeSchema,
     }),
     z.object({
       state: z.literal('done'),
-      lapStartedAt: epochMsSchema,
-      lapCompletedAt: epochMsSchema,
+      lapStartedAt: sweepTimeSchema,
+      lapCompletedAt: sweepTimeSchema,
     }),
   ])
   .superRefine((value, ctx) => {
@@ -31,8 +43,8 @@ export type SweepRollingCursor = z.infer<typeof SweepRollingCursorSchema>;
 
 export const SweepDeferredRowSchema = z.object({
   key: z.string().min(1),
-  value: z.number().optional(),
-  nextAttemptAt: epochMsSchema,
+  value: z.number().nullable().optional(),
+  nextAttemptAt: sweepTimeSchema,
   attemptCount: z.number().int().positive(),
 });
 export type SweepDeferredRow = z.infer<typeof SweepDeferredRowSchema>;
@@ -41,17 +53,17 @@ export type SweepDeferredRow = z.infer<typeof SweepDeferredRowSchema>;
 // longer accepts restarts the lap.
 export const SweepAuthScanLapSchema = z.object({
   pageToken: z.string().min(1),
-  lapStartedAt: epochMsSchema,
+  lapStartedAt: sweepTimeSchema,
 });
 export type SweepAuthScanLap = z.infer<typeof SweepAuthScanLapSchema>;
 
 export const SweepStateSchema = z
   .object({
-    fullScanLastRunAt: epochMsSchema.optional(),
+    fullScanLastRunAt: sweepTimeSchema.optional(),
     fullScanLap: SweepAuthScanLapSchema.optional(),
     rollingCursor: SweepRollingCursorSchema.optional(),
     deferred: z.array(SweepDeferredRowSchema).max(SWEEP_STATE_MAX_DEFERRED).optional(),
-    updatedAt: epochMsSchema,
+    updatedAt: sweepTimeSchema,
   })
   .superRefine((value, ctx) => {
     const seen = new Set<string>();

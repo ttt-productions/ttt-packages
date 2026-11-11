@@ -51,4 +51,30 @@ describe('selected file display', () => {
     expect(screen.getByText('Image selected')).toBeInTheDocument();
     expect(screen.queryByText('cropped1.jpeg')).toBeNull();
   });
+
+  it('clips the selected-file label through ClippedText, never a truncation utility, in both inputs', () => {
+    render(
+      <>
+        <MediaInput
+          spec={{ kind: 'audio', accept: { kinds: ['audio'], mimes: ['audio/webm'] } }}
+          selectedFile={new File(['audio'], 'recording.webm', { type: 'audio/webm' })}
+          onChange={vi.fn()}
+          onClear={vi.fn()}
+        />
+        <FileInput
+          acceptTypes={['image']}
+          maxSizeMB={{ image: 10 }}
+          selectedFile={new File(['image'], 'cropped1.jpeg', { type: 'image/jpeg' })}
+          onChange={vi.fn()}
+        />
+      </>,
+    );
+
+    for (const label of ['Audio selected', 'Image selected']) {
+      const el = screen.getByText(label);
+      expect(el).toHaveAttribute('title', label);
+      expect(el).toHaveClass('single-line-truncate');
+      expect(el).not.toHaveClass('truncate');
+    }
+  });
 });

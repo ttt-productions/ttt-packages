@@ -8,7 +8,10 @@ A site's page metadata, built from one site definition: what an app's Next.js `l
 - **`SiteDefinition`** — the one description of a site the app hands in: name, short name,
   description, canonical site URL, home path, the share picture (path, 1200×630 by type, alt), the
   icon paths (favicon, Apple touch icon, 192, 512, maskable 512), theme and background colours, and
-  locale (a BCP 47 tag such as `en-US`). Every value is required by the type.
+  locale (a BCP 47 tag such as `en-US`). Every value is required by the type. The two colours are
+  plain colour strings, because a manifest and the `theme-color` tag cannot resolve a CSS token; an
+  app declares its site definition's module to repo-guards' colour guard (`siteDefinitionModule`),
+  which allows those two values there and nowhere else.
 - **The builders**, each a plain function returning a plain object structurally assignable to the
   Next.js type its file returns:
   - `buildSiteMetadata(site)` → `Metadata`: the title as a default plus a template, so a page's own

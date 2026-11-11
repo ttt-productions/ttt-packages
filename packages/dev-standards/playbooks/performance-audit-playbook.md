@@ -87,7 +87,7 @@ only sanctioned invalidation site is the domain-event registry. Cross-ref
 ```
 **Expected:** every public page renders from bounded React Query hooks and fetches only what the
 initial view needs — no eager private, admin, or heavy query on a public path. Direct Firestore reads
-exist only inside a `queryFn` or root-provider hydration.
+exist only inside a `queryFn`; no provider reads Firestore itself.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 6. Cloud Functions cold-start weight and explicit concurrency

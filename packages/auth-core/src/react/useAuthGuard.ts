@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { clearRedirectPath, readRedirectPath, saveRedirectPath } from './redirect-storage.js';
+import { readStoredValue, writeStoredValue } from '@ttt-productions/storage-core';
 
 export interface AuthGuardConfig {
   publicRoutes: string[];
@@ -9,14 +9,12 @@ export interface AuthGuardConfig {
   loginRoute: string;
   defaultRoute: string;
   rootRedirect?: { authenticated: string; unauthenticated: string };
-  redirectKey?: string;
+  redirectKey: string;
   replace: (path: string) => void;
   pathname: string;
   loading: boolean;
   isAuthenticated: boolean;
 }
-
-const DEFAULT_REDIRECT_KEY = 'auth_redirect_path';
 
 export function useAuthGuard(config: AuthGuardConfig): void {
   const {
@@ -25,7 +23,7 @@ export function useAuthGuard(config: AuthGuardConfig): void {
     loginRoute,
     defaultRoute,
     rootRedirect,
-    redirectKey = DEFAULT_REDIRECT_KEY,
+    redirectKey,
     replace,
     pathname,
     loading,
@@ -44,7 +42,7 @@ export function useAuthGuard(config: AuthGuardConfig): void {
 
     if (lastAuthenticated.current === true && !isAuthenticated) {
       sessionEndedOn.current = pathname;
-      clearRedirectPath(redirectKey);
+      writeStoredValue(redirectKey, null);
     } else if (isAuthenticated || sessionEndedOn.current !== pathname) {
       sessionEndedOn.current = null;
     }
@@ -63,7 +61,7 @@ export function useAuthGuard(config: AuthGuardConfig): void {
     const isAuthRedirect = authRedirectRoutes.includes(pathname);
 
     if (!isAuthenticated && !isPublic) {
-      if (sessionEndedOn.current === null) saveRedirectPath(redirectKey, pathname);
+      if (sessionEndedOn.current === null) writeStoredValue(redirectKey, pathname);
       replace(loginRoute);
       return;
     }
@@ -72,11 +70,11 @@ export function useAuthGuard(config: AuthGuardConfig): void {
       if (authRouteRedirected.current) return;
       authRouteRedirected.current = true;
       let target = defaultRoute;
-      const saved = readRedirectPath(redirectKey);
+      const saved = readStoredValue(redirectKey);
       if (saved && !authRedirectRoutes.includes(saved)) {
         target = saved;
       }
-      clearRedirectPath(redirectKey);
+      writeStoredValue(redirectKey, null);
       replace(target);
     }
   }, [

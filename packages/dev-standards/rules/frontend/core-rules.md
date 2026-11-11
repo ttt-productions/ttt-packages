@@ -16,7 +16,7 @@ Code is the value truth: an app's `brand.css` tokens and `components.css` classe
 
 **Rule.** Every repeated UI pattern — button, dropdown/select, link, "show more"/expansion control, card, dialog, table, chip/toggle, pending/empty/error state, clickable list row — has one canonical component, variant, or semantic class. Before adding ANY such control, find the existing pattern and use or extend it. If touched code already contains inconsistent versions of one pattern, surface them with a consolidation recommendation (RULE-STD-ENG-008) and pick the canonical owner — never add another variant to match one.
 
-**Apps:** two owners are named because they are reinvented most: a read's pending / failed / empty / content states render through the read-state module (`<READ_STATE_MODULE>` — its read, failure, list-failure, and render-failure states and its read combiner), which renders the one failure seat (`<LOAD_ERROR_STATE>`); and a row that opens something while holding controls of its own is ui-core's `ActionRow` (`@ttt-productions/ui-core/react`).
+**Apps:** two owners are named because they are reinvented most: a read's pending / failed / empty / content states render through the read-state module (`<READ_STATE_MODULE>` — its read, failure, list-failure, and render-failure states and its read combiner), which renders the one failure seat (`<LOAD_ERROR_STATE>`); and a row that opens something while holding controls of its own is ui-core's `ActionRow` (`@ttt-productions/ui-core/react`). A value copied to the clipboard goes through ui-core's `CopyButton`.
 
 **Why.** Every locally reinvented control is drift the moment it is written. Hand-written read switches drift the same way: a failure that offers no retry, a failure that turns into a spinner under the press, and a row built as one `<button>` that cuts a control inside it off from its own retry.
 
@@ -24,6 +24,7 @@ Code is the value truth: an app's `brand.css` tokens and `components.css` classe
 - A new raw primitive, local wrapper copy, or copied style block where a canonical component/variant/class exists.
 - "It was faster to build my own" button/card/dialog; adding a second variant to match an inconsistent screen instead of consolidating.
 - A surface rendering `<LOAD_ERROR_STATE>` or calling the module's list retry itself instead of going through `<READ_STATE_MODULE>`; a row that holds a control built as a `<button>` wrapping the row.
+- A hand-written clipboard copy in app code (`navigator.clipboard.writeText`, `document.execCommand('copy')`) instead of ui-core's `CopyButton`.
 
 **References.** RULE-STD-ENG-002, RULE-STD-ENG-003; RULE-STD-FRONTEND-109, RULE-STD-FRONTEND-206; ttt-packages `docs/packages/ui-core.md`.
 
@@ -44,17 +45,17 @@ Code is the value truth: an app's `brand.css` tokens and `components.css` classe
 ### RULE-STD-FRONTEND-003 — All colors resolve through theme tokens; no hex or raw HSL in app code
 **Scope.** apps
 
-**Rule.** Every color renders as `hsl(var(--token))` from the theme system — semantic tokens (`--background`, `--card`, `--muted-foreground`, `--border`, `--ring`) or the brand tokens in `brand.css`. Components and app CSS never introduce a hardcoded hex, `rgb()`, or raw `hsl(…)` literal, a Tailwind palette class, or a one-off theme value; a color value that does not exist yet is added to `brand.css` first. Every theme the app declares — light (`:root`), dark (`.dark`), and high-contrast (`.high-contrast`) — works on any new surface, and a theme-varying token is declared in all three theme blocks.
+**Rule.** Every color renders as `hsl(var(--token))` from the theme system — semantic tokens (`--background`, `--card`, `--muted-foreground`, `--border`, `--ring`) or the brand tokens in `brand.css`. Components and app CSS never introduce a hardcoded hex, `rgb()`, or raw `hsl(…)` literal, a Tailwind palette class, or a one-off theme value; a color value that does not exist yet is added to `brand.css` first. The one concrete color app code writes is the theme and background color of the app's one site-core site definition: a web manifest and the `theme-color` tag are read outside CSS and cannot resolve a token, so those two fields are plain color strings, allowed by the repo-guards `colorLiterals` guard only there, through the app's guard config. Every theme the app declares — light (`:root`), dark (`.dark`), and high-contrast (`.high-contrast`) — works on any new surface, and a theme-varying token is declared in all three theme blocks.
 
 **Why.** A hardcoded color is invisible to theme switching and high contrast, and is exactly the "invented its own colors" failure class this rulebook exists to prevent; a token missing from one theme block silently falls back to another theme's value there.
 
 **Prohibits.**
-- A hex, `rgb()`, or raw `hsl()` literal in a `.tsx`/`.css` file; an inline `style={{ color: '#…' }}`.
+- A hex, `rgb()`, or raw `hsl()` literal in a `.ts`/`.tsx`/`.css` file other than the site definition's two color fields; an inline `style={{ color: '#…' }}`.
 - A Tailwind palette class (`text-red-500`, `bg-slate-900`) in place of a token.
 - A new one-off `--brand-x` token minted at a call site instead of using or first adding a `brand.css` token.
 - A theme-varying token declared in some theme blocks but not all three.
 
-**References.** RULE-STD-ENG-002; RULE-STD-FRONTEND-008.
+**References.** RULE-STD-ENG-002; RULE-STD-FRONTEND-008; ttt-packages `docs/packages/site-core.md`, `docs/packages/repo-guards.md`.
 
 ### RULE-STD-FRONTEND-006 — State changes swap icons; destructive actions live in the one '…' menu; red lives only inside confirmation dialogs
 **Scope.** apps
@@ -77,14 +78,15 @@ Code is the value truth: an app's `brand.css` tokens and `components.css` classe
 ### RULE-STD-FRONTEND-007 — One page column, one card recipe, truncation everywhere
 **Scope.** apps
 
-**Rule.** Every page wraps its content in `ScreenAdaptiveView` (ui-core) with the `page-container` class — a full-width single column that centers to a max-width on desktop; content fills it (no per-component `max-w-*` caps on page-level cards). Every branch of a page — loading, empty, and error included — renders inside that page container. A deliberate full-width exception exists only where the app's addition names it. Page-level content cards are ui-core's `Card` in its page-card variant, with `CardHeader`, `CardTitle`, and `CardContent` in their page-card variants — never ad-hoc `bg-card` + `shadow-xl` borderless cards; dark-theme elevation is lightening + faint border, never dark drop shadows. Every user-supplied title and name, and every block of user text cut to a few lines, renders through ui-core's `ClippedText` (one, two or three lines, or a name in two pieces), so long content never breaks layout. `ClippedText` draws theme-core's clip classes, which stay the one definition of the clip, and always keeps the full text in the element's title and accessible name.
+**Rule.** Every page wraps its content in `ScreenAdaptiveView` (ui-core) with the `page-container` class — a full-width single column that centers to a max-width on desktop; content fills it (no per-component `max-w-*` caps on page-level cards). Every branch of a page — loading, empty, and error included — renders inside that page container. A deliberate full-width exception exists only where the app's addition names it. Page-level content cards are ui-core's `Card` in its page-card variant, with `CardHeader`, `CardTitle`, and `CardContent` in their page-card variants — never ad-hoc `bg-card` + `shadow-xl` borderless cards; dark-theme elevation is lightening + faint border, never dark drop shadows. Every user-supplied title and name that stands as its own text, and every block of user text cut to a few lines, renders through ui-core's `ClippedText` (one, two or three lines, or a name in two pieces), whose element is the box that clips: a plain tag named with `as`, a component under `asChild`. `ClippedText` draws theme-core's clip classes, which stay the one definition of the clip, and always keeps the full text in the clipped element's title and accessible name. A name inside a sentence renders through ui-core's `InlineName`, which wraps with the sentence and is never cut; a place that cannot take a second line is a box whose whole text clips through `ClippedText`. Machine text (an id, an email, a hash, a file name) renders through ui-core's `MachineText`, which breaks anywhere and never cuts.
 
 **Why.** Consistent column, card, and truncation recipes keep every screen visually one system and stop long user content from breaking layout; a loading or error branch rendered outside the container jumps the layout, and a truncated name with no full value leaves the record unidentifiable.
 
 **Prohibits.**
 - A page-level `max-w-*` cap or a bespoke column wrapper instead of `ScreenAdaptiveView` + `page-container`; a loading, empty, or error branch rendered outside the page container.
 - An ad-hoc borderless `bg-card`/`shadow-*` card, or a page card, header, title, or content built by putting card classes on a ui-core part, instead of the page-card variants; a dark drop shadow for elevation.
-- Rendering an untruncated title/name; a clip class (`.single-line-truncate`, `.two-line-clamp`, `.three-line-clamp`) or a per-call-site `truncate` / `line-clamp` / `max-w-[…]` placed by hand instead of `ClippedText`, or an app's own copy of it.
+- Rendering an untruncated title/name that stands as its own text; a clip class (`.single-line-truncate`, `.two-line-clamp`, `.three-line-clamp`) or a per-call-site `truncate` / `line-clamp` / `max-w-[…]` placed by hand instead of `ClippedText`, or an app's own copy of it.
+- A plain tag under `ClippedText asChild`, or wrapped around a `ClippedText` that is its only content; a name in a sentence clipped; `.inline-name`, `.machine-text`, `break-all` or `overflow-wrap: anywhere` placed by hand instead of `InlineName` / `MachineText`.
 
 **References.** RULE-STD-FRONTEND-001, RULE-STD-FRONTEND-008, RULE-STD-FRONTEND-203; ttt-packages `docs/packages/ui-core.md`.
 
@@ -119,4 +121,4 @@ Code is the value truth: an app's `brand.css` tokens and `components.css` classe
 - A browser-stored copy of an account-durable preference beyond the app's one sanctioned mirror; a hand-typed storage key where an `<APP_DATA_PACKAGE>` key exists; a hand-typed app storage key inside a generic package.
 - A device-local store that other tabs act on and that ignores the `storage` event.
 
-**References.** RULE-STD-ENG-002, RULE-STD-ENG-009; RULE-STD-FRONTEND-103, RULE-STD-FRONTEND-107, RULE-STD-FRONTEND-206; RULE-STD-ARCH-201; ttt-packages `docs/packages/theme-core.md` (the blocked-storage-tolerant store).
+**References.** RULE-STD-ENG-002, RULE-STD-ENG-009; RULE-STD-FRONTEND-103, RULE-STD-FRONTEND-107, RULE-STD-FRONTEND-206; RULE-STD-ARCH-201; ttt-packages `docs/packages/storage-core.md` (the guarded storage helper and the device-preference store).

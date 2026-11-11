@@ -99,6 +99,7 @@ describe('buildUserReportAdminTaskDoc (pure builder)', () => {
       })),
       doc: () => notInFake('doc'),
       batch: () => notInFake('batch'),
+      getAll: () => notInFake('getAll'),
       runTransaction: () => notInFake('runTransaction'),
     };
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });

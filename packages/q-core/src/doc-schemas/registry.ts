@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { SweepStateSchema } from '@ttt-productions/sweep-core';
 import { StatusReconcileQueueEntrySchema } from './status-reconcile-queue.js';
 import {
   ActiveAdminNotificationSchema,
@@ -22,7 +23,6 @@ import { AuditEventSchema } from './audit-event.js';
 import { PublicUserSchema } from './publicUser.js';
 import { ReservedDisplayNameSchema } from './reserved-display-name.js';
 import { SportLeagueSchema } from './sport-league.js';
-import { SweepStateSchema } from './sweep-state.js';
 import {
   AppConfigSchema,
   LandingPageConfigSchema,

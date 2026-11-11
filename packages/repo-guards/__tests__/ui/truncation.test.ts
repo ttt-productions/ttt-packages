@@ -15,6 +15,11 @@ const facts = (overrides: Partial<SharedTruncationFacts> = {}): SharedTruncation
     { selector: '.kit-truncate', why: 'the shared one-line truncation class' },
     { selector: '.kit-clamp-3', why: 'the shared three-line clamp' },
   ],
+  breakClasses: ['kit-inline-name', 'kit-machine-text'],
+  breakOwners: [
+    { selector: '.kit-inline-name', why: 'the shared name-in-a-sentence class' },
+    { selector: '.kit-machine-text', why: 'the shared machine-text class' },
+  ],
   exceptions: [],
   ...overrides,
 });
@@ -23,19 +28,29 @@ const sheet = lines(
   '.kit-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
   '.kit-clamp-3 { @apply line-clamp-3; }',
   '.card { text-overflow: clip; }',
+  '.kit-inline-name { overflow-wrap: anywhere; }',
+  '.kit-machine-text { word-break: break-all; }',
+  '.prose { overflow-wrap: break-word; }',
 );
 const clean = {
   'src/styles/globals.css': "@import './components.css' layer(base);",
   'src/styles/components.css': sheet,
   'src/ui/title.tsx': lines(
     '// a truncate or line-clamp-2 class would break the recipe',
-    'export const T = ({ t }) => <h2 className="font-bold"><ClippedText text={t} /></h2>;',
+    'export const T = ({ t }) => <ClippedText as="h2" className="font-bold" text={t} />;',
     'export const mode = "truncated";',
+    'export const C = ({ t }) => <ClippedText asChild text={t}><CardTitle variant="page" /></ClippedText>;',
+    'export const N = ({ n }) => <p>Delete <InlineName name={n} />?</p>;',
+    'export const M = ({ id }) => <MachineText as="code" text={id} />;',
+    'export const K = ({ id }) => <MachineText asChild text={id}><CardTitle /></MachineText>;',
+    'export const L = ({ id }) => <p>User ID: <ClippedText text={id} /></p>;',
+    'export const W = ({ l, t }) => <p>{l}{t && <ClippedText text={t} />}</p>;',
+    'export const V = ({ t }) => <p>{t ? <ClippedText text={t} /> : "Untitled"}</p>;',
   ),
 };
 
 describe('text is clipped only through the clip component, never by a class placed by hand', () => {
-  it('passes ClippedText, the clamp owners, comments, and lookalike words', async () => {
+  it('passes ClippedText as a tag or over a component, InlineName, MachineText, the owners, comments, and lookalike words', async () => {
     expect(await allFindings(sharedTruncationGuard, facts(), clean)).toEqual([]);
   });
 
@@ -120,6 +135,8 @@ describe('text is clipped only through the clip component, never by a class plac
         'src/styles/components.css': lines(
           '.kit-truncate { overflow: hidden; text-overflow: ellipsis; }',
           '.kit-clamp-3 { overflow: hidden; }',
+          '.kit-inline-name { overflow-wrap: anywhere; }',
+          '.kit-machine-text { word-break: break-all; }',
         ),
       },
     );
@@ -150,8 +167,11 @@ describe('text is clipped only through the clip component, never by a class plac
         name: '@kit/theme',
         exports: { './components.css': './dist/components.css' },
       }),
-      'node_modules/@kit/theme/dist/components.css':
+      'node_modules/@kit/theme/dist/components.css': lines(
         '.kit-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+        '.kit-inline-name { overflow-wrap: anywhere; }',
+        '.kit-machine-text { word-break: break-all; }',
+      ),
       'src/styles/globals.css': "@import '@kit/theme/components.css' layer(base);",
       'src/styles/components.css': '.card { text-overflow: clip; }',
     };
@@ -165,6 +185,116 @@ describe('text is clipped only through the clip component, never by a class plac
         clean,
       ),
     ).toEqual(['src/styles/missing.css the entry stylesheet does not exist']);
+  });
+
+  it('flags a plain tag under ClippedText or MachineText asChild, and a plain tag that holds only a ClippedText', async () => {
+    const findings = await allFindings(sharedTruncationGuard, facts(), {
+      ...clean,
+      'src/ui/forms.tsx': lines(
+        'export const a = ({ t }) => <ClippedText asChild text={t}><h2 className="x" /></ClippedText>;',
+        'export const b = ({ t }) => <h2 className="font-bold"><ClippedText text={t} /></h2>;',
+        'export const c = ({ t }) => (',
+        '  <li key={t}>',
+        '    {/* the row */}',
+        '    <ClippedText text={t} />',
+        '  </li>',
+        ');',
+        'export const d = ({ id }) => <MachineText asChild text={id}><code className="x" /></MachineText>;',
+      ),
+    });
+    expect(findings).toEqual([
+      'src/ui/forms.tsx:1 not on the reviewed list: ClippedText asChild over a plain <h2> (name the tag with as)',
+      'src/ui/forms.tsx:2 not on the reviewed list: a plain <h2> holding only ClippedText (name the tag with as)',
+      'src/ui/forms.tsx:4 not on the reviewed list: a plain <li> holding only ClippedText (name the tag with as)',
+      'src/ui/forms.tsx:9 not on the reviewed list: MachineText asChild over a plain <code> (name the tag with as)',
+    ]);
+  });
+
+  it('looks through braces: a plain tag holding only a ClippedText behind &&, a bare expression, or a conditional is flagged', async () => {
+    const findings = await allFindings(sharedTruncationGuard, facts(), {
+      ...clean,
+      'src/ui/braces.tsx': lines(
+        'export const a = ({ t }) => <h2>{t && <ClippedText text={t} />}</h2>;',
+        'export const b = ({ t }) => <h2>{<ClippedText text={t} />}</h2>;',
+        'export const c = ({ a, b }) => <h2>{a ? <ClippedText text={a} /> : <ClippedText text={b} />}</h2>;',
+        'export const d = ({ t }) => <h2>{t ? (<ClippedText text={t} />) : null}</h2>;',
+        'export const e = ({ t }) => <div className="flex min-w-0"><ClippedText text={t} /></div>;',
+      ),
+    });
+    expect(findings).toEqual([
+      'src/ui/braces.tsx:1 not on the reviewed list: a plain <h2> holding only ClippedText (name the tag with as)',
+      'src/ui/braces.tsx:2 not on the reviewed list: a plain <h2> holding only ClippedText (name the tag with as)',
+      'src/ui/braces.tsx:3 not on the reviewed list: a plain <h2> holding only ClippedText (name the tag with as)',
+      'src/ui/braces.tsx:4 not on the reviewed list: a plain <h2> holding only ClippedText (name the tag with as)',
+      'src/ui/braces.tsx:5 not on the reviewed list: a plain <div> holding only ClippedText (name the tag with as)',
+    ]);
+  });
+
+  it('resolves ClippedText and MachineText imported under another name or through a namespace', async () => {
+    const findings = await allFindings(sharedTruncationGuard, facts(), {
+      ...clean,
+      'src/ui/aliased.tsx': lines(
+        "import { ClippedText as Clip, MachineText as Raw } from '@kit/ui/react';",
+        "import * as UI from '@kit/ui/react';",
+        'export const a = ({ t }) => <h2><Clip text={t} /></h2>;',
+        'export const b = ({ t }) => <Clip asChild text={t}><p /></Clip>;',
+        'export const c = ({ id }) => <Raw asChild text={id}><code /></Raw>;',
+        'export const d = ({ t }) => <li><UI.ClippedText text={t} /></li>;',
+      ),
+    });
+    expect(findings).toEqual([
+      'src/ui/aliased.tsx:3 not on the reviewed list: a plain <h2> holding only ClippedText (name the tag with as)',
+      'src/ui/aliased.tsx:4 not on the reviewed list: ClippedText asChild over a plain <p> (name the tag with as)',
+      'src/ui/aliased.tsx:5 not on the reviewed list: MachineText asChild over a plain <code> (name the tag with as)',
+      'src/ui/aliased.tsx:6 not on the reviewed list: a plain <li> holding only ClippedText (name the tag with as)',
+    ]);
+  });
+
+  it('flags machine-text breaking placed by hand in code, inline styles, and stylesheets outside the break owners', async () => {
+    const findings = await allFindings(sharedTruncationGuard, facts(), {
+      ...clean,
+      'src/ui/ids.tsx': lines(
+        'export const a = <code className="font-mono break-all">{id}</code>;',
+        "export const b = <p className={cn('sm:wrap-anywhere', x)} />;",
+        "export const c = <p className='[overflow-wrap:anywhere]' />;",
+        'export const d = <span className="kit-machine-text">{id}</span>;',
+        "export const e = <p style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }} />;",
+        "export const f = <p style={{ overflowWrap: 'break-word' }} />;",
+      ),
+      'src/styles/ids.css': lines(
+        '.account-id { word-break: break-all; }',
+        '.banner-text { overflow-wrap: anywhere; }',
+        '.kit-machine-text, .row-id { word-wrap: anywhere; }',
+        '.hash { @apply break-all; }',
+      ),
+    });
+    expect(findings).toEqual([
+      'src/styles/ids.css:1 not on the reviewed list: word-break: break-all',
+      'src/styles/ids.css:2 not on the reviewed list: overflow-wrap: anywhere',
+      'src/styles/ids.css:3 not on the reviewed list: word-wrap: anywhere',
+      'src/styles/ids.css:4 not on the reviewed list: @apply break-all',
+      'src/ui/ids.tsx:1 not on the reviewed list: break-all',
+      'src/ui/ids.tsx:2 not on the reviewed list: sm:wrap-anywhere',
+      'src/ui/ids.tsx:3 not on the reviewed list: [overflow-wrap:anywhere]',
+      'src/ui/ids.tsx:4 not on the reviewed list: kit-machine-text placed by hand',
+      'src/ui/ids.tsx:5 not on the reviewed list: inline wordBreak: break-all',
+      'src/ui/ids.tsx:5 not on the reviewed list: inline overflowWrap: anywhere',
+    ]);
+  });
+
+  it('flags a break owner no loaded stylesheet breaks with any more', async () => {
+    const findings = await allFindings(sharedTruncationGuard, facts(), {
+      ...clean,
+      'src/styles/components.css': lines(
+        '.kit-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+        '.kit-clamp-3 { @apply line-clamp-3; }',
+        '.kit-inline-name { overflow-wrap: anywhere; }',
+        '.kit-machine-text { word-break: normal; }',
+      ),
+    });
+    expect(findings).toEqual([
+      '(breakOwners) stale break owner: no stylesheet rule for .kit-machine-text breaks anywhere any more',
+    ]);
   });
 
   it('flags a clip class placed by hand in a className, a template, and a class helper', async () => {
@@ -183,12 +313,18 @@ describe('text is clipped only through the clip component, never by a class plac
     ]);
   });
 
-  it('refuses clip classes that are missing, empty, or a per-call-site utility', () => {
+  it('refuses clip and break classes that are missing, empty, or a per-call-site utility', () => {
     expect(sharedTruncationGuard.factProblems(facts({ clipClasses: ['truncate'] }))).toEqual([
       'clipClasses truncate is itself a per-call-site utility',
     ]);
     expect(sharedTruncationGuard.factProblems(facts({ clipClasses: [] }))).toEqual([
       'clipClasses is empty',
+    ]);
+    expect(sharedTruncationGuard.factProblems(facts({ breakClasses: ['break-all'] }))).toEqual([
+      'breakClasses break-all is itself a per-call-site utility',
+    ]);
+    expect(sharedTruncationGuard.factProblems(facts({ breakOwners: [] }))).toEqual([
+      'breakOwners is empty',
     ]);
   });
 });

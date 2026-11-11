@@ -3,10 +3,18 @@ import { readFileSync, writeFileSync, readdirSync, existsSync, copyFileSync } fr
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DEP_FIELDS = ['dependencies', 'peerDependencies', 'devDependencies'];
+const DEP_FIELDS = ['dependencies', 'peerDependencies', 'devDependencies', 'optionalDependencies'];
 const SCOPE = '@ttt-productions/';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+const ZERO_ZERO = /^0\.0\.\d+$/;
+
+// Semver's caret locks the patch on 0.0.z (`^0.0.2` accepts only 0.0.2), so a 0.0.z version takes
+// an explicit range that later patches still satisfy.
+function pinnedRangeFor(version) {
+  return ZERO_ZERO.test(version) ? `>=${version} <0.1.0` : `^${version}`;
+}
 
 function fail(msg) {
   console.error(`[pin-internal-deps] ${msg}`);
@@ -75,7 +83,7 @@ for (const field of DEP_FIELDS) {
       missing.push(`${field} › ${dep}`);
       continue;
     }
-    const pinnedRange = `^${version}`;
+    const pinnedRange = pinnedRangeFor(version);
     deps[dep] = pinnedRange;
     pinned.push(`${field} › ${dep} -> ${pinnedRange}`);
   }

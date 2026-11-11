@@ -16,28 +16,19 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { Spinner } from '@ttt-productions/ui-core/react';
+import { readStoredValue, writeStoredValue } from '@ttt-productions/storage-core';
 import { startWaveformLoop, drawIdleFrame } from '../visualizer.js';
 import type { AudioVisualizerMode } from '../visualizer.js';
 import { resolveInfiniteDuration, seekMedia } from '../media-duration.js';
 
-const DEFAULT_PERSIST_KEY = 'mv-audio-player';
-
-function readPref(persistKey: string | null, suffix: string): string | null {
+function readPref(persistKey: string | undefined, suffix: string): string | null {
   if (!persistKey) return null;
-  try {
-    return window.localStorage.getItem(`${persistKey}:${suffix}`);
-  } catch {
-    return null;
-  }
+  return readStoredValue(`${persistKey}:${suffix}`);
 }
 
-function writePref(persistKey: string | null, suffix: string, value: string): void {
+function writePref(persistKey: string | undefined, suffix: string, value: string): void {
   if (!persistKey) return;
-  try {
-    window.localStorage.setItem(`${persistKey}:${suffix}`, value);
-  } catch {
-    // A blocked or full store throws on write; the preference then lasts this page only.
-  }
+  writeStoredValue(`${persistKey}:${suffix}`, value);
 }
 
 function graphCanHear(el: HTMLAudioElement): boolean {
@@ -63,14 +54,14 @@ function formatTime(seconds: number): string {
 export type AudioPlayerChromeProps = {
   audioRef: React.RefObject<HTMLAudioElement | null>;
   visualizerMode?: AudioVisualizerMode;
-  persistKey?: string | null;
+  persistKey?: string;
   extraActions?: React.ReactNode;
 };
 
 export function AudioPlayerChrome({
   audioRef,
   visualizerMode = 'bars',
-  persistKey = DEFAULT_PERSIST_KEY,
+  persistKey,
   extraActions,
 }: AudioPlayerChromeProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);

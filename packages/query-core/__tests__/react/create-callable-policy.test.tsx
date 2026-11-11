@@ -293,6 +293,58 @@ describe('createCallablePolicy — routing a failed call, first match wins', () 
   });
 });
 
+describe('createCallablePolicy — callableFailureKind, the kind the policy decides', () => {
+  it.each([
+    ['the token fetch lost its connection', connectionDropped, 'connection-dropped'],
+    ['App Check throttled the call', throttled, 'not-sent'],
+    ['the App Check token failed', tokenFetchRefused, 'not-sent'],
+    ['the platform refused the tokens', platformTokenRefusal, 'token-refused'],
+    ['the deadline passed', deadline, 'outcome-unknown'],
+    ['maintenance', maintenance, 'maintenance'],
+    ['the server asked for sign-in', signInRequired, 'other'],
+    ['an outage', outage, 'other'],
+    ['a designed refusal', notFound, 'other'],
+    ['a client-side error', new TypeError('x is undefined'), 'other'],
+  ] as const)('names the kind when %s', (_case, error, kind) => {
+    const { kit } = makeKit();
+    expect(kit.callableFailureKind(error)).toBe(kind);
+  });
+});
+
+describe('createCallablePolicy — callableFailureToast for a caller that shows its own failures', () => {
+  it.each([
+    ['the token fetch lost its connection', connectionDropped, WORDING.connectionDropped],
+    ['App Check throttled the call', throttled, WORDING.notSent],
+    ['the App Check token failed', tokenFetchRefused, WORDING.notSent],
+    ['the platform refused the tokens', platformTokenRefusal, WORDING.tokenRefused],
+    ['the deadline passed', deadline, WORDING.outcomeUnknown],
+    ['maintenance', maintenance, { ...WORDING.maintenance, description: 'Back at noon.' }],
+    [
+      'maintenance with no message of its own',
+      callableError('functions/unavailable', '', { reason: 'maintenance' }),
+      WORDING.maintenance,
+    ],
+    ['an outage', outage, { ...WORDING.genericError, description: 'The service is unavailable.' }],
+    [
+      'the server asked for sign-in',
+      signInRequired,
+      { ...WORDING.genericError, description: 'Sign in first.' },
+    ],
+    ['a client-side error', new TypeError('x is undefined'), WORDING.genericError],
+  ] as const)(
+    'is the one toast the routing shows when %s, and shows nothing itself',
+    (_case, error, expected) => {
+      const { kit, plumbing } = makeKit();
+      expect(kit.callableFailureToast(error)).toEqual(expected);
+      expect(plumbing.showToast).not.toHaveBeenCalled();
+
+      kit.policy.onActionError(error, routing());
+      expect(plumbing.showToast).toHaveBeenCalledTimes(1);
+      expect(plumbing.showToast).toHaveBeenCalledWith(expected);
+    },
+  );
+});
+
 describe('createCallablePolicy — captureCallableFault', () => {
   it('reports nothing for an expected answer: a designed refusal, maintenance, a business answer', () => {
     const { kit, plumbing } = makeKit();

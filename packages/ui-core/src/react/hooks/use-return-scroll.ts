@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-
-const STORAGE_PREFIX = 'return-scroll:';
+import { readStoredValue, writeStoredValue } from '@ttt-productions/storage-core';
 
 export interface ReturnScrollEntry {
   y: number;
@@ -19,55 +18,30 @@ export interface UseReturnScrollResult {
   save: () => void;
 }
 
-function storageKey(key: string): string {
-  return `${STORAGE_PREFIX}${key}`;
-}
-
-function sessionStorageOrNull(): Storage | null {
-  try {
-    if (typeof window === 'undefined') return null;
-    return window.sessionStorage ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export function readReturnScroll(key: string): ReturnScrollEntry | null {
-  const storage = sessionStorageOrNull();
-  if (!storage) return null;
+  const raw = readStoredValue(key, 'session');
+  if (!raw) return null;
+  let parsed: unknown;
   try {
-    const raw = storage.getItem(storageKey(key));
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const { y, savedAt } = parsed as { y?: unknown; savedAt?: unknown };
-    if (typeof y !== 'number' || !Number.isFinite(y) || y < 0) return null;
-    return { y, savedAt: typeof savedAt === 'number' ? savedAt : 0 };
+    parsed = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const { y, savedAt } = parsed as { y?: unknown; savedAt?: unknown };
+  if (typeof y !== 'number' || !Number.isFinite(y) || y < 0) return null;
+  return { y, savedAt: typeof savedAt === 'number' ? savedAt : 0 };
 }
 
 export function saveReturnScroll(key: string, y?: number): void {
-  const storage = sessionStorageOrNull();
-  if (!storage) return;
-  try {
-    const offset = typeof y === 'number' ? y : window.scrollY;
-    const entry: ReturnScrollEntry = { y: offset, savedAt: Date.now() };
-    storage.setItem(storageKey(key), JSON.stringify(entry));
-  } catch {
-    // A blocked or full store throws on write; the position is best-effort (RULE-STD-FRONTEND-010).
-  }
+  if (typeof window === 'undefined') return;
+  const offset = typeof y === 'number' ? y : window.scrollY;
+  const entry: ReturnScrollEntry = { y: offset, savedAt: Date.now() };
+  writeStoredValue(key, JSON.stringify(entry), 'session');
 }
 
 export function clearReturnScroll(key: string): void {
-  const storage = sessionStorageOrNull();
-  if (!storage) return;
-  try {
-    storage.removeItem(storageKey(key));
-  } catch {
-    // A blocked store throws here, and then it holds nothing to clear.
-  }
+  writeStoredValue(key, null, 'session');
 }
 
 interface Decision {

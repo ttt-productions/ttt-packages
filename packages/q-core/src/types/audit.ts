@@ -8,6 +8,7 @@ export const AUDIT_EVENT_TYPE_KEYS = [
   'userProfile.passwordReset',
   'userProfile.banned',
   'userProfile.unbanned',
+  'userProfile.authReconciled',
   'adminList.roleGranted',
   'adminList.roleRevoked',
   'adminList.claimSynced',

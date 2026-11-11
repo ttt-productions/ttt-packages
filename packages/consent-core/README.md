@@ -8,4 +8,4 @@ analytics off until the visitor accepts.
   `CookieSettingsButton`.
 
 The app supplies its storage key, change event, analytics on/off callback, and every word shown.
-`@ttt-productions/theme-core` and `@ttt-productions/ui-core` are optional peers used by `./react`.
+`@ttt-productions/storage-core` and `@ttt-productions/ui-core` are optional peers used by `./react`.

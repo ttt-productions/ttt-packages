@@ -37,12 +37,16 @@
     "@ttt-productions/ui-core": "*"
   },
   "peerDependencies": {
+    "@ttt-productions/storage-core": "*",
     "react": ">=19.0.0",
     "react-dom": ">=19.0.0",
     "lucide-react": "^1.30.0",
     "react-intersection-observer": ">=11.0.0"
   },
   "peerDependenciesMeta": {
+    "@ttt-productions/storage-core": {
+      "optional": true
+    },
     "react": {
       "optional": true
     },
@@ -57,6 +61,7 @@
     }
   },
   "devDependencies": {
+    "@ttt-productions/storage-core": "*",
     "lucide-react": "^1.30.0",
     "react-intersection-observer": "^11.0.1"
   },

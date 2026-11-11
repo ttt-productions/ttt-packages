@@ -250,10 +250,21 @@ this section says what the facts mean, area by area, and never lists them guard 
 - **UI** — the entry stylesheet, token sheet, and pinned stylesheet order, the root layout module
   and what it mounts in which order, the navigation, motion, and loading helpers, the accessible
   control and display components, the trees where text is clipped only through ui-core's
-  `ClippedText`, with the clip classes that component places (in those trees, any of them in code is
-  a class placed by hand) and the clamp-owner selectors (an owner may be declared by any stylesheet the
-  entry stylesheet loads, an installed theme package's included), and the reviewed colour, label,
-  text-entry, bound, and truncation exceptions.
+  `ClippedText` (a plain tag named with `as`, never under `asChild` or wrapped around a `ClippedText`
+  that is its only content), a name in a sentence wraps only through `InlineName` and machine text
+  breaks only through `MachineText` (its plain tag named with `as` too, never under `asChild`), with the clip classes and the break classes those components
+  place (in those trees, any of them in code is a class placed by hand) and the clamp-owner and
+  break-owner selectors (an owner may be declared by any stylesheet the entry stylesheet loads, an
+  installed theme package's included), and the reviewed colour, label,
+  text-entry, bound, and truncation exceptions. The colour guard also takes `siteDefinitionModule`,
+  the module that holds the app's one site-core `SiteDefinition`: there, and only there, the
+  `themeColor` and `backgroundColor` of that one object (a `const x: SiteDefinition = {…}` or an
+  object `satisfies SiteDefinition`, the type imported by name from `@ttt-productions/site-core`)
+  may each be a single string literal holding a concrete colour, since a web manifest and the
+  `theme-color` tag cannot resolve a token. Every other colour in that module still fails, and so
+  do those two fields anywhere else. The fact is optional because leaving it out only allows less:
+  with none declared, no colour is allowed anywhere. A declared module that is missing, or that holds
+  no such object or more than one, fails the guard. It is a fact, not a reviewed exception.
 - **Core definitions** — the app's data package, its schema and wire folders, the wire-input name
   suffixes, loaders for its wire modules, field declarations, and field schema builder, and the
   reviewed exceptions (guarded literals, length literals, non-segment ids, verbatim fields). The

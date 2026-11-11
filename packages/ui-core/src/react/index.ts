@@ -241,7 +241,18 @@ export type {
   ClippedTextProps,
   ClippedTextClip,
   ClippedTextLines,
+  ClippedTextTag,
+  ClippedTextCopyTag,
 } from './components/clipped-text.js';
+
+export { InlineName } from './components/inline-name.js';
+export type { InlineNameProps } from './components/inline-name.js';
+
+export { MachineText } from './components/machine-text.js';
+export type { MachineTextProps, MachineTextTag } from './components/machine-text.js';
+
+export { CopyButton } from './components/copy-button.js';
+export type { CopyButtonProps, CopyButtonWording, CopyToast } from './components/copy-button.js';
 
 export { ShowMoreToggle } from './components/show-more-toggle.js';
 export type { ShowMoreToggleProps } from './components/show-more-toggle.js';

@@ -40,9 +40,12 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
+        "@ttt-productions/firebase-helpers": "*",
+        "@ttt-productions/sweep-core": "*",
         "zod": "^4.6.7"
     },
     "peerDependencies": {
+        "@ttt-productions/storage-core": "*",
         "firebase": ">=12.0.0",
         "firebase-admin": ">=10.0.0",
         "firebase-functions": ">=4.0.0",
@@ -50,6 +53,9 @@
         "react-dom": ">=19.0.0"
     },
     "peerDependenciesMeta": {
+        "@ttt-productions/storage-core": {
+            "optional": true
+        },
         "firebase": {
             "optional": true
         },
@@ -67,6 +73,7 @@
         }
     },
     "devDependencies": {
+        "@ttt-productions/storage-core": "*",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "firebase": "^12.14.0",

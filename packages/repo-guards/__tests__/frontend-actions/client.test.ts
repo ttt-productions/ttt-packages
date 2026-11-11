@@ -77,11 +77,12 @@ describe('app config read only by its provider', () => {
 describe('browser storage through the guarded helper', () => {
   const facts = { helper: 'readStoredValue / writeStoredValue', allowlist: [] };
 
-  it('passes the helper, prose, and a comment', async () => {
+  it('passes the helper, prose, a comment, a string, and a property named like a storage', async () => {
     expect(
       await findingsOf(browserStorageGuard, facts, {
         'src/a.ts':
-          "readStoredValue(KEY, 'session');\nconst s = `stored in localStorage: ${v}`;\n// localStorage.getItem(K)",
+          "readStoredValue(KEY, 'session');\nconst s = `stored in localStorage: ${v}`;\n// localStorage.getItem(K)\n" +
+          "const sample = 'window.sessionStorage.getItem(K)';\nconst fakes = { localStorage: memory };",
       }),
     ).toEqual([]);
   });
@@ -92,8 +93,21 @@ describe('browser storage through the guarded helper', () => {
         'src/a.ts': "window.localStorage.getItem(K);\nsessionStorage['k'] = v;",
       }),
     ).toEqual([
-      'src/a.ts:1 not on the reviewed list: localStorage.',
-      'src/a.ts:2 not on the reviewed list: sessionStorage[',
+      'src/a.ts:1 not on the reviewed list: localStorage',
+      'src/a.ts:2 not on the reviewed list: sessionStorage',
+    ]);
+  });
+
+  it('flags a storage area read whole, by name, by a quoted index, or by destructuring', async () => {
+    expect(
+      await findingsOf(browserStorageGuard, facts, {
+        'src/a.ts':
+          "const area = session ? window.sessionStorage : window['localStorage'];\nconst { localStorage: store } = window;",
+      }),
+    ).toEqual([
+      'src/a.ts:1 not on the reviewed list: sessionStorage',
+      'src/a.ts:1 not on the reviewed list: localStorage',
+      'src/a.ts:2 not on the reviewed list: localStorage',
     ]);
   });
 

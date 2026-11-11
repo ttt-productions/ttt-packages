@@ -25,5 +25,4 @@ export * from './catalogs.js';
 export * from './system.js';
 export * from './admin-notifications.js';
 export * from './migration-console.js';
-export * from './sweep-state.js';
 export * from './registry.js';

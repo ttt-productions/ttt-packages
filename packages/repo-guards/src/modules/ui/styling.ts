@@ -1,5 +1,6 @@
+import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
-import type { Finding, Guard } from '../../guard.js';
+import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import {
@@ -57,47 +58,177 @@ const COLOR_LITERALS = [
 ];
 export const colorLiteralMatcher: Matcher = (file) => patternHits(file, COLOR_LITERALS);
 
+const SITE_CORE = '@ttt-productions/site-core';
+const SITE_DEFINITION = 'SiteDefinition';
+const SITE_COLOR_FIELDS: ReadonlySet<string> = new Set(['themeColor', 'backgroundColor']);
+
+function siteDefinitionTypeNames(file: FileView): Set<string> {
+  const names = new Set<string>();
+  for (const i of file.imports)
+    if (i.kind === 'import' && i.spec === SITE_CORE)
+      for (const n of i.named) if (n.imported === SITE_DEFINITION) names.add(n.local);
+  return names;
+}
+
+function siteDefinitionObjects(file: FileView): ts.ObjectLiteralExpression[] {
+  if (file.kind !== 'code') return [];
+  const types = siteDefinitionTypeNames(file);
+  if (!types.size) return [];
+  const isSiteDefinition = (type: ts.TypeNode | undefined) =>
+    !!type &&
+    ts.isTypeReferenceNode(type) &&
+    ts.isIdentifier(type.typeName) &&
+    types.has(type.typeName.text);
+  const objects: ts.ObjectLiteralExpression[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      isSiteDefinition(node.type) &&
+      node.initializer &&
+      ts.isObjectLiteralExpression(node.initializer)
+    )
+      objects.push(node.initializer);
+    if (
+      ts.isSatisfiesExpression(node) &&
+      isSiteDefinition(node.type) &&
+      ts.isObjectLiteralExpression(node.expression)
+    )
+      objects.push(node.expression);
+    ts.forEachChild(node, visit);
+  };
+  visit(file.sourceFile);
+  return objects;
+}
+
+function siteColorValues(
+  file: FileView,
+  site: ts.ObjectLiteralExpression,
+): Array<[number, number]> {
+  const spans: Array<[number, number]> = [];
+  for (const property of site.properties) {
+    if (!ts.isPropertyAssignment(property)) continue;
+    const name =
+      ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)
+        ? property.name.text
+        : null;
+    const value = property.initializer;
+    if (
+      name !== null &&
+      SITE_COLOR_FIELDS.has(name) &&
+      (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value))
+    )
+      spans.push([value.getStart(file.sourceFile), value.getEnd()]);
+  }
+  return spans;
+}
+
+function colorLiteralsOutsideSiteColors(siteDefinitionModule: string | undefined): Matcher {
+  return (file) => {
+    const hits = colorLiteralMatcher(file);
+    if (!hits.length || siteDefinitionModule === undefined || file.path !== siteDefinitionModule)
+      return hits;
+    const sites = siteDefinitionObjects(file);
+    if (sites.length !== 1) return hits;
+    const spans = siteColorValues(file, sites[0]);
+    return hits.filter(({ index }) => !spans.some(([start, end]) => index >= start && index < end));
+  };
+}
+
+function siteDefinitionFindings(context: GuardContext, siteDefinitionModule: string): Finding[] {
+  const file = context.files(APP_CODE).find((f) => f.path === siteDefinitionModule);
+  if (!file)
+    return [
+      {
+        file: siteDefinitionModule,
+        detail:
+          'the declared site definition module is not app source the guard reads: it is missing, a test file, or outside the app root',
+      },
+    ];
+  const count = siteDefinitionObjects(file).length;
+  if (count === 1) return [];
+  return [
+    {
+      file: siteDefinitionModule,
+      detail: count
+        ? `holds ${count} objects typed ${SITE_DEFINITION}; the app declares its one site definition once`
+        : `holds no object typed ${SITE_DEFINITION} from ${SITE_CORE}, so the allowance for its two colours matches nothing`,
+    },
+  ];
+}
+
 export interface ColorLiteralFacts {
   exceptions: readonly AllowlistEntry[];
+  siteDefinitionModule?: string;
 }
+
+const siteSample = (path: string, extra = '') => ({
+  path,
+  text:
+    `import type { ${SITE_DEFINITION} } from '${SITE_CORE}';\n${extra}` +
+    `export const site: ${SITE_DEFINITION} = { name: 'x', themeColor: '#123456', backgroundColor: '#ffffff' };`,
+});
 
 export const colorLiteralsGuard: GenericGuardDefinition<ColorLiteralFacts> = {
   id: 'colorLiterals',
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (objectProblem(facts, 'facts', problems))
+    if (objectProblem(facts, 'facts', problems)) {
       allowlistProblems(facts.exceptions, 'exceptions', problems);
+      if (facts.siteDefinitionModule !== undefined)
+        pathProblem(facts.siteDefinitionModule, 'siteDefinitionModule', problems);
+    }
     return problems;
   },
   build(facts) {
+    const siteModule = facts.siteDefinitionModule;
+    const elsewhere = siteModule === 'sample.ts' ? 'sample-elsewhere.ts' : 'sample.ts';
+    const guard = reviewedAllowlist({
+      title: 'every color in app code and stylesheets resolves through a theme token',
+      description:
+        'A color renders as hsl(var(--token)) from the theme system. App code and app stylesheets never hold a hex, ' +
+        'a numeric hsl()/rgb() literal, or a stock Tailwind palette class (bg-amber-500, text-gray-500, bg-white, ' +
+        'text-black): those never reach the theme tokens, so they keep their value in every theme and in high contrast. ' +
+        'Use an existing token, or declare a new one in the app token sheet as a raw triplet. The one place app code ' +
+        `writes a concrete color is the themeColor and backgroundColor of the app's one ${SITE_DEFINITION} (from ` +
+        `${SITE_CORE}), each a single string literal, since a web manifest and the theme-color tag cannot resolve a ` +
+        'token: ' +
+        (siteModule === undefined
+          ? 'declare the module that holds it as siteDefinitionModule; until then no color is allowed there.'
+          : `${siteModule} holds it, and any other color in that file still fails.`),
+      scope: APP_CODE_AND_STYLES,
+      match: colorLiteralsOutsideSiteColors(siteModule),
+      allowlist: facts.exceptions,
+      samples: {
+        flags: [
+          tsx('<div style={{ color: "#fff" }} />'),
+          tsx('const shade = "rgba(0,0,0,.5)";'),
+          tsx('<p className="text-gray-500" />'),
+          tsx('<div className="dark:bg-amber-500/10" />'),
+          tsx('<span className="bg-white text-black" />'),
+          css('.a { color: hsl(258 50% 40%); }'),
+          siteSample(elsewhere),
+          ...(siteModule === undefined
+            ? []
+            : [siteSample(siteModule, "export const accent = '#abcdef';\n")]),
+        ],
+        passes: [
+          tsx('<p className="text-muted-foreground bg-card border-border" />'),
+          css('.a { color: hsl(var(--primary)); --gold: 45 65% 62%; }'),
+          tsx('// a #fff comment and bg-white in prose'),
+          ...(siteModule === undefined ? [] : [siteSample(siteModule)]),
+        ],
+      },
+    });
+    if (siteModule === undefined) return [guard];
     return [
-      reviewedAllowlist({
-        title: 'every color in app code and stylesheets resolves through a theme token',
-        description:
-          'A color renders as hsl(var(--token)) from the theme system. App code and app stylesheets never hold a hex, ' +
-          'a numeric hsl()/rgb() literal, or a stock Tailwind palette class (bg-amber-500, text-gray-500, bg-white, ' +
-          'text-black): those never reach the theme tokens, so they keep their value in every theme and in high contrast. ' +
-          'Use an existing token, or declare a new one in the app token sheet as a raw triplet.',
-        scope: APP_CODE_AND_STYLES,
-        match: colorLiteralMatcher,
-        allowlist: facts.exceptions,
-        samples: {
-          flags: [
-            tsx('<div style={{ color: "#fff" }} />'),
-            tsx('const shade = "rgba(0,0,0,.5)";'),
-            tsx('<p className="text-gray-500" />'),
-            tsx('<div className="dark:bg-amber-500/10" />'),
-            tsx('<span className="bg-white text-black" />'),
-            css('.a { color: hsl(258 50% 40%); }'),
-          ],
-          passes: [
-            tsx('<p className="text-muted-foreground bg-card border-border" />'),
-            css('.a { color: hsl(var(--primary)); --gold: 45 65% 62%; }'),
-            tsx('// a #fff comment and bg-white in prose'),
-          ],
-        },
-      }),
+      {
+        ...guard,
+        run: async (context) => [
+          ...(await guard.run(context)),
+          ...siteDefinitionFindings(context, siteModule),
+        ],
+      },
     ];
   },
 };

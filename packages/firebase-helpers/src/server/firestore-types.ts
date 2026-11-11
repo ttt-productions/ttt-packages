@@ -3,6 +3,9 @@ export interface ServerFirestore {
   doc(path: string): ServerDocRef;
   batch(): ServerWriteBatch;
   runTransaction<T>(updateFunction: (transaction: ServerTransaction) => Promise<T>): Promise<T>;
+  getAll(
+    ...refsOrReadOptions: Array<ServerDocRef | { readonly fieldMask?: readonly unknown[] }>
+  ): Promise<ServerDocSnapshot[]>;
 }
 
 export interface ServerTransaction {
@@ -30,6 +33,7 @@ export interface ServerQuery {
   orderBy(field: string, direction?: 'asc' | 'desc'): ServerQuery;
   limit(n: number): ServerQuery;
   startAfter(snapshot: ServerDocSnapshot): ServerQuery;
+  startAfter(...fieldValues: unknown[]): ServerQuery;
   get(): Promise<ServerQuerySnapshot>;
 }
 
@@ -44,6 +48,12 @@ export interface ServerDocSnapshot {
   exists: boolean;
   data(): Record<string, unknown> | undefined;
   ref: ServerDocRef;
+  readonly updateTime?: ServerUpdateTime;
+}
+
+export interface ServerUpdateTime {
+  toMillis(): number;
+  isEqual(other: ServerUpdateTime): boolean;
 }
 
 export interface ServerDocRef {
@@ -51,7 +61,7 @@ export interface ServerDocRef {
   set(data: Record<string, unknown>, options?: { merge?: boolean }): Promise<unknown>;
   update(data: Record<string, unknown>): Promise<unknown>;
   create(data: Record<string, unknown>): Promise<unknown>;
-  delete(): Promise<unknown>;
+  delete(precondition?: { lastUpdateTime?: ServerUpdateTime }): Promise<unknown>;
   get(): Promise<ServerDocSnapshot>;
 }
 

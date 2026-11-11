@@ -13,6 +13,15 @@ system model lives in Q-Sports' `docs/design/`.
   roots parse the ID token against (`./types`)
 - Q-Sports' types, unions, constants, and business copy
 - Callable input schemas and the Firestore document-schema registry (`COLLECTION_SCHEMAS`)
+- What Q-Sports hands `app-config-core`: `APP_CONFIG_DEFINITION` (`./utils`), its app config
+  document's path bound to `AppConfigSchema`, through which every reader and writer of the document
+  goes; with the standard maintenance sentence and `isMaintenanceOn`, the rule that the maintenance
+  message alone decides maintenance
+- What Q-Sports hands the shared sweep and account-repair mechanisms: its sweep names
+  (`SWEEP_STATE_NAMES`), its registry binding of `sweep-core`'s `SweepStateSchema` for
+  `sweepState/{sweepName}`, and the account-repair queue entry schema built with auth-core's
+  `createAccountRepairQueueEntrySchemas` from its effects and statuses; an account repair is
+  audited as `userProfile.authReconciled`
 - The Q-Sports domain-event catalog and the admin-notification configuration
 - The media origins and picture contracts, and the sport registry and adapters (stat events, scoring,
   bulk entry, columns)

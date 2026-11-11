@@ -10,6 +10,7 @@ interface Manifest {
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+  optionalDependencies?: Record<string, string>;
 }
 
 const lucideImporters = new Set(
@@ -20,11 +21,27 @@ const lucideImporters = new Set(
     .map((file) => packageOf(file.path)),
 );
 
-const packages = workspacePackages<Manifest>().map(({ dir, manifest }) => ({
+interface PackageRecord {
+  dir: string;
+  manifest: Manifest;
+  importsLucide: boolean;
+}
+
+const packages: PackageRecord[] = workspacePackages<Manifest>().map(({ dir, manifest }) => ({
   dir,
   manifest,
   importsLucide: lucideImporters.has(dir),
 }));
+
+function deadLucideDeclarations(records: readonly PackageRecord[]): string[] {
+  return records
+    .filter((p) => !p.importsLucide)
+    .flatMap(({ dir, manifest }) =>
+      (['dependencies', 'peerDependencies', 'devDependencies', 'optionalDependencies'] as const)
+        .filter((field) => manifest[field]?.[LUCIDE] !== undefined)
+        .map((field) => `${dir} (${field})`),
+    );
+}
 
 const importers = packages.filter((p) => p.importsLucide);
 const peerDeclarers = packages.filter((p) => p.manifest.peerDependencies?.[LUCIDE] !== undefined);
@@ -57,18 +74,48 @@ describe('boundary: lucide-react is one optional peer', () => {
     expect(missing).toEqual([]);
   });
 
-  it('only a package that imports lucide-react declares it (no dead peer or devDependency)', () => {
-    const dead = packages
-      .filter((p) => !p.importsLucide)
-      .flatMap(({ dir, manifest }) =>
-        (['dependencies', 'peerDependencies', 'devDependencies'] as const)
-          .filter((field) => manifest[field]?.[LUCIDE] !== undefined)
-          .map((field) => `${dir} (${field})`),
-      );
+  it('only a package that imports lucide-react declares it (no dead peer, dev or optional dependency)', () => {
+    const dead = deadLucideDeclarations(packages);
     expect(
       dead,
       `lucide-react declared by a package whose source never imports it:\n  ${dead.join('\n  ')}`,
     ).toEqual([]);
+  });
+
+  it('the dead-declaration check reports a seeded lucide-react in each field of a non-importing package', () => {
+    const seeded: PackageRecord[] = [
+      { dir: 'a', manifest: { name: 'a', dependencies: { [LUCIDE]: '*' } }, importsLucide: false },
+      {
+        dir: 'b',
+        manifest: { name: 'b', peerDependencies: { [LUCIDE]: '*' } },
+        importsLucide: false,
+      },
+      {
+        dir: 'c',
+        manifest: { name: 'c', devDependencies: { [LUCIDE]: '*' } },
+        importsLucide: false,
+      },
+      {
+        dir: 'd',
+        manifest: { name: 'd', optionalDependencies: { [LUCIDE]: '*' } },
+        importsLucide: false,
+      },
+      {
+        dir: 'e',
+        manifest: {
+          name: 'e',
+          peerDependencies: { [LUCIDE]: '*' },
+          devDependencies: { [LUCIDE]: '*' },
+        },
+        importsLucide: true,
+      },
+    ];
+    expect(deadLucideDeclarations(seeded)).toEqual([
+      'a (dependencies)',
+      'b (peerDependencies)',
+      'c (devDependencies)',
+      'd (optionalDependencies)',
+    ]);
   });
 
   it('every lucide-react range in the workspace is the same range', () => {

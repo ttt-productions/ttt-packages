@@ -57,8 +57,10 @@ export interface CallablePolicyDefinition<TToast extends CallableToastConfig> {
   plumbing: CallablePolicyPlumbing<TToast>;
 }
 
-export interface CallablePolicyKit {
+export interface CallablePolicyKit<TToast extends CallableToastConfig> {
   policy: CallablePolicy;
+  callableFailureKind: (error: unknown) => CallableFailureKind;
+  callableFailureToast: (error: unknown) => TToast;
   describeCallableError: (error: unknown, fallback?: string) => string;
   captureCallableFault: (error: unknown, context?: CallableCaptureContext) => void;
   isCallableRejection: (error: unknown) => boolean;
@@ -68,7 +70,7 @@ export interface CallablePolicyKit {
   callableRefusalMessage: (error: unknown) => string | null;
 }
 
-type FailureClass =
+export type CallableFailureKind =
   'connection-dropped' | 'not-sent' | 'token-refused' | 'outcome-unknown' | 'maintenance' | 'other';
 
 export const CALLABLE_FAULT_REPORTS = {
@@ -79,7 +81,7 @@ export const CALLABLE_FAULT_REPORTS = {
 
 export function createCallablePolicy<TToast extends CallableToastConfig>(
   definition: CallablePolicyDefinition<TToast>,
-): CallablePolicyKit {
+): CallablePolicyKit<TToast> {
   const { wording, businessAnswers, refusals, plumbing } = definition;
   const routedFailures = new WeakSet<object>();
 
@@ -105,7 +107,7 @@ export function createCallablePolicy<TToast extends CallableToastConfig>(
     );
   }
 
-  function classify(error: unknown): FailureClass {
+  function callableFailureKind(error: unknown): CallableFailureKind {
     if (isAppCheckConnectionFailure(error)) return 'connection-dropped';
     if (isAppCheckTokenFailure(error)) return 'not-sent';
     if (isCallableRejection(error) && refusals.isPlatformTokenRefusal(error))
@@ -136,29 +138,31 @@ export function createCallablePolicy<TToast extends CallableToastConfig>(
     return callableRejectionMessage(error) || null;
   }
 
-  function maintenanceToast(error: unknown): TToast {
-    const message = serverMessage(error);
-    return message ? { ...wording.maintenance, description: message } : wording.maintenance;
+  function callableFailureToast(error: unknown): TToast {
+    switch (callableFailureKind(error)) {
+      case 'connection-dropped':
+        return wording.connectionDropped;
+      case 'not-sent':
+        return wording.notSent;
+      case 'token-refused':
+        return wording.tokenRefused;
+      case 'outcome-unknown':
+        return wording.outcomeUnknown;
+      case 'maintenance': {
+        const message = serverMessage(error);
+        return message ? { ...wording.maintenance, description: message } : wording.maintenance;
+      }
+      case 'other':
+        return { ...wording.genericError, description: describeCallableError(error) };
+    }
   }
 
   function describeCallableError(
     error: unknown,
     fallback: string = wording.genericError.description,
   ): string {
-    switch (classify(error)) {
-      case 'connection-dropped':
-        return wording.connectionDropped.description;
-      case 'not-sent':
-        return wording.notSent.description;
-      case 'token-refused':
-        return wording.tokenRefused.description;
-      case 'outcome-unknown':
-        return wording.outcomeUnknown.description;
-      case 'maintenance':
-        return maintenanceToast(error).description;
-      case 'other':
-        return callableRejectionMessage(error) || fallback;
-    }
+    if (callableFailureKind(error) === 'other') return callableRejectionMessage(error) || fallback;
+    return callableFailureToast(error).description;
   }
 
   function captureCallableFault(error: unknown, context: CallableCaptureContext = {}): void {
@@ -167,7 +171,7 @@ export function createCallablePolicy<TToast extends CallableToastConfig>(
       return;
     }
     if (isExpectedCallableAnswer(error)) return;
-    switch (classify(error)) {
+    switch (callableFailureKind(error)) {
       case 'connection-dropped':
         return;
       case 'not-sent':
@@ -194,25 +198,7 @@ export function createCallablePolicy<TToast extends CallableToastConfig>(
     if (!routing.showErrorToast) return;
     const refusal = callableRefusalCode(error);
     if (refusal !== null && routing.answeredRefusals.includes(refusal)) return;
-    switch (classify(error)) {
-      case 'connection-dropped':
-        plumbing.showToast(wording.connectionDropped);
-        return;
-      case 'not-sent':
-        plumbing.showToast(wording.notSent);
-        return;
-      case 'token-refused':
-        plumbing.showToast(wording.tokenRefused);
-        return;
-      case 'outcome-unknown':
-        plumbing.showToast(wording.outcomeUnknown);
-        return;
-      case 'maintenance':
-        plumbing.showToast(maintenanceToast(error));
-        return;
-      case 'other':
-        plumbing.showToast({ ...wording.genericError, description: describeCallableError(error) });
-    }
+    plumbing.showToast(callableFailureToast(error));
   }
 
   const policy: CallablePolicy = {
@@ -235,6 +221,8 @@ export function createCallablePolicy<TToast extends CallableToastConfig>(
 
   return {
     policy,
+    callableFailureKind,
+    callableFailureToast,
     describeCallableError,
     captureCallableFault,
     isCallableRejection,

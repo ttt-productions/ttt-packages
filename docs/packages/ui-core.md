@@ -10,7 +10,9 @@ Generic UI primitive package.
 - The reload-recovery notice for failures only a reload repairs (below)
 - The list-pagination BUTTONS control and its page-state hooks (see below)
 - The item actions menu, `ActionsMenu` (below)
-- Clipped text, `ClippedText` (below)
+- Clipped text, `ClippedText`; a name in a sentence, `InlineName`; machine text, `MachineText`
+  (below)
+- The copy control, `CopyButton` (below)
 - Generic formatting helpers such as `formatLargeNumber`
 
 ## Boundary
@@ -257,6 +259,19 @@ The one whole-row action whose row can still hold controls of its own (a Retry i
 The one way a title, name, or block of user text is cut short (RULE-STD-FRONTEND-007). Call sites
 never place theme-core's clip classes by hand.
 
+- **The box carries the clip.** The element `ClippedText` renders is the clipped element, with the
+  text straight inside it, so it clips to its own width — the width its own class gives it, like any
+  box. A span in a block has no width of its own and never clips, which is why the element is named,
+  never wrapped:
+  - **`as` names a plain tag** (`span` by default; a heading, `p`, `div`, `li`, `dt`, `dd`, `td`,
+    `th`, `caption`, `figcaption`, `strong`, `em`, `small`, `a`, `button`, `label`, `legend`), and
+    the tag's own props pass through (`<ClippedText as="h2" className="page-title" text={title} />`,
+    `<ClippedText as="td" colSpan={2} text={name} />`).
+  - **`asChild` is for a component** — a link component, a card title — whose one element becomes
+    the clipped element, keeping its own props
+    (`<ClippedText asChild text={name}><AppLink href={href} /></ClippedText>`). A plain tag is never
+    put under `asChild`: written as an empty `<h2 />` or `<a href />` it is an empty heading or
+    link to the shared lint preset.
 - **Lines.** `lines` is 1 (the default), 2 or 3; each ends in an ellipsis. The clip is theme-core's
   class — `.single-line-truncate`, `.two-line-clamp`, `.three-line-clamp` — so its values live in one
   place ([theme-core.md](theme-core.md#recipes-and-components-read-tokens-not-literals)).
@@ -264,15 +279,63 @@ never place theme-core's clip classes by hand.
   dropped) into the first word and the rest: the line breaks only between them, and each piece
   clips on its own through `.name-piece` + `.single-line-truncate`. The outer element carries no
   clip of its own.
-- **The full text stays reachable.** `text` is always the element's `title`, and is the element's
-  content, so a heading, link, or cell rendered through it is named by the full text. The clip is
-  visual only.
-- **The element is the caller's.** It renders a `span`; with `asChild` it renders the caller's one
-  child element instead (`<ClippedText asChild text={name}><a href={…} /></ClippedText>`), keeping
-  the child's own props and replacing its content with the clipped text. A `title` on the child is
-  replaced by `text`.
+- **The full text stays reachable.** `text` is always the clipped element's `title`, and is its
+  content, so a heading, link, or cell rendered through it is named by the full text. A `title` on
+  an `asChild` child is replaced by `text`. The clip is visual only.
 - **One way to clip at a time.** `lines` and `namePieces` are exclusive members of one props union
   (`ClippedTextClip`), so another way of clipping is a further member, not a change to these.
+- **The copy switch.** `copy` (`CopyButtonWording`: the copy control's `title` and toast wording, as
+  `CopyButton` below takes them) shows the copy control after the text, and it copies the full
+  `text`, whatever is clipped on screen. It is off unless asked for. It is offered only on the tags
+  that may hold a button beside text (`ClippedTextCopyTag`) — never on a heading, a link, a button, a
+  label, a legend, or an `asChild` component, which the types refuse. With it, the named element
+  holds one row: the clipped text (its own element, carrying the clip and the `title`) and the
+  control.
+- **Select options clip through it.** A `SelectItem` whose children are a string renders them
+  through `ClippedText`, in the list and as the trigger's chosen value, so a long option ends in an
+  ellipsis with its whole label as the title; the trigger places no clip of its own.
+- Cutting by a number of letters is not a display mode.
+
+## A name in a sentence — `InlineName`
+
+`InlineName({ name, className })` puts a name inside a sentence ("Delete Hawks?",
+`Delete <InlineName name={team.name} />?`) as plain inline text. It wraps with the sentence, and a
+long name with no space breaks mid-word (theme-core's `.inline-name`, `overflow-wrap: anywhere`). It
+is never cut and has no tooltip, since the whole name is on the page. A mark beside it — a question
+mark, quotes, a possessive — is written in the sentence: an inline name adds no gap a screen reader
+reads. A place that cannot take a second line (a button label, a table cell) is a box, and its whole
+text clips through `ClippedText`.
+
+## Machine text — `MachineText`
+
+`MachineText` shows machine text — an id, an email, a hash, a file name — whole, breaking at any
+character to stay inside its box (theme-core's `.machine-text`, `word-break: break-all`). It never
+clips and has no tooltip. `text` is the element's content. The element is named one way, as
+`ClippedText`'s is:
+
+- **`as` names a plain tag** — `span` (default), `code`, `p`, `div`, `li`, `dd`, `td` or `pre` — and
+  the tag's own props pass through (`<MachineText as="code" className="font-mono" text={receiptId} />`).
+- **`asChild` is for a component**, whose one element carries the break and keeps its own props and
+  classes (`<MachineText asChild text={manifestId}><CardTitle /></MachineText>`). A plain tag is
+  never put under `asChild`.
+
+## Copying a value — `CopyButton`
+
+The one control that copies a value to the clipboard, used beside clipped text through
+`ClippedText`'s `copy`, or alone for a value that is not clipped.
+
+- **Props.** `value` (what is copied), `title` (what it is, in the app's words), `failedToast`
+  and `copiedToast` (both required; `CopyToast`: a toast as `toast()` takes it), `className`.
+- **The accessible name says what is copied.** The control is an icon button named
+  `Copy <title>` ("Copy user ID"), never a bare "Copy".
+- **It owns the write and both outcomes.** It writes `value` with the browser clipboard. On success
+  its icon swaps to a check while the copy is fresh, then back (a state change swaps the icon,
+  RULE-STD-FRONTEND-006), and the app's `copiedToast` always shows, so a success is never silent to
+  a screen reader (the icon is decorative). A refused write, or a page
+  with no clipboard, shows the app's `failedToast` and no check. The control holds no app copy: the
+  app hands in the title and the toast wording.
+- **Pending.** It is pending while the write runs and ignores a second press (`useAsyncAction`).
+  It is `type="button"`, so it never submits a form it sits in.
 
 ## Accordion row — `AccordionTrigger`
 
@@ -296,9 +359,11 @@ Restores a list's window scroll offset when the user comes back to it after a RE
 detail page with its own URL), which a same-page view swap never needs. One instance per list
 surface, mounted at the list level — never inside a per-card hook. Contract:
 
-- `useReturnScroll({ key, eligible, ready })` → `{ save }`. `key` is the caller's CANONICAL list
-  URL (the caller owns canonicalization — equivalent list states must give the same key).
-- `save()` records `window.scrollY` for `key` in `sessionStorage` — call it immediately before the
+- `useReturnScroll({ key, eligible, ready })` → `{ save }`. `key` is the app's whole session-storage
+  key for the list, built from its CANONICAL list URL by the app's storage-key contract (the caller
+  owns canonicalization — equivalent list states must give the same key); the package adds no prefix.
+- `save()` records `window.scrollY` under `key` in session storage, through storage-core's guarded
+  `writeStoredValue` (`@ttt-productions/storage-core`, an optional peer) — call it immediately before the
   navigation away actually happens (inside any guarded-navigation callback, so a cancelled leave
   never writes an entry).
 - `eligible` is decided by the CALLER once at mount (typically: the list's data was already cached
@@ -309,7 +374,8 @@ surface, mounted at the list level — never inside a per-card hook. Contract:
   with `behavior: 'instant'`; the entry is consumed. The frame is cancelled on unmount or key change,
   and React Strict Mode's double-invoke still scrolls exactly once.
 - `clearReturnScroll(key)` drops an entry (e.g. the detail page removed an item from the list, so
-  the saved offset is stale). Blocked or malformed storage is a silent no-op — no throw, no restore.
+  the saved offset is stale). A malformed entry reads as none. Blocked storage never throws: a saved
+  offset is held in memory for the life of the page, so a return within that page still restores.
 
 ### `hasMore` binds late, and that is the contract
 

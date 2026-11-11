@@ -32,20 +32,23 @@ describe('ThemeProvider theme set and storage key', () => {
   });
 
   it('hands next-themes the declared theme set', () => {
-    render(<ThemeProvider>child</ThemeProvider>);
+    render(<ThemeProvider storageKey="app-theme">child</ThemeProvider>);
     expect(nextThemes.props?.themes).toEqual([...THEME_NAMES]);
   });
 
-  it("publishes next-themes' default storage key when the app passes none", () => {
-    render(
-      <ThemeProvider>
-        <StorageKeyProbe />
-      </ThemeProvider>,
+  it("does not type-check without the app's storage key", () => {
+    const compileOnly = () => (
+      <>
+        {/* @ts-expect-error the app hands in its own storage key; theme-core types none */}
+        <ThemeProvider>child</ThemeProvider>
+        {/* @ts-expect-error the key is a string, never left undefined */}
+        <ThemeProvider storageKey={undefined}>child</ThemeProvider>
+      </>
     );
-    expect(screen.getByTestId('storage-key')).toHaveTextContent('theme');
+    expect(compileOnly).toBeTypeOf('function');
   });
 
-  it("publishes and forwards the app's storage key", () => {
+  it("hands next-themes and the account sync exactly the app's storage key", () => {
     render(
       <ThemeProvider storageKey="app-theme">
         <StorageKeyProbe />
@@ -96,7 +99,7 @@ describe('ThemeProvider dev-mode token warner', () => {
   it('warns when a required token has no value defined on :root', async () => {
     setTokens({ '--brand-primary': 'hsl(220 50% 50%)' });
 
-    render(<ThemeProvider>child</ThemeProvider>);
+    render(<ThemeProvider storageKey="app-theme">child</ThemeProvider>);
 
     await waitFor(() => expect(warnSpy).toHaveBeenCalled());
     const message = String(warnSpy.mock.calls[0][0]);
@@ -113,7 +116,7 @@ describe('ThemeProvider dev-mode token warner', () => {
       '--brand-accent': 'hsl(40 90% 60%)',
     });
 
-    render(<ThemeProvider>child</ThemeProvider>);
+    render(<ThemeProvider storageKey="app-theme">child</ThemeProvider>);
 
     await waitFor(() => expect(warnSpy).toHaveBeenCalled());
     const message = String(warnSpy.mock.calls[0][0]);
@@ -128,7 +131,7 @@ describe('ThemeProvider dev-mode token warner', () => {
       '--brand-accent': 'hsl(40 90% 60%)',
     });
 
-    render(<ThemeProvider>child</ThemeProvider>);
+    render(<ThemeProvider storageKey="app-theme">child</ThemeProvider>);
 
     await new Promise((r) => setTimeout(r, 0));
     expect(warnSpy).not.toHaveBeenCalled();
@@ -138,7 +141,7 @@ describe('ThemeProvider dev-mode token warner', () => {
     vi.stubEnv('NODE_ENV', 'production');
     clearTokens();
 
-    render(<ThemeProvider>child</ThemeProvider>);
+    render(<ThemeProvider storageKey="app-theme">child</ThemeProvider>);
 
     await new Promise((r) => setTimeout(r, 0));
     expect(warnSpy).not.toHaveBeenCalled();

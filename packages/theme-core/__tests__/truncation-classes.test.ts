@@ -61,3 +61,13 @@ describe('the shared truncation classes', () => {
     });
   });
 });
+
+describe('the shared text that wraps and is never cut', () => {
+  it('lets a name in a sentence break mid-word only where it has no space to wrap at, and never clips it', () => {
+    expect(declarationsOf('.inline-name')).toEqual({ 'overflow-wrap': 'anywhere' });
+  });
+
+  it('breaks machine text at any character and never clips it', () => {
+    expect(declarationsOf('.machine-text')).toEqual({ 'word-break': 'break-all' });
+  });
+});

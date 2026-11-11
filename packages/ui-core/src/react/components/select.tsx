@@ -7,6 +7,7 @@ import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '../../lib/utils.js';
+import { ClippedText } from './clipped-text.js';
 import { Spinner } from './spinner.js';
 import { blockActivationKey, blockEvent } from './pending-guard.js';
 
@@ -17,7 +18,7 @@ const SelectValue = SelectPrimitive.Value;
 // The filter variant carries theme-core's filter-select-trigger recipe class in place of the
 // built-in size, shape and paint utilities it would otherwise lose to; sort selects use it too.
 const selectTriggerVariants = cva(
-  'flex items-center justify-between border-2 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&>span]:line-clamp-1',
+  'flex items-center justify-between border-2 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&>span]:flex [&>span]:min-w-0',
   {
     variants: {
       variant: {
@@ -154,7 +155,9 @@ const SelectItem = React.forwardRef<
       </SelectPrimitive.ItemIndicator>
     </span>
 
-    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    <SelectPrimitive.ItemText className="flex min-w-0">
+      {typeof children === 'string' ? <ClippedText text={children} /> : children}
+    </SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;

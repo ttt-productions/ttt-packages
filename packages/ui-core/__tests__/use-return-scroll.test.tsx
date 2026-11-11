@@ -57,15 +57,21 @@ describe('save / read / clear', () => {
   });
 
   it('a malformed or negative stored entry reads as absent', () => {
-    window.sessionStorage.setItem('return-scroll:' + KEY, 'not json');
+    window.sessionStorage.setItem(KEY, 'not json');
     expect(readReturnScroll(KEY)).toBeNull();
-    window.sessionStorage.setItem('return-scroll:' + KEY, JSON.stringify({ y: -5 }));
+    window.sessionStorage.setItem(KEY, JSON.stringify({ y: -5 }));
     expect(readReturnScroll(KEY)).toBeNull();
-    window.sessionStorage.setItem('return-scroll:' + KEY, JSON.stringify({ y: 'far' }));
+    window.sessionStorage.setItem(KEY, JSON.stringify({ y: 'far' }));
     expect(readReturnScroll(KEY)).toBeNull();
   });
 
-  it('blocked storage is a silent no-op for every operation', () => {
+  it('saves under exactly the key the caller hands in', () => {
+    saveReturnScroll(KEY, 300);
+    expect(JSON.parse(window.sessionStorage.getItem(KEY) ?? 'null')).toMatchObject({ y: 300 });
+    expect(window.sessionStorage.length).toBe(1);
+  });
+
+  it('blocked storage never throws, and a saved position holds for the page', () => {
     const original = Object.getOwnPropertyDescriptor(window, 'sessionStorage');
     Object.defineProperty(window, 'sessionStorage', {
       configurable: true,
@@ -73,10 +79,16 @@ describe('save / read / clear', () => {
         throw new Error('blocked');
       },
     });
-    expect(() => saveReturnScroll(KEY)).not.toThrow();
-    expect(readReturnScroll(KEY)).toBeNull();
-    expect(() => clearReturnScroll(KEY)).not.toThrow();
-    if (original) Object.defineProperty(window, 'sessionStorage', original);
+    try {
+      expect(readReturnScroll(KEY)).toBeNull();
+      expect(() => saveReturnScroll(KEY, 700)).not.toThrow();
+      expect(readReturnScroll(KEY)?.y).toBe(700);
+      expect(() => clearReturnScroll(KEY)).not.toThrow();
+      expect(readReturnScroll(KEY)).toBeNull();
+    } finally {
+      if (original) Object.defineProperty(window, 'sessionStorage', original);
+      clearReturnScroll(KEY);
+    }
   });
 });
 

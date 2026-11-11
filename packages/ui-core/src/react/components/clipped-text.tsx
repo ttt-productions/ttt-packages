@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 
 import { cn } from '../../lib/utils.js';
+import { CopyButton, type CopyButtonWording } from './copy-button.js';
 
 export type ClippedTextLines = 1 | 2 | 3;
 
@@ -18,12 +19,57 @@ const NAME_PIECE_CLASS = 'name-piece single-line-truncate';
 export type ClippedTextClip =
   { lines?: ClippedTextLines; namePieces?: undefined } | { namePieces: true; lines?: undefined };
 
-type ClippedTextElement =
-  | { asChild?: false; children?: undefined }
-  | { asChild: true; children: React.ReactElement<React.HTMLAttributes<HTMLElement>> };
+export type ClippedTextCopyTag =
+  | 'span'
+  | 'p'
+  | 'div'
+  | 'li'
+  | 'dt'
+  | 'dd'
+  | 'td'
+  | 'th'
+  | 'caption'
+  | 'figcaption'
+  | 'strong'
+  | 'em'
+  | 'small';
 
-export type ClippedTextProps = Omit<React.HTMLAttributes<HTMLElement>, 'children' | 'title'> &
-  ClippedTextClip &
+export type ClippedTextTag =
+  | ClippedTextCopyTag
+  | 'h1'
+  | 'h2'
+  | 'h3'
+  | 'h4'
+  | 'h5'
+  | 'h6'
+  | 'a'
+  | 'button'
+  | 'label'
+  | 'legend';
+
+type TagElement<T extends ClippedTextTag> = Omit<
+  React.ComponentPropsWithoutRef<T>,
+  'children' | 'title'
+> & {
+  asChild?: false;
+  children?: undefined;
+  copy?: T extends ClippedTextCopyTag ? CopyButtonWording : undefined;
+};
+
+type ClippedTextElement =
+  | (TagElement<'span'> & { as?: 'span' })
+  | { [T in Exclude<ClippedTextTag, 'span'>]: TagElement<T> & { as: T } }[Exclude<
+      ClippedTextTag,
+      'span'
+    >]
+  | (Omit<React.HTMLAttributes<HTMLElement>, 'children' | 'title'> & {
+      asChild: true;
+      as?: undefined;
+      copy?: undefined;
+      children: React.ReactElement<React.HTMLAttributes<HTMLElement>>;
+    });
+
+export type ClippedTextProps = ClippedTextClip &
   ClippedTextElement & {
     text: string;
   };
@@ -50,21 +96,65 @@ function NamePieces({ text }: { text: string }) {
   );
 }
 
-const ClippedText = React.forwardRef<HTMLElement, ClippedTextProps>(
-  ({ text, lines, namePieces, asChild, children, className, ...props }, ref) => {
-    const element = asChild ? React.Children.only(children) : <span />;
-    const content = namePieces ? <NamePieces text={text} /> : text;
+type TagAttributes = React.AllHTMLAttributes<HTMLElement> & React.RefAttributes<HTMLElement>;
+
+const COPY_ROW_CLASS = 'inline-flex max-w-full min-w-0 items-center gap-1 align-bottom';
+
+const ClippedText = React.forwardRef<HTMLElement, ClippedTextProps>((props, ref) => {
+  const clip = props.namePieces ? undefined : LINE_CLASS[props.lines ?? 1];
+  const content = props.namePieces ? <NamePieces text={props.text} /> : props.text;
+
+  if (props.asChild) {
+    const {
+      text,
+      lines: _lines,
+      namePieces: _namePieces,
+      asChild: _asChild,
+      as: _as,
+      copy: _copy,
+      children,
+      className,
+      ...own
+    } = props;
     return (
-      <Slot
-        ref={ref}
-        {...props}
-        className={cn(namePieces ? undefined : LINE_CLASS[lines ?? 1], className)}
-      >
-        {React.cloneElement(element, { title: text }, content)}
+      <Slot ref={ref} {...own} className={cn(clip, className)}>
+        {React.cloneElement(React.Children.only(children), { title: text }, content)}
       </Slot>
     );
-  },
-);
+  }
+
+  const {
+    text,
+    lines: _lines,
+    namePieces: _namePieces,
+    asChild: _asChild,
+    as: tag = 'span',
+    copy,
+    children: _children,
+    className,
+    ...own
+  } = props;
+
+  const element: TagAttributes = { ...own, ref };
+
+  if (copy)
+    return React.createElement(
+      tag,
+      { ...element, className },
+      <span className={COPY_ROW_CLASS}>
+        <span className={clip} title={text}>
+          {content}
+        </span>
+        <CopyButton value={text} {...copy} />
+      </span>,
+    );
+
+  return React.createElement(
+    tag,
+    { ...element, className: cn(clip, className), title: text },
+    content,
+  );
+});
 ClippedText.displayName = 'ClippedText';
 
 export { ClippedText };

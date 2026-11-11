@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { workspacePackages } from './workspace';
 
-const DEP_FIELDS = ['dependencies', 'peerDependencies', 'devDependencies'] as const;
+const DEP_FIELDS = [
+  'dependencies',
+  'peerDependencies',
+  'devDependencies',
+  'optionalDependencies',
+] as const;
 const SCOPE = '@ttt-productions/';
 
 type Manifest = {
@@ -40,11 +45,16 @@ describe('boundary: internal "*" ranges', () => {
         version: '0.2.0',
         dependencies: { '@ttt-productions/a': '*', '@ttt-productions/gone': '*', other: '*' },
         peerDependencies: { '@ttt-productions/missing-peer': '*' },
+        optionalDependencies: {
+          '@ttt-productions/a': '*',
+          '@ttt-productions/missing-optional': '*',
+        },
       },
     ];
     expect(rangesSurvivingPin(manifests)).toEqual([
       '@ttt-productions/b › dependencies › @ttt-productions/gone',
       '@ttt-productions/b › peerDependencies › @ttt-productions/missing-peer',
+      '@ttt-productions/b › optionalDependencies › @ttt-productions/missing-optional',
     ]);
   });
 });

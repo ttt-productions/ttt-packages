@@ -51,7 +51,7 @@ How the client reads server state, builds cache keys, invalidates, calls callabl
 ### RULE-STD-FRONTEND-104 — Components never import `firebase/firestore` directly
 **Scope.** apps
 
-**Rule.** Components never import runtime Firestore operations from `firebase/firestore`. Every read goes through a React Query hook in `src/hooks/`; every write goes through a callable (RULE-STD-FRONTEND-105) or a mutation hook that calls one. The only sanctioned direct-Firestore sites are inside a `queryFn` and root-provider hydration.
+**Rule.** Components never import runtime Firestore operations from `firebase/firestore`. Every read goes through a React Query hook in `src/hooks/`; every write goes through a callable (RULE-STD-FRONTEND-105) or a mutation hook that calls one. The only sanctioned direct-Firestore site is inside a `queryFn`. No provider reads Firestore itself: the live app configuration reaches the app through `createAppConfig`, the shared packages' one app-config provider, which the app's own provider module is built on.
 
 **Why.** A component reaching into Firestore bypasses the cache, the shared subscription registry, and the one data layer — the parallel-system failure at the read level; a client write helper standing in for a callable bypasses the server boundary at the write level.
 

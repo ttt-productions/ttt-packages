@@ -111,6 +111,9 @@ function createMockDb(taskData: Record<string, unknown> | null) {
     batch: () => {
       throw new Error('batch writes are not part of this fake');
     },
+    getAll: () => {
+      throw new Error('batched reads are not part of this fake');
+    },
     runTransaction: async (fn) => fn(transaction),
   };
 

@@ -5,7 +5,7 @@ import { factProblemsOf, buildOf } from '../helpers/configured.js';
 
 const entryStylesheet = 'src/app/styles/globals.css';
 const FACTS: UiGuardFacts = {
-  colorLiterals: { exceptions: [] },
+  colorLiterals: { exceptions: [], siteDefinitionModule: 'src/lib/site.ts' },
   themeScaleClasses: { entryStylesheet },
   tailwindSources: { entryStylesheet, manifest: 'package.json', packageScopes: ['@kit/'] },
   stylesheetEntry: {
@@ -59,6 +59,8 @@ const FACTS: UiGuardFacts = {
     trees: ['src'],
     clipClasses: ['kit-truncate'],
     clampOwners: [{ selector: '.kit-truncate', why: 'the shared truncation class' }],
+    breakClasses: ['kit-machine-text'],
+    breakOwners: [{ selector: '.kit-machine-text', why: 'the shared machine-text class' }],
     exceptions: [],
   },
 };

@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import { REDUCED_MOTION_ATTRIBUTE } from '../reduced-motion.js';
-import { createDevicePreferenceStore } from './device-preference-store.js';
+import { createDevicePreferenceStore } from '@ttt-productions/storage-core/react';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 

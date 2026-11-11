@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { NotificationSystemConfig, NotificationDoc } from '../types.js';
-import type {
-  ServerFirestore,
-  ServerDocRef,
-  ServerTransaction,
+import {
+  isAlreadyExistsError,
+  type ServerFirestore,
+  type ServerDocRef,
+  type ServerTransaction,
 } from '@ttt-productions/firebase-helpers/server';
 import { buildActiveNotificationDocId } from './activeNotificationId.js';
 
@@ -89,11 +90,6 @@ export interface DeliveryLedger {
   recordTransientFailure(deliveryId: string, error: unknown): Promise<void>;
   deadLetter(deliveryId: string, error: unknown): Promise<void>;
   replay(deliveryId: string, options?: ReplayOptions): Promise<ReplayOutcome>;
-}
-
-function isAlreadyExists(error: unknown): boolean {
-  const e = error as { code?: number; message?: string } | undefined;
-  return e?.code === 6 || /already.?exists/i.test(e?.message ?? '');
 }
 
 function backoffMs(attemptCount: number): number {
@@ -201,7 +197,7 @@ export function createDeliveryLedger(
     const results: EnqueueRowResult[] = settled.map((s, i) => {
       const deliveryId = rows[i].deliveryId;
       if (s.status === 'fulfilled') return s.value;
-      if (isAlreadyExists(s.reason)) return { deliveryId, outcome: 'duplicate' };
+      if (isAlreadyExistsError(s.reason)) return { deliveryId, outcome: 'duplicate' };
       const error: unknown = s.reason;
       return { deliveryId, outcome: 'failed', error };
     });

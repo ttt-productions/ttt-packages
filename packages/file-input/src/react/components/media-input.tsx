@@ -24,6 +24,7 @@ import {
   AlertDescription,
   Button,
   Card,
+  ClippedText,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -635,7 +636,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(
               </div>
             ) : null}
             <div className="flex items-center gap-2">
-              <span className="text-sm truncate flex-1">{selectedFileLabel}</span>
+              <ClippedText text={selectedFileLabel} className="text-sm flex-1" />
               {onClear && (
                 <Button
                   type="button"

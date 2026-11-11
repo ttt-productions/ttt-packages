@@ -77,6 +77,8 @@ afterEach(() => {
   delete (globalThis as { AudioContext?: unknown }).AudioContext;
 });
 
+const PREFS_KEY = 'player-prefs';
+
 function renderPlayer(extra?: Partial<React.ComponentProps<typeof AudioViewer>>) {
   return render(<AudioViewer url="https://example.com/a.mp3" priority {...extra} />);
 }
@@ -172,8 +174,8 @@ describe('AudioViewer canonical player', () => {
     expect(getByLabelText('Unmute')).toBeInTheDocument();
   });
 
-  it('minimize hides the visualizer panel, persists, and is restored on a fresh render', () => {
-    const first = renderPlayer();
+  it('minimize hides the visualizer panel, persists under the key handed in, and is restored on a fresh render', () => {
+    const first = renderPlayer({ persistKey: PREFS_KEY });
     expect(first.container.querySelector('.mv-player-viz')).toBeInTheDocument();
     fireEvent.click(first.getByLabelText('Hide visualizer'));
     expect(first.container.querySelector('.mv-player-viz')).toBeNull();
@@ -181,26 +183,27 @@ describe('AudioViewer canonical player', () => {
       'data-minimized',
       'true',
     );
-    expect(window.localStorage.getItem('mv-audio-player:minimized')).toBe('1');
+    expect(window.localStorage.getItem(`${PREFS_KEY}:minimized`)).toBe('1');
     first.unmount();
 
-    const second = renderPlayer();
+    const second = renderPlayer({ persistKey: PREFS_KEY });
     expect(second.container.querySelector('.mv-player-viz')).toBeNull();
     expect(second.getByLabelText('Show visualizer')).toBeInTheDocument();
   });
 
-  it('mode toggle flips bars↔line and persists', () => {
-    const { container, getByLabelText } = renderPlayer();
+  it('mode toggle flips bars↔line and persists under the key handed in', () => {
+    const { container, getByLabelText } = renderPlayer({ persistKey: PREFS_KEY });
     expect(container.querySelector('[data-mv-player]')).toHaveAttribute('data-mode', 'bars');
     fireEvent.click(getByLabelText('Switch visualizer to waveform line'));
     expect(container.querySelector('[data-mv-player]')).toHaveAttribute('data-mode', 'line');
-    expect(window.localStorage.getItem('mv-audio-player:mode')).toBe('line');
+    expect(window.localStorage.getItem(`${PREFS_KEY}:mode`)).toBe('line');
   });
 
-  it('persistKey=null disables persistence', () => {
-    const { getByLabelText } = renderPlayer({ persistKey: null });
+  it('stores nothing when no key is handed in', () => {
+    const { getByLabelText } = renderPlayer();
+    fireEvent.click(getByLabelText('Switch visualizer to waveform line'));
     fireEvent.click(getByLabelText('Hide visualizer'));
-    expect(window.localStorage.getItem('mv-audio-player:minimized')).toBeNull();
+    expect(window.localStorage.length).toBe(0);
   });
 
   it('renders extraActions in the control row', () => {

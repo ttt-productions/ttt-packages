@@ -7,7 +7,8 @@ application-data import (RULE-STD-ARCH-201, RULE-STD-ARCH-207), monitoring-agnos
 manifests (RULE-STD-QUALITY-102), Firestore access through query-core (RULE-STD-ARCH-206), one
 reader for repository checks, one callable factory set, imports by defining file
 (RULE-STD-ARCH-203), one enforced format (RULE-STD-QUALITY-006), test loading and time budgets
-(RULE-STD-QUALITY-009, RULE-STD-QUALITY-010), and no wildcard package import (RULE-STD-ARCH-202).
+(RULE-STD-QUALITY-009, RULE-STD-QUALITY-010), no wildcard package import (RULE-STD-ARCH-202), and
+browser storage touched only through the storage package (RULE-STD-FRONTEND-010).
 Entry-point and client-peer safety is `react-leak-audit-playbook.md`. Whether an app's own vocabulary
 has leaked into the packages it installs is that app's audit (`codebase-hygiene-playbook.md` step
 41) — only the app knows its vocabulary. Methodology only; the per-step contract, boundary, and
@@ -168,6 +169,21 @@ rg -n "SLOW_TEST_TIMEOUT_MS" packages test -g '*.ts' -g '*.tsx'
 **Expected:** the run passes. Every case or hook the `rg` prints does real heavy work, such as an
 ffmpeg encode; one that only waits out a real timer (a retry delay, a debounce) is a finding, and its
 fix is the fake clock, never a budget.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 11. Browser storage only through the storage package
+**Rules:** RULE-STD-FRONTEND-010. **Scope:** every package's code. The repo-guards `browserStorage`
+guard reads every package's code: no code but storage-core's guarded functions refers to
+`localStorage` or `sessionStorage`, and a package stores only under a key the app hands in.
+```bash
+npm run build
+<GUARD_SUITE> -t "browser storage is touched only through the guarded helper"
+rg -n "readStoredValue|writeStoredValue|createDevicePreferenceStore|noteStoredValue" packages/*/src -g '*.ts' -g '*.tsx'
+```
+**Expected:** the run passes, its one reviewed file storage-core's guarded functions. Every key the
+`rg` prints a call with comes from the app — a parameter, a prop, or a config field — never a quoted
+key, prefix, or default the package types itself. A package that calls storage-core declares it an
+optional peer.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ## Common failure patterns

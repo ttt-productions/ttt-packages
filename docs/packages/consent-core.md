@@ -8,7 +8,7 @@ analytics off until the visitor accepts.
 - The consent states, `'granted' | 'denied' | 'unset'` (`ConsentState`, `CONSENT_STATES`), and
   `parseStoredConsent` — the only stored values are `granted` and `denied`; anything else reads as
   `unset`.
-- The consent store (`createConsentStore({ storageKey, changeEvent })`), built on theme-core's
+- The consent store (`createConsentStore({ storageKey, changeEvent })`), built on storage-core's
   device-preference store (`createDevicePreferenceStore`): guarded storage that tolerates a browser
   that blocks site data, a same-tab change event, cross-tab sync through the `storage` event, and a
   stable `useSyncExternalStore` snapshot (RULE-STD-FRONTEND-010).
@@ -49,6 +49,6 @@ analytics off until the visitor accepts.
 The app supplies its storage key and change-event name, its analytics on/off callback (for Firebase
 Analytics, the handle in `firebase-helpers/client` — see `firebase-helpers.md`), all wording, and
 where the banner and controls are placed. The package names no analytics vendor and holds no app
-copy (RULE-STD-ARCH-201). `theme-core` and `ui-core` are optional peers used only by `./react`; an app
+copy (RULE-STD-ARCH-201). `storage-core` and `ui-core` are optional peers used only by `./react`; an app
 renders the banner's classes, so its stylesheet carries an `@source` line for this package
 (RULE-STD-FRONTEND-002).

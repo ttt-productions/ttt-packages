@@ -138,8 +138,10 @@ paths each clear it first.
 ```bash
 <GUARD_SUITE> -t "no component or route imports the Firestore runtime"
 ```
-**Expected:** green. The documented exceptions are a read inside a `queryFn` and root-provider
-hydration.
+**Expected:** green, with no reviewed entry: the guard takes none. The one direct-Firestore site is
+inside a `queryFn`; no provider reads Firestore itself, and the live app configuration comes through
+`createAppConfig`, the shared packages' one app-config provider, which the app's own provider module
+is built on.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 9. Timestamps are epoch-millisecond numbers
@@ -257,7 +259,8 @@ primary content.
 <GUARD_SUITE> -t "every app box-shadow pairs with an identical --tw-shadow|app code adds no shadow through a Tailwind shadow utility"
 ```
 **Expected:** the guards are green — they own the color-literal half (a hex, a raw `hsl()`/`rgb()`, or a
-Tailwind palette class all fail), the three-theme token declaration, the theme scale classes, status
+Tailwind palette class all fail, except the site definition's theme and background colors in the
+module the guard config declares), the three-theme token declaration, the theme scale classes, status
 foregrounds, and shadow ownership; this step does not re-grep them. What the review owns: (a) the entry
 stylesheet's import order matches RULE-STD-FRONTEND-002; (b) no `className` override on a ui-core
 component unless deliberately single-instance; (c) every new component works in every theme; (d) art
@@ -942,20 +945,31 @@ RULE-STD-ARCH-004. **Scope:** `src` (touched UI areas). Deep UX →
 ```bash
 <GUARD_SUITE> -t "an unavailable control never wears the clickable affordance|a stack-N class is never on a horizontal flex row|text is clipped only through the clip component, never by a class placed by hand"
 rg -n "<button|<select|<a " src -g '*.tsx' -g '!**/__tests__/**'
+rg -n "navigator\.clipboard|execCommand\(\s*['\"]copy" src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**'
 ```
 **Expected:** for every touched area, each repeated pattern family — buttons and action variants,
-selects, links, show-more controls (the one ui-core toggle), cards and page headers, confirmations, and
-pending, empty, and error states — uses its one canonical component, variant, semantic class, or recipe;
-raw primitives, local wrapper copies, copied style blocks, and one-off variants are the findings. **Two
+selects, links, show-more controls (the one ui-core toggle), copy-to-clipboard controls (ui-core's
+`CopyButton`, RULE-STD-FRONTEND-001), cards and page headers, confirmations, and pending, empty, and
+error states — uses its one canonical component, variant, semantic class, or recipe; raw primitives,
+local wrapper copies, copied style blocks, and one-off variants are the findings. The clipboard search
+prints nothing: a hand-written clipboard copy in app code is the finding. **Two
 RULE-STD-FRONTEND-006 constraints, checked on every touched surface:** a state change swaps the ICON,
 never the color or variant; and destructive red appears only on the confirm action inside a dialog (and
 urgency text) — inline destructive triggers render neutral. On a member-facing screen a destructive
 action on an item sits in the one "…" menu; on an admin page it may sit inline on its row, behind its
 confirmation dialog. Every page wraps its content in the one page
-column, every page card uses the one card recipe, and every title and name, and every few-line text
-block, renders through ui-core's `ClippedText` (RULE-STD-FRONTEND-007): the clip guard is green, so
-no app code places a clip class its guard config names (`sharedTruncation.clipClasses`) or a
-per-call-site truncation utility by hand, and no stylesheet clamps outside its declared clamp owners. A duplicate is reported with
+column, every page card uses the one card recipe, and every title and name that stands as its own text,
+and every few-line text block, renders through ui-core's `ClippedText` (RULE-STD-FRONTEND-007), whose
+element is the box that clips — a plain tag named with `as`, a component under `asChild`; a name
+inside a sentence renders through `InlineName`, which wraps with the sentence and is never cut (a
+place that cannot take a second line is a box whose whole text clips through `ClippedText`), and
+machine text (an id, an email, a hash, a file name) breaks through `MachineText` and is never cut. The clip guard is green, so no app code places a clip or break class its guard config
+names (`sharedTruncation.clipClasses`, `breakClasses`) or a per-call-site truncation or break utility
+by hand, no plain tag sits under `ClippedText` or `MachineText` `asChild`, or around a `ClippedText` that is its only
+content (a plain tag that exists only to lay out a lone `ClippedText`, such as a flex row, is flagged
+too: the `ClippedText`'s own box takes the width bound, and a flex container is never named with `as`,
+since an ellipsis does not apply to it), and no stylesheet clamps or breaks anywhere outside its
+declared clamp and break owners. A duplicate is reported with
 the recommended canonical owner; the audit never recommends adding a variant to match one inconsistent
 screen. The app's additions carry its brand-specific pattern checks.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED

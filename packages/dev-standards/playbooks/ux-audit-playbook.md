@@ -71,9 +71,11 @@ from step 1. **Method (manual review on the local dev server).**
 **Expected:** no horizontal overflow, tap targets of about 44px, sticky elements that never cover
 content, usable dialogs and popovers, reachable media controls. Every page composes the one page
 column (no page-level `max-w-*` caps), every branch of a page — loading, empty, error — renders inside
-it, and long user content (titles, names, few-line text blocks) renders through ui-core's
-`ClippedText` so it never breaks layout, with its full text in the element's title and accessible
-name.
+it, and long user content (titles and names that stand as their own text, few-line text blocks)
+renders through ui-core's `ClippedText` so it never breaks layout, clipping in its own box with its
+full text in the clipped element's title and accessible name; a name inside a sentence renders through
+`InlineName`, which wraps with the sentence and is never cut, and machine text breaks through
+`MachineText` and is never cut.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 4. Accessibility

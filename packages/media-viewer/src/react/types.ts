@@ -70,7 +70,7 @@ export type AudioViewerProps = BaseMediaProps &
     onLoadChange?: (isLoading: boolean) => void;
 
     visualizerMode?: AudioVisualizerMode;
-    persistKey?: string | null;
+    persistKey?: string;
     extraActions?: React.ReactNode;
     /** Web Audio hears only silence from a cross-origin file fetched without CORS, so the visualizer needs this set for one. */
     crossOrigin?: 'anonymous' | 'use-credentials';
@@ -114,7 +114,7 @@ export type MediaPreviewProps = {
   playbackControlsRef?: MediaPlaybackProps['playbackControlsRef'];
 
   audioVisualizerMode?: AudioVisualizerMode;
-  audioPersistKey?: string | null;
+  audioPersistKey?: string;
   audioExtraActions?: React.ReactNode;
   audioCrossOrigin?: AudioViewerProps['crossOrigin'];
 

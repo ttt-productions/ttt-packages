@@ -153,7 +153,7 @@ Wire `onMediaError` / `onMediaLoad` to the element's `onError` / `onLoad` (for v
 
 ## Canonical audio player (AudioViewer / AudioPlayer / MediaPreview)
 
-The package owns the single audio control surface used by every audio render: play/pause, seek, time readout, mute/volume, and a visualizer panel (oscilloscope `line` or frequency `bars`) with minimize and mode toggles — both persisted to localStorage. Browser-native audio controls are not exposed, so callers cannot accidentally render a different player.
+The package owns the single audio control surface used by every audio render: play/pause, seek, time readout, mute/volume, and a visualizer panel (oscilloscope `line` or frequency `bars`) with minimize and mode toggles — both saved on the device when the app hands in a storage key. Browser-native audio controls are not exposed, so callers cannot accidentally render a different player.
 
 ```tsx
 import { AudioPlayer } from "@ttt-productions/media-viewer/react";
@@ -161,12 +161,14 @@ import { AudioPlayer } from "@ttt-productions/media-viewer/react";
 <AudioPlayer
   url={audioUrl}
   visualizerMode="bars"            // initial mode; a persisted user choice wins
-  persistKey="mv-audio-player"     // localStorage key base; null disables persistence
+  persistKey={AUDIO_PLAYER_KEY}    // the app's storage key; without one nothing is saved
   extraActions={<ShareButton />}   // app-injected buttons at the end of the control row
 />
 ```
 
 Equivalent forms: `<AudioViewer …/>`, or through the router as `<MediaPreview type="audio" audioVisualizerMode=… audioPersistKey=… audioExtraActions=… />`. All the Playback API props (below) work unchanged.
+
+The player saves its preferences only under a key the app hands in (`persistKey`, or `audioPersistKey` on `MediaPreview`), from the app's own storage-key contract; the package types no key. It saves the minimized state at `<key>:minimized` and the mode at `<key>:mode`, in local storage, through storage-core's guarded `readStoredValue` / `writeStoredValue` (`@ttt-productions/storage-core`, an optional peer), so a browser that blocks site data keeps the choice for the life of the page. With no key, a choice lasts as long as the player is mounted.
 
 Mechanics: the Web Audio graph (`createMediaElementSource` → `AnalyserNode` → destination) is created lazily on the first `play` event (autoplay policies suspend fresh `AudioContext`s; a user-gesture play resumes them) and is best-effort — if it fails, playback still works and only the visualizer goes dark. The element source is once-per-element and keyed to the element instance. The draw loop runs only while playing. Requires same-origin (or CORS-clean) audio, or the analyser reads silence.
 

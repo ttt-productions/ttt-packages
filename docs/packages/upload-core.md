@@ -6,7 +6,7 @@ Low-level browser upload runtime package.
 
 - Resumable Firebase Storage upload primitive
 - Browser upload queue/runtime
-- Upload session persistence and neutral session key prefix
+- Upload session persistence through an adapter the app supplies (`setUploadSessionPersistence`); the package holds no browser-storage adapter of its own
 - Types/utilities for the low-level upload layer
 
 ## Boundary

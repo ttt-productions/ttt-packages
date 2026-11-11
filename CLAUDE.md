@@ -55,7 +55,7 @@ One-line pointers; the rule text is authoritative:
 
 ## Package design docs (authoritative for ownership, tiers, entries, build/release order)
 
-- `docs/packages/package-architecture.md` — the one-stop model: tiers, entry purity, imports inside a package, subpath conventions, dependency-direction rules, build/release order, internal caret pinning, and the boundary-guard tests.
+- `docs/packages/package-architecture.md` — the one-stop model: tiers, entry purity, imports inside a package, subpath conventions, dependency-direction rules, build/release order, internal version pinning, and the boundary-guard tests.
 - `docs/packages/*.md` — one short doc per package for what it owns, exposes, and guarantees.
 - `docs/design/upload-path-invariant.md`, `docs/design/react-safety.md`, `docs/design/display-identity-invariant.md` — cross-cutting package invariants.
 
@@ -82,7 +82,7 @@ shared base's § First-time publish of a new package.
 
 **Until the packages' v1, every release is a `patch` bump** (RULE-STD-ARCH-208) — additive exports, fixes, AND breaking changes (a removed export, a changed signature) alike. Never hand off `minor` or `major`.
 
-Why: all packages are 0.x, and published internal ranges are carets (`^0.11.0`), which on 0.x **lock the minor**. A `minor` bump escapes every dependent's caret range, so the consuming app's `npm install` ERESOLVE-fails (or nests duplicate copies) until every package that declares the bumped one is republished in lockstep. A `patch` flows through every caret untouched. A breaking change still requires confirming that no consumer relies on what it removes or alters before it ships as a patch.
+Why: all packages are 0.x, and published internal ranges — a caret (`^0.11.0`), or `>=0.0.z <0.1.0` for a dependency at `0.0.z` — **lock the minor** on 0.x. A `minor` bump escapes every dependent's published range, so the consuming app's `npm install` ERESOLVE-fails (or nests duplicate copies) until every package that declares the bumped one is republished in lockstep. A `patch` flows through every published internal range untouched. A breaking change still requires confirming that no consumer relies on what it removes or alters before it ships as a patch.
 
 At the v1 launch the packages take a major release; from then on conventional semver applies (breaking → major, additive → minor, fix → patch), and this section is rewritten for it.
 

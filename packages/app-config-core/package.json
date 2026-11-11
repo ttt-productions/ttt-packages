@@ -1,0 +1,44 @@
+{
+  "name": "@ttt-productions/app-config-core",
+  "version": "0.0.1",
+  "description": "Generic app config document: the strict read of its settings, the merge that finds what really changed, and the one writer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+    "directory": "packages/app-config-core"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@ttt-productions/firebase-helpers": "*",
+    "zod": "^4.6.7"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  },
+  "author": "DJ (TTT Productions)",
+  "license": "MIT"
+}

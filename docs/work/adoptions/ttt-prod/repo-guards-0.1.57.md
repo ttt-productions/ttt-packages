@@ -49,9 +49,7 @@
   - In `sharedTruncation`'s facts, replace `sharedClass: 'single-line-truncate'` with
     `clipClasses: ['single-line-truncate', 'two-line-clamp', 'three-line-clamp', 'name-piece']`.
     The guard then fails in ttt-prod at every place its code names one of those classes, until each
-    is swapped onto ui-core 0.11.44's `ClippedText`: `<X className="… single-line-truncate" title={t}>{t}</X>` becomes
-    `<ClippedText asChild text={t}><X className="…" /></ClippedText>`, and `three-line-clamp` becomes
-    `lines={3}` on `ClippedText`. That red is expected, and no clip
+    is swapped onto ui-core's `ClippedText`. That red is expected, and no clip
     class goes on the reviewed list to quiet it.
 - **Done when:** the lockfiles name `@ttt-productions/repo-guards` 0.1.57 or later, all three guards'
   facts are declared, `readsOnlyWhenShown` is green, and `browserBarAlwaysShown` is green once

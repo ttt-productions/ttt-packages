@@ -17,9 +17,7 @@
     `readsOnlyWhenShown` guard enforces the prefetch and `forceMount` halves.
   - RULE-STD-FRONTEND-007 now requires ui-core's `ClippedText` for every user-supplied title,
     name and few-line text block. ttt-prod meets it once every clip class in its app code is
-    swapped onto ui-core 0.11.44's `ClippedText`: `<X className="… single-line-truncate" title={t}>{t}</X>` becomes
-    `<ClippedText asChild text={t}><X className="…" /></ClippedText>`, and `three-line-clamp` becomes
-    `lines={3}` on `ClippedText`.
+    swapped onto ui-core's `ClippedText`.
   - The performance-audit playbook gains step 12, which runs that guard's two checks and reviews
     every tab, collapsible, dialog, sheet, popover and menu content; the crosswalk maps the rule to
     that step and the guard.

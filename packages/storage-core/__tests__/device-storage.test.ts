@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
+  noteStoredValue,
   readStoredValue,
   writeStoredValue,
   type DeviceStorageArea,
@@ -75,6 +76,66 @@ describe.each(AREAS)('guarded %s storage', (area, storage) => {
     });
     writeStoredValue(key, null, area);
     expect(readStoredValue(key, area)).toBeNull();
+  });
+
+  it('reads a held write or removal over the older value storage still holds', () => {
+    const key = uniqueKey();
+    storage().setItem(key, '/before');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw blocked();
+    });
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw blocked();
+    });
+
+    writeStoredValue(key, '/after', area);
+    expect(storage().getItem(key)).toBe('/before');
+    expect(readStoredValue(key, area)).toBe('/after');
+
+    writeStoredValue(key, null, area);
+    expect(storage().getItem(key)).toBe('/before');
+    expect(readStoredValue(key, area)).toBeNull();
+  });
+});
+
+describe('recording a value another writer stored', () => {
+  beforeEach(() => window.localStorage.clear());
+  afterEach(() => vi.restoreAllMocks());
+
+  it('holds nothing when the other writer reached local storage', () => {
+    const key = uniqueKey();
+    window.localStorage.setItem(key, 'dark');
+    noteStoredValue(key, 'dark');
+    window.localStorage.setItem(key, 'light');
+    expect(readStoredValue(key)).toBe('light');
+  });
+
+  it('holds the value for the page when the other writer was refused', () => {
+    const key = uniqueKey();
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw blocked();
+    });
+    noteStoredValue(key, 'dark');
+    expect(readStoredValue(key)).toBe('dark');
+  });
+});
+
+describe('without a window', () => {
+  const ownWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (ownWindow) Object.defineProperty(globalThis, 'window', ownWindow);
+  });
+
+  it('records nothing another writer stored, so no request shares a held value', () => {
+    const key = uniqueKey();
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw blocked();
+    });
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: undefined });
+    noteStoredValue(key, 'dark');
+    if (ownWindow) Object.defineProperty(globalThis, 'window', ownWindow);
+    expect(readStoredValue(key)).toBeNull();
   });
 });
 

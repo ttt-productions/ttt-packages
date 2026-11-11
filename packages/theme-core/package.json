@@ -36,11 +36,15 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "peerDependencies": {
+        "@ttt-productions/storage-core": "*",
         "next-themes": "^0.4.6",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0"
     },
     "peerDependenciesMeta": {
+        "@ttt-productions/storage-core": {
+            "optional": true
+        },
         "next-themes": {
             "optional": true
         },
@@ -53,6 +57,7 @@
     },
     "devDependencies": {
         "@ttt-productions/repo-guards": "*",
+        "@ttt-productions/storage-core": "*",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "next-themes": "^0.4.6",

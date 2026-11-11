@@ -195,7 +195,6 @@ export const liveSubscriptionGuard: GenericGuardDefinition<LiveSubscriptionFacts
 
 export interface FirestoreRuntimeInUiFacts {
   uiFolders: readonly string[];
-  sanctioned: readonly Reviewed[];
 }
 
 export function firestoreRuntimeImports(file: FileView): Hit[] {
@@ -226,7 +225,6 @@ export const firestoreRuntimeInUiGuard: GenericGuardDefinition<FirestoreRuntimeI
   factProblems(facts) {
     const problems: string[] = [];
     namesProblem(facts?.uiFolders, 'uiFolders', problems);
-    reviewedProblems(facts?.sanctioned, 'sanctioned', problems);
     return problems;
   },
   build(facts) {
@@ -237,11 +235,12 @@ export const firestoreRuntimeInUiGuard: GenericGuardDefinition<FirestoreRuntimeI
         description:
           'A component or route that reaches into Firestore bypasses the cache, the query keys, and every server check ' +
           'at once. Flagged: a runtime import, re-export, or dynamic import of the Firestore SDK (a type-only import ' +
-          'passes) in the UI folders. Fix: read through a hook, write through a callable. A sanctioned root provider is ' +
-          'a reviewed entry with its why; one that no longer imports the runtime is stale.',
+          'passes) in the UI folders. There is no reviewed list: no provider reads Firestore itself, and the live app ' +
+          "configuration comes through createAppConfig, the shared packages' one app-config provider. Fix: read through " +
+          'a hook, write through a callable.',
         scope: APP_SOURCE,
         match: (file) => (inUi(file.path) ? firestoreRuntimeImports(file) : []),
-        allowlist: facts.sanctioned,
+        allowlist: [],
         samples: {
           flags: [
             {
@@ -252,8 +251,16 @@ export const firestoreRuntimeInUiGuard: GenericGuardDefinition<FirestoreRuntimeI
               path: `${facts.uiFolders[0]}/probe.tsx`,
               text: 'import {\n  updateDoc,\n} from "firebase/firestore";',
             },
+            {
+              path: `${facts.uiFolders[0]}/app-config-provider.tsx`,
+              text: "import { doc, onSnapshot } from 'firebase/firestore';",
+            },
           ],
           passes: [
+            {
+              path: `${facts.uiFolders[0]}/app-config-provider.tsx`,
+              text: "import { createAppConfig } from '@ttt-productions/query-core/react';",
+            },
             {
               path: `${facts.uiFolders[0]}/typed.tsx`,
               text: "import type { Timestamp } from 'firebase/firestore';",

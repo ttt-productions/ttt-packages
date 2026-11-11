@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
+import { readStoredValue, writeStoredValue } from '@ttt-productions/storage-core';
 import { useAuthGuard, type AuthGuardConfig } from '../src/react/useAuthGuard.js';
 
-const KEY = 'auth_redirect_path';
+const KEY = 'saved-destination';
 
 function makeConfig(overrides: Partial<AuthGuardConfig> = {}): AuthGuardConfig {
   return {
@@ -11,6 +12,7 @@ function makeConfig(overrides: Partial<AuthGuardConfig> = {}): AuthGuardConfig {
     authRedirectRoutes: ['/login', '/register'],
     loginRoute: '/login',
     defaultRoute: '/landing',
+    redirectKey: KEY,
     replace: vi.fn(),
     pathname: '/login',
     loading: false,
@@ -190,6 +192,7 @@ describe('useAuthGuard', () => {
 
     afterEach(() => {
       vi.restoreAllMocks();
+      writeStoredValue(KEY, null);
     });
 
     it('a visitor deep link survives to sign-in through the page-life copy without throwing', () => {
@@ -206,6 +209,24 @@ describe('useAuthGuard', () => {
       rerender({ isAuthenticated: true, pathname: '/login' });
 
       expect(replace).toHaveBeenLastCalledWith('/works/7');
+    });
+
+    it('the path the guard saved is the one every other reader of the key sees, and one they save is the one it reads', () => {
+      blockStorage();
+      const replace = vi.fn();
+      const { rerender } = renderHook(
+        (props: { isAuthenticated: boolean; pathname: string }) =>
+          useAuthGuard(makeConfig({ ...props, replace })),
+        { initialProps: { isAuthenticated: false, pathname: '/works/7' } },
+      );
+      expect(readStoredValue(KEY)).toBe('/works/7');
+
+      writeStoredValue(KEY, '/works/8');
+      rerender({ isAuthenticated: false, pathname: '/login' });
+      rerender({ isAuthenticated: true, pathname: '/login' });
+
+      expect(replace).toHaveBeenLastCalledWith('/works/8');
+      expect(readStoredValue(KEY)).toBeNull();
     });
 
     it('a session end on a blocked store neither throws nor keeps a page-life copy', () => {

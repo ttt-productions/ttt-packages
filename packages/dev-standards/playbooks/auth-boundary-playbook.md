@@ -185,19 +185,30 @@ payload as "no claims, continue" is the fail-open shape this step exists to catc
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 14. The session's identity never outlives an account switch
-**Rules:** RULE-STD-ENG-009, RULE-STD-FRONTEND-108. **Scope:** `src` + the installed
-`@ttt-productions/auth-core`.
+**Rules:** RULE-STD-ENG-009, RULE-STD-FRONTEND-108, RULE-STD-FRONTEND-010. **Scope:** `src` + the
+installed `@ttt-productions/auth-core`.
 ```bash
 rg -n "claimsLoading|claims\?\.isAdmin|claims\.isAdmin" src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**'
-rg -n "redirectKey|saveRedirectPath|readRedirectPath|clearRedirectPath" src node_modules/@ttt-productions/auth-core/dist -g '*.ts' -g '*.tsx' -g '*.js' -g '!**/__tests__/**'
+rg -n "redirectKey" src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**'
+rg -n "redirectKey|StoredValue|Storage\b" node_modules/@ttt-productions/auth-core/dist/react -g '*.js'
 ```
 **Expected:** claims reach the app only through auth-core's `useAuth()`, which derives them from a
 claims read keyed to the signed-in user plus a generation, so a late read for one account never pairs
 with another. A decision that must not guess (a maintenance takeover, an admin page, an acceptance
 gate) reads `claims` together with `claimsLoading` and waits while they load; one that decides from
 `claims` alone during a load is the finding. The post-login redirect is saved only for a visitor's
-deep link and cleared on an observed signed-in → signed-out transition; an app-side write of the
-redirect key is the finding. Interleavings to walk: account A's claims refresh resolving after B
+deep link and cleared on an observed signed-in → signed-out transition. In an app that mounts
+auth-core's `useAuthGuard`, the first `rg` prints its one call, whose `redirectKey` is the app's own storage-key constant from
+`<APP_DATA_PACKAGE>`, never a quoted key; the second shows the guard saving through storage-core's
+`readStoredValue` / `writeStoredValue` and no storage or memory copy of its own. Search the app for
+that constant: every page that reads or writes the saved path does so with it, through
+`readStoredValue` / `writeStoredValue`, so the guard and the pages share one store (no code reaches
+`localStorage` / `sessionStorage` for it directly — the `browserStorage` guard holds that). A second,
+separate holder of the saved path — its own key, a module variable, a context, or a URL parameter
+standing in for it — is the finding. An app with no `useAuthGuard` (the first `rg` prints nothing)
+keeps no post-login redirect through auth-core: the redirect checks do not apply, and any saved
+return path it keeps itself is held to the same terms — one constant from `<APP_DATA_PACKAGE>`, read
+and written only through storage-core, one holder. Interleavings to walk: account A's claims refresh resolving after B
 signed in; a sign-out on a protected route followed by B's sign-in.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 

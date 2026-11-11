@@ -326,6 +326,14 @@ button .spinner-xl {
   text-decoration: inherit;
 }
 
+.inline-name {
+  overflow-wrap: anywhere;
+}
+
+.machine-text {
+  word-break: break-all;
+}
+
 /* =========================================================
     LINKS
     ========================================================= */

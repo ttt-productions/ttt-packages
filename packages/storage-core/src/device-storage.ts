@@ -45,6 +45,7 @@ export function writeStoredValue(
 }
 
 export function noteStoredValue(key: string, value: string): void {
+  if (typeof window === 'undefined') return;
   const held = heldValues.local;
   if (readStorage(key, 'local') === value) held.delete(key);
   else held.set(key, value);

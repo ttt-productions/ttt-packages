@@ -26,3 +26,45 @@ export type {
   MaintenanceState,
   UserStatus,
 } from './types.js';
+export { updateClaim } from './account-claims.js';
+export type { AccountAuthUser, ClaimPatch, ClaimValue, ClaimsAuth } from './account-claims.js';
+export {
+  ACCOUNT_REPAIR_DRAIN_PER_RUN,
+  authDriftRepairedLog,
+  createAccountRepair,
+  statusChangeAppliedLog,
+} from './account-repair.js';
+export type {
+  AccountRepair,
+  AccountRepairAuth,
+  AccountRepairCapture,
+  AccountRepairCaptureContext,
+  AccountRepairConfig,
+  AccountRepairDrain,
+  AccountRepairFullScan,
+  AccountRepairLog,
+  AccountRepairLogFields,
+  AccountRepairLogger,
+  AccountRepairOutcome,
+  AccountRepairQueueEntryParser,
+  AccountRepairQueueTransaction,
+  AccountRepairRecord,
+  AccountRepairResult,
+  AccountRepairSweep,
+  AccountStatusConfig,
+  AccountStatusDrift,
+  AccountStatusQueueEntry,
+  KeptClaim,
+  KeptClaimAccount,
+  KeptClaimCheck,
+  KeptClaimDrift,
+} from './account-repair.js';
+export { changedRoleAccounts, runRoleClaimsSync } from './role-claims-sync.js';
+export type {
+  RoleClaims,
+  RoleClaimsAuth,
+  RoleClaimsSyncOutcome,
+  RoleClaimsSyncRecord,
+  RoleClaimsSyncRequest,
+  RoleClaimsSyncResult,
+} from './role-claims-sync.js';

@@ -225,15 +225,15 @@ describe('every live Firestore subscription is on the reviewed list', () => {
 });
 
 describe('no component or route imports the Firestore runtime', () => {
-  const build = (sanctioned: Array<{ path: string; why: string }>) =>
-    firestoreRuntimeInUiGuard.build({ uiFolders: ['src/components', 'src/app'], sanctioned })[0];
+  const build = () =>
+    firestoreRuntimeInUiGuard.build({ uiFolders: ['src/components', 'src/app'] })[0];
 
   it('proves its matcher on its samples', () => {
-    expect(() => checkSamples(build([]))).not.toThrow();
+    expect(() => checkSamples(build())).not.toThrow();
   });
 
   it('FLAGS a runtime import, a multiline import, a subpath, a re-export, and a dynamic import in a component or route', async () => {
-    const findings = await run(build([]), {
+    const findings = await run(build(), {
       'src/components/probe.tsx': "import { doc, getDoc } from 'firebase/firestore';",
       'src/app/probe/page.tsx': 'import {\n  updateDoc,\n} from "firebase/firestore";',
       'src/components/lite.tsx': "import { getDoc } from 'firebase/firestore/lite';",
@@ -249,28 +249,27 @@ describe('no component or route imports the Firestore runtime', () => {
     ]);
   });
 
-  it('PASSES a type import, an inline type import, a hook, and a sanctioned provider; FLAGS a stale provider', async () => {
-    const findings = await run(
-      build([
-        { path: 'src/components/config-provider.tsx', why: 'the one live config subscription' },
-        { path: 'src/components/old-provider.tsx', why: 'moved to a hook' },
-      ]),
-      {
-        'src/components/typed.tsx': "import type { Timestamp } from 'firebase/firestore';",
-        'src/components/inline-typed.tsx': "import { type Timestamp } from 'firebase/firestore';",
-        'src/hooks/use-probe.ts': "import { where } from 'firebase/firestore';",
-        'src/components/config-provider.tsx':
-          "import { doc, onSnapshot } from 'firebase/firestore';",
-        'src/components/old-provider.tsx': 'export {};',
-      },
-    );
-    expect(lines(findings)).toEqual(['src/components/old-provider.tsx:-']);
+  it('PASSES a type import, an inline type import, a hook, and a provider built on createAppConfig', async () => {
+    const findings = await run(build(), {
+      'src/components/typed.tsx': "import type { Timestamp } from 'firebase/firestore';",
+      'src/components/inline-typed.tsx': "import { type Timestamp } from 'firebase/firestore';",
+      'src/hooks/use-probe.ts': "import { where } from 'firebase/firestore';",
+      'src/components/app-config-provider.tsx':
+        "import { createAppConfig } from '@ttt-productions/query-core/react';",
+    });
+    expect(lines(findings)).toEqual([]);
   });
 
-  it('refuses missing UI folders and a sanctioned entry with no why', () => {
-    expect(
-      factProblemsOf(firestoreRuntimeInUiGuard, { sanctioned: [{ path: 'a.tsx', why: '' }] }),
-    ).toEqual(['uiFolders is missing', 'sanctioned entry a.tsx carries no why']);
+  it('FLAGS a provider that reads Firestore itself: no provider is on any reviewed list', async () => {
+    const findings = await run(build(), {
+      'src/components/app-config-provider.tsx':
+        "import { doc, onSnapshot } from 'firebase/firestore';",
+    });
+    expect(lines(findings)).toEqual(['src/components/app-config-provider.tsx:1']);
+  });
+
+  it('refuses missing UI folders', () => {
+    expect(factProblemsOf(firestoreRuntimeInUiGuard, {})).toEqual(['uiFolders is missing']);
   });
 });
 

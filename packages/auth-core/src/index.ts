@@ -7,3 +7,4 @@ export * from './password-policy.js';
 export * from './registration.js';
 export * from './account-schemas.js';
 export * from './maintenance.js';
+export * from './account-repair-queue.js';

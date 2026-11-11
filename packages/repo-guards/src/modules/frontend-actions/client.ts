@@ -115,6 +115,57 @@ export interface BrowserStorageFacts {
   allowlist: readonly AllowlistEntry[];
 }
 
+const STORAGE_NAMES = new Set(['localStorage', 'sessionStorage']);
+
+function declaresName(node: ts.Identifier): boolean {
+  const parent = node.parent;
+  if (
+    ts.isImportSpecifier(parent) ||
+    ts.isExportSpecifier(parent) ||
+    ts.isImportClause(parent) ||
+    ts.isNamespaceImport(parent) ||
+    ts.isQualifiedName(parent) ||
+    ts.isJsxAttribute(parent)
+  )
+    return true;
+  return (
+    (ts.isPropertyAssignment(parent) ||
+      ts.isPropertyDeclaration(parent) ||
+      ts.isPropertySignature(parent) ||
+      ts.isMethodDeclaration(parent) ||
+      ts.isMethodSignature(parent) ||
+      ts.isGetAccessorDeclaration(parent) ||
+      ts.isSetAccessorDeclaration(parent) ||
+      ts.isVariableDeclaration(parent) ||
+      ts.isParameter(parent) ||
+      ts.isFunctionDeclaration(parent) ||
+      ts.isClassDeclaration(parent)) &&
+    parent.name === node
+  );
+}
+
+function storageAccesses(file: FileView): Hit[] {
+  const sf = file.sourceFile;
+  const hits: Hit[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isIdentifier(node) && STORAGE_NAMES.has(node.text) && !declaresName(node)) {
+      hits.push({ index: node.getStart(sf), detail: node.text });
+    } else if (
+      ts.isElementAccessExpression(node) &&
+      ts.isStringLiteralLike(node.argumentExpression) &&
+      STORAGE_NAMES.has(node.argumentExpression.text)
+    ) {
+      hits.push({
+        index: node.argumentExpression.getStart(sf),
+        detail: node.argumentExpression.text,
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return hits;
+}
+
 export const browserStorageGuard: GenericGuardDefinition<BrowserStorageFacts> = {
   id: 'browserStorage',
   absentWhen: false,
@@ -129,21 +180,26 @@ export const browserStorageGuard: GenericGuardDefinition<BrowserStorageFacts> = 
       reviewedAllowlist({
         title: 'browser storage is touched only through the guarded helper',
         description:
-          `Read and write browser storage through ${facts.helper}. A raw \`localStorage\` / \`sessionStorage\` access ` +
-          'throws for a viewer whose browser blocks site data, and inside a store the shell mounts that takes down every route.',
+          `Read and write browser storage through ${facts.helper}. Any code reference to \`localStorage\` / \`sessionStorage\` ` +
+          'is a raw access: reading either one throws for a viewer whose browser blocks site data, and inside a store the ' +
+          'shell mounts that takes down every route. Prose, comments and strings that name them are not code.',
         scope: APP_CODE,
-        match: matchPattern(/\b(?:localStorage|sessionStorage)\s*(?:\.|\[)/),
+        match: storageAccesses,
         allowlist: facts.allowlist,
         samples: {
           flags: [
             'window.localStorage.getItem(KEY)',
             "sessionStorage.removeItem('k')",
             'localStorage[KEY] = v',
+            'const store = window.localStorage;',
+            "const area = session ? window.sessionStorage : window['localStorage'];",
           ],
           passes: [
             "readStoredValue(KEY, 'session')",
             '`stored in localStorage: ${v}`',
             '// localStorage.getItem(KEY)',
+            "const sample = 'window.localStorage.getItem(KEY)';",
+            'const fakes = { localStorage: memory };',
           ],
         },
       }),

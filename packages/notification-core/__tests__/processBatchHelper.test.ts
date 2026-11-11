@@ -171,6 +171,7 @@ function createMockDb({
       return batch;
     }),
     doc: vi.fn<ServerFirestore['doc']>(),
+    getAll: vi.fn<ServerFirestore['getAll']>(),
     runTransaction: async <T>(fn: (tx: ServerTransaction) => Promise<T>): Promise<T> => {
       function get(ref: ServerDocRef): Promise<ServerDocSnapshot>;
       function get(query: ServerQuery): Promise<ServerQuerySnapshot>;

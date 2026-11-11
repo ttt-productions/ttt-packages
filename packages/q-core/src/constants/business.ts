@@ -1,3 +1,5 @@
+export const SITE_NAME = 'Q-Sports League';
+
 export const MIN_DISPLAY_NAME_LENGTH = 3;
 export const MAX_DISPLAY_NAME_LENGTH = 50;
 
@@ -40,7 +42,6 @@ export const MAX_APP_VERSION_LENGTH = 64;
 
 export const MAX_LANDING_HERO_TITLE_LENGTH = 200;
 export const MAX_LANDING_ABOUT_TEXT_LENGTH = 5000;
-export const LANDING_OWNER_NAME = 'Q-Sports League';
 export const HERO_ROTATION_INTERVAL_MS = 6000;
 
 export const MAX_WAIVER_TEMPLATE_TITLE_LENGTH = 120;

@@ -114,6 +114,7 @@ export type {
 export { createCallablePolicy } from './callables/create-callable-policy.js';
 export type {
   CallableBusinessAnswer,
+  CallableFailureKind,
   CallablePolicyDefinition,
   CallablePolicyKit,
   CallablePolicyPlumbing,

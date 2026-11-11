@@ -78,6 +78,9 @@ function createMockFirestore() {
     batch: () => {
       throw new Error('not used');
     },
+    getAll: () => {
+      throw new Error('not used');
+    },
     runTransaction: async (fn) => {
       const writes: Array<() => Promise<unknown>> = [];
       function get(ref: ServerDocRef): Promise<ServerDocSnapshot>;

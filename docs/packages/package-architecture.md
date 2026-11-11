@@ -24,11 +24,13 @@ package may consume either.
   `input-format-core` (every input format — the named text formats and money in
   whole cents — a field's declaration, the one check every input and server bound
   runs, and the one money formatter; no dependencies at all), `module-core` (`lazyModule`, the one memoized dynamic
-  import every lazy load goes through; no dependencies at all), `site-core` (a site's page
+  import every lazy load goes through; no dependencies at all), `storage-core` (the guarded read
+  and write of browser storage, with one in-memory value per key for a browser that blocks site
+  data, and the device-preference store on `./react`; no dependencies, React an optional peer), `site-core` (a site's page
   metadata, viewport, manifest, robots rules and sitemap built from one site definition; no
   dependencies and no framework import at all), `firebase-helpers`, `chat-core`, `media-schemas`,
   `mobile-core`, `monitoring-core`, `theme-core`, `rate-limit-core`,
-  `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
+  `moderation-core`, `edge-protocol-core`
   (runtime-neutral signed-edge-call primitives plus the factories a consumer
   defines its own header sets with; WebCrypto + zod only), `repo-guards` (the one guard suite every app runs in
   its gate: one reader of the repository, every generic guard, and the three shapes
@@ -43,7 +45,10 @@ package may consume either.
   declaration and judgement), `report-core` (→ `firebase-helpers`, `input-format-core`;
   its queue handlers take the `firebase-helpers/server` Firestore contract, and the report
   comment's check — its UI/query needs are optional peers), `media-processing-core`
-  (→ `media-schemas`), `upload-core` (→ `firebase-helpers`, `media-schemas`),
+  (→ `firebase-helpers`, `media-schemas`; its pending-media server code takes the
+  `firebase-helpers/server` Firestore contract), `audit-core` (→ `firebase-helpers`; its writer
+  takes the `firebase-helpers/server` Firestore contract), `upload-core` (→ `firebase-helpers`,
+  `media-schemas`),
   `query-core` (→ `firebase-helpers`; its id-list batch loader splits by
   `FIRESTORE_IN_FILTER_LIMIT`, and its `./react` callable factories call `callCallable` from
   `firebase-helpers/client`),
@@ -53,10 +58,16 @@ package may consume either.
   `short-link-core` (→ `firebase-helpers`; its create and lookup cores take the
   `firebase-helpers/server` Firestore contract — React is an optional peer of its `./react`),
   `beacon-core` (→ `firebase-helpers`; its stamp writer takes the `firebase-helpers/server`
-  Firestore contract — React and `query-core` are optional peers of its `./react`).
-- **Tier 2:** `media-viewer` (→ `media-schemas`, `ui-core`), `file-input`
+  Firestore contract — React and `query-core` are optional peers of its `./react`),
+  `app-config-core` (→ `firebase-helpers`; its root is zod only, and its writer takes the
+  `firebase-helpers/server` Firestore contract), `sweep-core` (→ `firebase-helpers`; its root is
+  zod only, and its saved-position store and walks take the `firebase-helpers/server` Firestore
+  contract).
+- **Tier 2:** `auth-core` (→ `firebase-helpers`, `sweep-core`; its account-repair server code
+  takes the `firebase-helpers/server` Firestore contract and the Auth full scan from `sweep-core`),
+  `media-viewer` (→ `media-schemas`, `ui-core`), `file-input`
   (→ `ui-core`, `media-schemas`, `media-viewer`), `consent-core` (no internal runtime deps; its
-  `./react` entry builds on the optional peers `theme-core` and `ui-core`).
+  `./react` entry builds on the optional peers `storage-core` and `ui-core`).
 - **Tier 3:** `upload-ui` (→ `file-input`, `media-schemas`, `ui-core`,
   `upload-core`).
 - **Tier 4:** `chat-react` (→ `chat-core`, `chat-schemas`, `realtime-core`,
@@ -68,9 +79,9 @@ package may consume either.
   edge.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
   `edge-protocol-core`, `input-format-core`, `media-schemas`, `notification-core`,
-  `report-core`) for ttt-prod, and `q-core` (→ `auth-core`, `beacon-core`, `edge-protocol-core`,
-  `input-format-core`, `media-schemas`, `notification-core`, `short-link-core`, `theme-core`) for
-  Q-Sports. Each is governed by its own app's
+  `report-core`) for ttt-prod, and `q-core` (→ `app-config-core`, `auth-core`, `beacon-core`,
+  `edge-protocol-core`, `input-format-core`, `media-schemas`, `notification-core`,
+  `short-link-core`, `sweep-core`, `theme-core`) for Q-Sports. Each is governed by its own app's
   rulebook (RULE-STD-ARCH-207), and neither imports the other.
 
 The internal runtime-dependency edges (peer and dev edges are left out here; the
@@ -82,19 +93,24 @@ build and release order still honors them):
     realtime-core          -> edge-protocol-core
     file-input             -> ui-core, media-schemas, media-viewer
     media-viewer           -> media-schemas, ui-core
-    media-processing-core  -> media-schemas
+    media-processing-core  -> firebase-helpers, media-schemas
+    audit-core             -> firebase-helpers
     upload-core            -> firebase-helpers, media-schemas
     query-core             -> firebase-helpers
     notification-core      -> firebase-helpers
     short-link-core        -> firebase-helpers
     beacon-core            -> firebase-helpers
+    app-config-core        -> firebase-helpers
+    sweep-core             -> firebase-helpers
+    auth-core              -> firebase-helpers, sweep-core
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               input-format-core, media-schemas,
                               notification-core, report-core
-    q-core                 -> auth-core, beacon-core, edge-protocol-core,
-                              input-format-core, media-schemas,
-                              notification-core, short-link-core, theme-core
+    q-core                 -> app-config-core, auth-core, beacon-core,
+                              edge-protocol-core, input-format-core,
+                              media-schemas, notification-core,
+                              short-link-core, sweep-core, theme-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               ui-core, upload-ui, mobile-core, firebase-helpers
 
@@ -104,11 +120,17 @@ It needs no tier renumbering: the one package order (see Build order and release
 order) already places `media-viewer` before `file-input`, so dependencies still
 build and release before their dependents.
 
-Every other package has zero internal runtime dependencies. `ui-core`,
-`report-core`, `notification-core`, `beacon-core`, `consent-core`, `upload-ui`, and `chat-react` declare some
-`@ttt-productions/*` peers (e.g. `firebase-helpers`, `ui-core`, `query-core`, `theme-core`) —
+Every other package has zero internal runtime dependencies. `ui-core`, `theme-core`, `auth-core`,
+`media-viewer`, `report-core`, `notification-core`, `beacon-core`, `consent-core`, `upload-ui`, and `chat-react` declare some
+`@ttt-productions/*` peers (e.g. `firebase-helpers`, `ui-core`, `query-core`, `storage-core`) —
 a peer is not a runtime edge, but a package whose source imports one compiles
 against its `dist`, so the peer still builds and releases first.
+
+Every package that stores something in the browser reaches it through `storage-core`, declared an
+**optional peer** so the app installs
+the one copy whose held values every reader of a key shares — the same reason query-core is a peer.
+storage-core is the one package that touches `localStorage` / `sessionStorage`; the boundary suite
+runs repo-guards' browser-storage guard over every package to hold it (RULE-STD-FRONTEND-010).
 
 ## Entry purity rule
 
@@ -288,7 +310,7 @@ reader through `config.acceptance`; the package only compares the two levels
 
 Build and release follow one order: every package comes after each internal
 `@ttt-productions/*` package it declares (runtime, dev, or peer), so it compiles
-against a built `dist` and never publishes a caret range to a version npm does
+against a built `dist` and never publishes an internal range to a version npm does
 not have yet. That order is written in one place, the root `package.json` `build`
 chain, so adding, renaming, or removing a package means editing that chain only:
 
@@ -322,24 +344,31 @@ sourcemaps or broadly adding source trees to package tarballs.
 Internal `@ttt-productions/*` dependencies are authored `"*"` in source so that
 workspace dev always resolves to the local package. A published tarball must
 never ship `"*"` (it would let a consumer resolve an incompatible newer internal
-version), so the release pipeline rewrites every internal `"*"` to a **caret
-range** (`^x.y.z`) at pack time — across `dependencies`, `devDependencies`, AND
-`peerDependencies`:
+version), so the release pipeline rewrites every internal `"*"` to a range built
+from the dependency's current version at pack time — across `dependencies`,
+`devDependencies`, `peerDependencies`, AND `optionalDependencies`. A dependency at `0.0.z` gets
+`>=0.0.z <0.1.0`; every other version gets a **caret range** (`^x.y.z`).
 
 - `scripts/release-package.sh` bumps the version, commits, tags, and pushes —
   the tag triggers CI. It does not pin; committed source keeps `"*"`.
 - `.github/workflows/publish.yml` runs `scripts/pin-internal-deps.mjs <pkgDir>`
-  on the ephemeral checkout to rewrite `"*"` → caret pins, then re-runs it with
+  on the ephemeral checkout to rewrite `"*"` → those ranges, then re-runs it with
   `--check` to **hard-fail** if any internal `"*"` survived, then `npm publish`.
 
-Caret, not exact: bumping one internal package by a patch/minor must not force
-every dependent to be republished in lockstep. Exact pins caused exactly that
-cascade — a stale exact regular dep surfaced as a duplicate nested install, and a
-stale exact peer dep as a `peerOptional` ERESOLVE warning, in the consuming app
-until the dependent was also republished. Caret on a `0.x` version still locks
-the minor, so a breaking minor/major is never auto-adopted — only compatible
-patches flow through. Because the checkout is ephemeral, the rewrite affects only
-the published tarball; the repo keeps `"*"`.
+A range, not exact: bumping one internal package by a patch must not force every
+dependent to be republished in lockstep. Exact pins caused exactly that cascade —
+a stale exact regular dep surfaced as a duplicate nested install, and a stale
+exact peer dep as a `peerOptional` ERESOLVE warning, in the consuming app until
+the dependent was also republished. Caret on a `0.y.z` version with `y > 0` locks
+the minor, so a breaking minor/major is never auto-adopted — only patches flow
+through. Caret on `0.0.z` locks the patch itself (`^0.0.2` accepts only `0.0.2`),
+so the next patch of a `0.0.z` package would fall outside every dependent's
+published range and a consumer would fail to resolve it or nest a second copy;
+`>=0.0.z <0.1.0` keeps the same promise as the caret on `0.y.z` — every later
+`0.0.x` patch flows through, `0.1.0` never does. A published tarball's ranges
+never change, so a dependent takes a new range only when it is next published.
+Because the checkout is ephemeral, the rewrite affects only the published
+tarball; the repo keeps `"*"`.
 
 ## Boundary guard tests
 

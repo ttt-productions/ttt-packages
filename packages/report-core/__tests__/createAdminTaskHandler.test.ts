@@ -51,6 +51,7 @@ function makeMockDb() {
     collection: collectionFn,
     doc: notInFake,
     batch: notInFake,
+    getAll: notInFake,
     runTransaction: notInFake,
   };
   return { db, setFn, docFn, collectionFn };

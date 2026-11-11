@@ -7,6 +7,7 @@ import {
   AlertDescription,
   Button,
   Card,
+  ClippedText,
   Input,
   Progress,
   Spinner,
@@ -343,7 +344,7 @@ export function FileInput(props: FileInputProps) {
                   </>
                 ) : fileValue ? (
                   <span className="flex items-center justify-between w-full">
-                    <span className="truncate pr-2">{getSelectedFileLabel(fileValue)}</span>
+                    <ClippedText text={getSelectedFileLabel(fileValue)} className="pr-2" />
                     <Button
                       type="button"
                       variant="ghost"

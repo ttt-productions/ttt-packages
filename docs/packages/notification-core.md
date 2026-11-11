@@ -93,8 +93,8 @@ in the active collection until archived; personal unread state is tracked with
 - The batch-processing server helper (`processBatchHelper`) for the pending-queue path
 - **The generic delivery ledger:** `createDeliveryLedger(db, config, options)` —
   one Firestore doc per (recipient|shared, type, occurrence) that is BOTH the queue row AND the
-  idempotency ledger. `enqueue` is create-if-absent (`ALREADY_EXISTS` ⇒ a per-row duplicate
-  no-op, never a page failure); `materialize` is ONE transaction that reads the delivery row +
+  idempotency ledger. `enqueue` is create-if-absent (an existing row, recognised by
+  `firebase-helpers`' `isAlreadyExistsError`, is a per-row duplicate no-op, never a page failure); `materialize` is ONE transaction that reads the delivery row +
   active card, applies the aggregation strategy exactly once (`increment` / `staticRelight`,
   exported as the pure `applyAggregation`), rotates the opaque `activityGeneration`, resets
   `seenAt`, and flips the row to `materialized`; `recordTransientFailure` / `deadLetter` /
